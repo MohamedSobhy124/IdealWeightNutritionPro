@@ -7,7 +7,7 @@ This guide deploys:
 | Site | Technology | Example URL |
 |------|------------|-------------|
 | **Storefront** | Angular 19 (static SPA) | `https://idealweightnutrition.ae` |
-| **API** | .NET 8 FastEndpoints | `https://api.idealweightnutrition.ae` |
+| **API** | .NET 8 FastEndpoints | `https://admin.idealweightnutrition.ae` |
 
 The storefront calls the API on a **subdomain** (CORS + cookies are configured for that).
 
@@ -87,9 +87,9 @@ modernization\publish\smarterasp\
 Edit `frontend/src/environments/environment.prod.ts` if your URLs differ:
 
 ```typescript
-apiBaseUrl: 'https://api.idealweightnutrition.ae/api',
-signalRHubUrl: 'https://api.idealweightnutrition.ae/hubs/notifications',
-legacyAssetsBaseUrl: 'https://api.idealweightnutrition.ae',
+apiBaseUrl: 'https://admin.idealweightnutrition.ae/api',
+signalRHubUrl: 'https://admin.idealweightnutrition.ae/hubs/notifications',
+legacyAssetsBaseUrl: 'https://admin.idealweightnutrition.ae',
 siteUrl: 'https://idealweightnutrition.ae',
 ```
 
@@ -163,14 +163,14 @@ Alternatively, set these as **Environment Variables** in the SmarterASP control 
 | `LegacyStorage__WwwRootPath` | `D:\home\site\wwwroot\legacy-media` |
 | `Cors__AllowedOrigins__0` | `https://idealweightnutrition.ae` |
 | `App__FrontendBaseUrl` | `https://idealweightnutrition.ae` |
-| `App__PublicApiBaseUrl` | `https://api.idealweightnutrition.ae` |
+| `App__PublicApiBaseUrl` | `https://admin.idealweightnutrition.ae` |
 
 ### Test the API
 
 Open in browser:
 
 ```
-https://api.idealweightnutrition.ae/api/health
+https://admin.idealweightnutrition.ae/api/health
 ```
 
 Expected: JSON with `"status": "healthy"`.
@@ -178,7 +178,7 @@ Expected: JSON with `"status": "healthy"`.
 Also test an image URL:
 
 ```
-https://api.idealweightnutrition.ae/Images/Products/SOME-GUID.png
+https://admin.idealweightnutrition.ae/Images/Products/SOME-GUID.png
 ```
 
 ---
@@ -218,7 +218,7 @@ Bind both domains in the SmarterASP control panel and enable **free SSL**.
 In [Google Cloud Console](https://console.cloud.google.com/), add:
 
 - **Authorized JavaScript origins:** `https://idealweightnutrition.ae`
-- **Authorized redirect URIs:** `https://api.idealweightnutrition.ae/signin-google`
+- **Authorized redirect URIs:** `https://admin.idealweightnutrition.ae/signin-google`
 
 Update `App__FrontendBaseUrl` and `App__PublicApiBaseUrl` to match your live URLs.
 
@@ -229,7 +229,7 @@ Update `App__FrontendBaseUrl` and `App__PublicApiBaseUrl` to match your live URL
 Set callback / return URLs in Geidea, Tamara, and Tabby dashboards to your **production** URLs:
 
 - Storefront: `https://idealweightnutrition.ae`
-- API callbacks: `https://api.idealweightnutrition.ae/...`
+- API callbacks: `https://admin.idealweightnutrition.ae/...`
 
 ---
 
