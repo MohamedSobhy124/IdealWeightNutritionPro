@@ -1,0 +1,27 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+appsettings.*.local.json
+secrets.json
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+*.swp
+.DS_Store
+
+# Docker volumes (local)
+data/
+
+# Environment
+.env
+.env.local

@@ -1,0 +1,36 @@
+<section class="ui-fade-in py-6 sm:py-8">
+  <ui-page-header [title]="t('myReturns')" [breadcrumbs]="[{ label: t('myAccount'), link: '/account' }]" />
+
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3]; track i) {
+        <ui-skeleton height="5rem" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (items().length === 0) {
+    <ui-empty-state icon="assignment_return" [title]="t('noReturns')" />
+  } @else {
+    <div class="space-y-3 ui-stagger-children">
+      @for (item of items(); track item.id) {
+        <article class="ui-card ui-card-pad ui-hover-lift">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <a [routerLink]="['/returns', item.id]" class="min-w-0 group">
+              <p class="text-base font-semibold text-ink-900 group-hover:text-brand-700">
+                {{ t('returnLabel') }} #{{ item.id }}
+              </p>
+              <p class="mt-0.5 text-sm text-ink-500">
+                {{ t('orderLabel') }} #{{ item.orderId }} · {{ item.requestDate | date: 'mediumDate' }}
+              </p>
+            </a>
+            <div class="flex flex-col items-end gap-1">
+              <ui-badge [variant]="statusVariant(item.status)">{{ item.status }}</ui-badge>
+              @if (item.refundAmount != null) {
+                <span class="text-sm font-bold tabular-nums text-ink-900">{{ item.refundAmount | iwnCurrency }}</span>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

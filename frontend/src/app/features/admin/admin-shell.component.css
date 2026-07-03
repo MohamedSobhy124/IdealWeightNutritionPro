@@ -1,0 +1,4 @@
+/* Admin shell layout is fully handled by Tailwind utility classes in the template. */
+:host {
+  display: block;
+}

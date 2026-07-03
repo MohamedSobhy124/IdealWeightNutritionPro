@@ -1,0 +1,113 @@
+<ui-page-header
+  [title]="isEdit() ? t('editService') : t('newService')"
+  [breadcrumbs]="[{ label: t('servicesTitle'), link: '/admin/services' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="2.5rem" />
+    <ui-skeleton height="2.5rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else {
+  <form class="space-y-6" (ngSubmit)="submit()">
+    <ui-card [heading]="t('sectionBasicInfo')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('titleEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="title" name="title" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('titleAr')">
+          <input class="ui-input" [(ngModel)]="titleAr" name="titleAr" />
+        </ui-form-field>
+        <ui-form-field [label]="t('description')" class="sm:col-span-2">
+          <textarea class="ui-textarea" [(ngModel)]="description" name="description" rows="3"></textarea>
+        </ui-form-field>
+        <ui-form-field [label]="t('descriptionAr')" class="sm:col-span-2">
+          <textarea class="ui-textarea" [(ngModel)]="descriptionAr" name="descriptionAr" rows="3"></textarea>
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionPricing')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('amountAed')" [required]="true">
+          <input class="ui-input" type="number" [(ngModel)]="price" name="price" min="0.01" step="0.01" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('serviceType')">
+          <select class="ui-select" [(ngModel)]="serviceType" name="serviceType">
+            <option value="Online">{{ t('serviceTypeOnline') }}</option>
+            <option value="Offline">{{ t('serviceTypeOffline') }}</option>
+          </select>
+        </ui-form-field>
+        @if (serviceType === 'Offline') {
+          <ui-form-field [label]="t('offlinePaymentPercent')">
+            <input
+              class="ui-input"
+              type="number"
+              [(ngModel)]="offlinePaymentPercent"
+              name="offlinePaymentPercent"
+              min="1"
+              max="100"
+              step="1"
+            />
+          </ui-form-field>
+        }
+        <ui-form-field [label]="t('displayOrder')">
+          <input class="ui-input" type="number" [(ngModel)]="displayOrder" name="displayOrder" min="0" />
+        </ui-form-field>
+      </div>
+      <label class="mt-4 flex items-center gap-2 text-sm text-ink-700">
+        <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+        {{ t('active') }}
+      </label>
+    </ui-card>
+
+    @if (saveError()) {
+      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+    }
+
+    <div class="flex justify-end gap-2">
+      <a routerLink="/admin/services" class="ui-btn-secondary">{{ t('cancel') }}</a>
+      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
+        {{ submitting() ? t('saving') : t('save') }}
+      </button>
+    </div>
+  </form>
+
+  @if (isEdit()) {
+    <ui-card [heading]="t('images')" class="mt-6 block">
+      @if (images().length) {
+        <div class="flex flex-wrap gap-3">
+          @for (image of images(); track image.id) {
+            <figure class="m-0">
+              <img
+                [src]="catalogue.resolveImageUrl(image.imageUrl)"
+                [alt]="title"
+                class="h-28 w-28 rounded-xl object-cover"
+              />
+              <button type="button" class="ui-btn-danger ui-btn-sm mt-2 w-full" (click)="removeImage(image.id)">
+                {{ t('delete') }}
+              </button>
+            </figure>
+          }
+        </div>
+      } @else {
+        <p class="text-sm text-ink-500">{{ t('noImages') }}</p>
+      }
+      <label class="ui-label mt-4 block">
+        {{ t('uploadImage') }}
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onImageSelected($event)"
+          [disabled]="uploading()"
+          class="mt-1 block text-sm"
+        />
+      </label>
+    </ui-card>
+  } @else {
+    <p class="mt-4 text-sm text-ink-500">{{ t('serviceImagesAfterSave') }}</p>
+  }
+}

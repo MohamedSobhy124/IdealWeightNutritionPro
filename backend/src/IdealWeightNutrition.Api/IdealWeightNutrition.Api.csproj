@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\IdealWeightNutrition.Application\IdealWeightNutrition.Application.csproj" />
+    <ProjectReference Include="..\IdealWeightNutrition.Infrastructure\IdealWeightNutrition.Infrastructure.csproj" />
+    <ProjectReference Include="..\IdealWeightNutrition.Contracts\IdealWeightNutrition.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastEndpoints" Version="8.1.0" />
+    <PackageReference Include="FastEndpoints.Swagger" Version="8.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LaunchProfile>https</LaunchProfile>
+  </PropertyGroup>
+
+</Project>

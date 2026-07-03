@@ -1,0 +1,218 @@
+<ui-page-header [title]="t('stockNotificationsTitle')" />
+
+
+
+@if (message()) {
+
+  <p class="mb-4 text-sm text-ink-600">{{ message() }}</p>
+
+}
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(items())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="9999"
+
+  [emptyTitle]="t('noStockNotifications')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+  <div table-toolbar>
+
+    <ui-filter-bar>
+
+      <form class="flex flex-wrap items-end gap-3" (ngSubmit)="applyFilters()">
+
+        <label class="flex items-center gap-2 text-sm text-ink-600">
+
+          <input type="checkbox" class="accent-brand-600" [(ngModel)]="activeOnly" name="activeOnly" />
+
+          {{ t('activeOnly') }}
+
+        </label>
+
+
+
+        <label class="flex items-center gap-2 text-sm text-ink-600">
+
+          <input type="checkbox" class="accent-brand-600" [(ngModel)]="pendingOnly" name="pendingOnly" />
+
+          {{ t('pendingOnly') }}
+
+        </label>
+
+
+
+        <label class="flex flex-col gap-1">
+
+          <span class="ui-label">{{ t('search') }}</span>
+
+          <input
+
+            type="search"
+
+            class="ui-input"
+
+            [(ngModel)]="search"
+
+            name="search"
+
+            [placeholder]="t('stockNotificationSearchPlaceholder')"
+
+          />
+
+        </label>
+
+
+
+        <div class="flex gap-2">
+
+          <button type="submit" class="ui-btn-primary ui-btn-sm">{{ t('search') }}</button>
+
+          <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearFilters()">{{ t('clearFilter') }}</button>
+
+        </div>
+
+      </form>
+
+    </ui-filter-bar>
+
+  </div>
+
+
+
+  <ng-template uiCell="product" let-row>
+
+    @let item = $any(row);
+
+    <a [routerLink]="['/admin/products', item.productId]" class="font-medium text-brand-600 hover:underline">{{ item.productTitle }}</a>
+
+    @if (item.variantSku) {
+
+      <span class="block text-xs text-ink-500">{{ item.variantSku }}</span>
+
+    }
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="email" let-row>
+
+    {{ $any(row).email }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="phoneNumber" let-row>
+
+    {{ $any(row).phoneNumber || '—' }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="createdDate" let-row>
+
+    {{ $any(row).createdDate | date: 'medium' }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="status" let-row>
+
+    @let item = $any(row);
+
+    @if (item.isNotified) {
+
+      <ui-badge [variant]="'success'">{{ t('notified') }}</ui-badge>
+
+    } @else if (item.isActive) {
+
+      <ui-badge [variant]="'warning'" [dot]="true">{{ t('waiting') }}</ui-badge>
+
+    } @else {
+
+      <ui-badge [variant]="'neutral'">{{ t('inactive') }}</ui-badge>
+
+    }
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let item = $any(row);
+
+    @if (item.isActive) {
+
+      <button
+
+        type="button"
+
+        class="ui-btn-secondary ui-btn-sm"
+
+        (click)="deactivate(item)"
+
+        [disabled]="deactivatingId() === item.id"
+
+      >
+
+        {{ t('deactivate') }}
+
+      </button>
+
+    }
+
+  </ng-template>
+
+</ui-data-table>
+
+
+
+@if (!loading() && items().length > 0) {
+
+  <div class="mt-4 flex items-center justify-end gap-3">
+
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="prevPage()" [disabled]="page() <= 1">
+
+      {{ t('prevPage') }}
+
+    </button>
+
+    <span class="text-sm text-ink-600">{{ t('pageOf') }} {{ page() }} / {{ totalPages() }} ({{ totalCount() }})</span>
+
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="nextPage()" [disabled]="page() >= totalPages()">
+
+      {{ t('nextPage') }}
+
+    </button>
+
+  </div>
+
+}
+
+

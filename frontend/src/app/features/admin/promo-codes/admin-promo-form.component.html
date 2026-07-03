@@ -1,0 +1,244 @@
+<ui-page-header
+  [title]="isEdit() ? t('editPromoCode') : t('newPromoCode')"
+  [breadcrumbs]="[{ label: t('promoCodesTitle'), link: '/admin/promo-codes' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="2.5rem" />
+    <ui-skeleton height="2.5rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else {
+  <form class="space-y-6" (ngSubmit)="submit()">
+    <ui-card [heading]="t('sectionBasicInfo')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('promoCode')" [required]="true">
+          <input class="ui-input" [(ngModel)]="code" name="code" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('description')" [required]="true">
+          <input class="ui-input" [(ngModel)]="description" name="description" required />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionPricing')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('promoDiscountType')">
+          <select class="ui-select" [(ngModel)]="discountType" name="discountType">
+            <option value="Percentage">{{ t('discountPercentage') }}</option>
+            <option value="FixedAmount">{{ t('discountFixed') }}</option>
+          </select>
+        </ui-form-field>
+        <ui-form-field [label]="t('promoDiscountValue')" [required]="true">
+          <input
+            class="ui-input"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="discountValue"
+            name="discountValue"
+            required
+          />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoMinOrder')">
+          <input
+            class="ui-input"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="minimumOrderAmount"
+            name="minimumOrderAmount"
+          />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoMaxDiscount')">
+          <input
+            class="ui-input"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="maximumDiscountAmount"
+            name="maximumDiscountAmount"
+          />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionSchedule')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('promoStartDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="startDate" name="startDate" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoEndDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="endDate" name="endDate" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoUsageLimit')">
+          <input class="ui-input" type="number" min="0" [(ngModel)]="usageLimit" name="usageLimit" />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoUsageLimitPerUser')">
+          <input class="ui-input" type="number" min="0" [(ngModel)]="usageLimitPerUser" name="usageLimitPerUser" />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionSettings')">
+      <div class="space-y-3">
+        <label class="flex items-center gap-2 text-sm text-ink-700">
+          <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+          {{ t('active') }}
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink-700">
+          <input type="checkbox" [(ngModel)]="excludeDiscountedItems" name="excludeDiscountedItems" />
+          {{ t('promoExcludeDiscounted') }}
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink-700">
+          <input type="checkbox" [(ngModel)]="excludeAllServices" name="excludeAllServices" />
+          {{ t('promoExcludeServices') }}
+        </label>
+      </div>
+    </ui-card>
+
+    @if (saveError()) {
+      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+    }
+
+    <div class="flex justify-end gap-2">
+      <a routerLink="/admin/promo-codes" class="ui-btn-secondary">{{ t('cancel') }}</a>
+      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
+        {{ submitting() ? t('saving') : t('save') }}
+      </button>
+    </div>
+  </form>
+
+  @if (isEdit() && exclusions(); as ex) {
+    <ui-card [heading]="t('promoExclusionsTitle')" [subheading]="t('promoExclusionsHint')" class="mt-6 block">
+      @if (exclusionMessage()) {
+        <p [class.text-danger]="exclusionError()" [class.text-success-fg]="!exclusionError()" class="text-sm">
+          {{ exclusionMessage() }}
+        </p>
+      }
+
+      <div class="space-y-6">
+        <div>
+          <h3 class="mb-2 text-sm font-semibold text-ink-900">{{ t('promoExcludedProducts') }}</h3>
+          <input
+            class="ui-input"
+            type="search"
+            [(ngModel)]="productSearch"
+            name="productSearch"
+            [placeholder]="t('searchProductsPlaceholder')"
+            (input)="searchProducts()"
+          />
+          @if (productResults().length > 0) {
+            <ul class="mt-2 divide-y divide-ink-100 rounded-xl border border-ink-200">
+              @for (p of productResults(); track p.id) {
+                <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{{ productLabel(p) }}</span>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="addProduct(p.id)">
+                    {{ t('add') }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          @if (ex.products.length === 0) {
+            <p class="mt-2 text-sm text-ink-500">{{ t('promoNoExclusions') }}</p>
+          } @else {
+            <ul class="mt-2 divide-y divide-ink-100 rounded-xl border border-ink-200">
+              @for (item of ex.products; track item.id) {
+                <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{{ productLabel(item) }}</span>
+                  <button type="button" class="ui-btn-danger ui-btn-sm" (click)="removeProduct(item.id)">
+                    {{ t('remove') }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div>
+          <h3 class="mb-2 text-sm font-semibold text-ink-900">{{ t('promoExcludedCombos') }}</h3>
+          <input
+            class="ui-input"
+            type="search"
+            [(ngModel)]="comboSearch"
+            name="comboSearch"
+            [placeholder]="t('search')"
+            (focus)="filterCombos()"
+            (input)="filterCombos()"
+          />
+          @if (comboResults().length > 0) {
+            <ul class="mt-2 divide-y divide-ink-100 rounded-xl border border-ink-200">
+              @for (c of comboResults(); track c.id) {
+                <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{{ comboLabel(c) }}</span>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="addCombo(c.id)">
+                    {{ t('add') }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          @if (ex.comboOffers.length === 0) {
+            <p class="mt-2 text-sm text-ink-500">{{ t('promoNoExclusions') }}</p>
+          } @else {
+            <ul class="mt-2 divide-y divide-ink-100 rounded-xl border border-ink-200">
+              @for (item of ex.comboOffers; track item.id) {
+                <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{{ comboLabel(item) }}</span>
+                  <button type="button" class="ui-btn-danger ui-btn-sm" (click)="removeCombo(item.id)">
+                    {{ t('remove') }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div>
+          <h3 class="mb-2 text-sm font-semibold text-ink-900">{{ t('promoExcludedServices') }}</h3>
+          <input
+            class="ui-input"
+            type="search"
+            [(ngModel)]="serviceSearch"
+            name="serviceSearch"
+            [placeholder]="t('search')"
+            (focus)="filterServices()"
+            (input)="filterServices()"
+          />
+          @if (serviceResults().length > 0) {
+            <ul class="mt-2 divide-y divide-ink-100 rounded-xl border border-ink-200">
+              @for (s of serviceResults(); track s.id) {
+                <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{{ serviceLabel(s) }}</span>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="addService(s.id)">
+                    {{ t('add') }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          @if (ex.services.length === 0) {
+            <p class="mt-2 text-sm text-ink-500">{{ t('promoNoExclusions') }}</p>
+          } @else {
+            <ul class="mt-2 divide-y divide-ink-100 rounded-xl border border-ink-200">
+              @for (item of ex.services; track item.id) {
+                <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{{ serviceLabel(item) }}</span>
+                  <button type="button" class="ui-btn-danger ui-btn-sm" (click)="removeService(item.id)">
+                    {{ t('remove') }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </ui-card>
+  } @else if (!isEdit()) {
+    <p class="mt-4 text-sm text-ink-500">{{ t('promoExclusionsAfterSave') }}</p>
+  }
+}

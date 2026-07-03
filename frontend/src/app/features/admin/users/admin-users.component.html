@@ -1,0 +1,88 @@
+<ui-page-header [title]="t('usersTitle')">
+  <div header-actions>
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">
+      <span class="material-icons !text-[18px]">person_add</span>
+      {{ t('newUser') }}
+    </button>
+  </div>
+</ui-page-header>
+
+@if (message()) {
+  <p
+    class="mb-4 text-sm"
+    [class.text-success-fg]="message() === t('userCreated') || message() === t('saved')"
+    [class.text-danger]="message() !== t('userCreated') && message() !== t('saved')"
+  >
+    {{ message() }}
+  </p>
+}
+
+@if (error()) {
+  <div class="mb-4 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger-fg">{{ error() }}</div>
+}
+
+<ui-data-table
+  [columns]="cols"
+  [rows]="$any(items())"
+  [loading]="loading()"
+  [searchable]="true"
+  [searchPlaceholder]="t('search')"
+  [pageSize]="20"
+  [emptyTitle]="t('noUsers')"
+  [ofLabel]="t('of')"
+
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+  <ng-template uiCell="phoneNumber" let-row>
+    {{ $any(row).phoneNumber || '—' }}
+  </ng-template>
+
+  <ng-template uiCell="role" let-row>
+    {{ primaryRole($any(row)) }}
+  </ng-template>
+
+  <ng-template uiCell="companyName" let-row>
+    {{ $any(row).companyName || '—' }}
+  </ng-template>
+</ui-data-table>
+
+<ui-modal [open]="showForm()" [heading]="t('newUser')" size="md" (closed)="cancelForm()">
+  <form class="space-y-4" (ngSubmit)="submit()">
+    <ui-form-field [label]="t('email')" [required]="true">
+      <input class="ui-input" type="email" [(ngModel)]="email" name="email" required />
+    </ui-form-field>
+    <ui-form-field [label]="t('customer')" [required]="true">
+      <input class="ui-input" [(ngModel)]="name" name="name" required />
+    </ui-form-field>
+    <ui-form-field [label]="t('password')" [required]="true">
+      <input class="ui-input" type="password" [(ngModel)]="password" name="password" required autocomplete="new-password" />
+    </ui-form-field>
+    <ui-form-field [label]="t('phone')">
+      <input class="ui-input" [(ngModel)]="phoneNumber" name="phoneNumber" />
+    </ui-form-field>
+    <ui-form-field [label]="t('userRole')" [required]="true">
+      <select class="ui-select" [(ngModel)]="role" name="role" required>
+        @for (r of roleOptions; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+    </ui-form-field>
+    @if (isCompanyRole()) {
+      <ui-form-field [label]="t('companyName')" [required]="true">
+        <select class="ui-select" [(ngModel)]="companyId" name="companyId" required>
+          <option [ngValue]="null">{{ t('selectCompany') }}</option>
+          @for (c of companies(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </ui-form-field>
+    }
+    <div class="flex justify-end gap-2 pt-2">
+      <button type="button" class="ui-btn-secondary" (click)="cancelForm()">{{ t('cancel') }}</button>
+      <button type="submit" class="ui-btn-primary" [disabled]="creating()">
+        {{ creating() ? t('creating') : t('createUser') }}
+      </button>
+    </div>
+  </form>
+</ui-modal>

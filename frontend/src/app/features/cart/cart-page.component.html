@@ -1,0 +1,146 @@
+<section class="checkout-shell ui-fade-in">
+  <ui-page-header [title]="t('shoppingCart')" />
+
+  @if (loading()) {
+    <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div class="space-y-3">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="ui-card flex gap-4 p-4">
+            <ui-skeleton height="6rem" width="6rem" class="shrink-0 rounded-xl" />
+            <div class="flex-1 space-y-2">
+              <ui-skeleton height="1rem" width="70%" />
+              <ui-skeleton height="0.875rem" width="40%" />
+            </div>
+          </div>
+        }
+      </div>
+      <ui-skeleton height="16rem" class="rounded-2xl" />
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <button type="button" class="ui-btn-secondary" (click)="refresh()">{{ t('tryAgain') }}</button>
+    </ui-empty-state>
+  } @else if (items().length === 0) {
+    <ui-empty-state icon="shopping_cart" [title]="t('cartEmpty')">
+      <a routerLink="/shop" class="ui-btn-primary">{{ t('continueShopping') }}</a>
+    </ui-empty-state>
+  } @else {
+    <div class="cart-context mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 px-3 py-2.5 text-sm text-ink-700 sm:px-4">
+      <p class="font-medium text-ink-900">{{ t('proceedCheckout') }}</p>
+      <p class="mt-0.5 text-xs text-ink-600">{{ t('securePayments') }} · {{ t('sameDayDelivery') }}</p>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[1fr_360px] lg:gap-8">
+      <div class="space-y-3 ui-stagger-children">
+        @for (item of items(); track item.lineId) {
+          <article class="ui-card ui-hover-lift cart-item-card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+            <img
+              [src]="catalogue.resolveImageUrl(item.imageUrl)"
+              [alt]="item.title"
+              class="h-20 w-20 shrink-0 rounded-xl bg-ink-100 object-cover sm:h-24 sm:w-24"
+            />
+            <div class="min-w-0 flex-1">
+              @if (item.comboOfferId) {
+                <a [routerLink]="['/combos', item.comboOfferId]" class="font-semibold text-ink-900 hover:text-brand-600">{{ item.title }}</a>
+                <p class="mt-0.5 text-xs text-brand-600">{{ t('comboOffer') }}</p>
+              } @else {
+                <a [routerLink]="['/product', item.slug]" class="line-clamp-2 font-semibold text-ink-900 hover:text-brand-600">{{ item.title }}</a>
+              }
+              <p class="mt-1 text-sm text-ink-500 tabular-nums">{{ item.unitPrice | iwnCurrency }} {{ t('priceEach') }}</p>
+              @if (!item.inStock) {
+                <p class="mt-1 text-xs font-medium text-warning-fg">{{ t('limitedStock') }}</p>
+              }
+            </div>
+            <div class="flex items-center justify-between gap-3 sm:justify-end">
+              <div class="flex items-center rounded-xl border border-ink-200 bg-ink-50">
+                <button type="button" class="ui-btn-icon !h-11 !w-11" (click)="changeQty(item, item.quantity - 1)" [disabled]="updating()" [attr.aria-label]="t('quantity')">−</button>
+                <span class="min-w-[2rem] text-center text-sm font-semibold tabular-nums">{{ item.quantity }}</span>
+                <button
+                  type="button"
+                  class="ui-btn-icon !h-11 !w-11"
+                  (click)="changeQty(item, item.quantity + 1)"
+                  [disabled]="updating() || item.quantity >= item.maxQuantity"
+                  [attr.aria-label]="t('quantity')"
+                >+</button>
+              </div>
+              <p class="min-w-[5rem] text-end text-sm font-bold text-ink-900 tabular-nums">{{ item.lineTotal | iwnCurrency }}</p>
+              <button type="button" class="ui-btn-icon text-danger" (click)="remove(item)" [disabled]="updating()" [attr.aria-label]="t('remove')">
+                <span class="material-icons text-[20px]">delete_outline</span>
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+
+      <aside class="ui-sticky-summary h-fit">
+        <ui-card class="ui-card-pad">
+          <h2 class="mb-1 text-lg font-bold text-ink-900">{{ t('orderSummary') }}</h2>
+          <p class="mb-4 text-xs text-ink-500">{{ t('securePayments') }}</p>
+          <div class="cart-summary-chips mb-4">
+            <span class="cart-summary-chip">{{ t('trustedOriginals') }}</span>
+            <span class="cart-summary-chip">{{ t('sameDayDelivery') }}</span>
+          </div>
+
+          <div class="promo mb-4">
+            @if (appliedPromo()) {
+              <p class="rounded-xl bg-success-soft px-3 py-2 text-sm text-success-fg">
+                {{ t('promoApplied') }} <strong>{{ appliedPromo()!.code }}</strong>
+                (− {{ discount() | iwnCurrency }})
+                <button type="button" class="ms-2 text-danger underline" (click)="removePromo()" [disabled]="updating()">
+                  {{ t('remove') }}
+                </button>
+              </p>
+            } @else {
+              <ui-form-field [label]="t('promoCode')">
+                <div class="flex gap-2">
+                  <input class="ui-input" [(ngModel)]="promoCode" name="promoCode" [placeholder]="t('enterCode')" />
+                  <button type="button" class="ui-btn-secondary shrink-0" (click)="applyPromo()" [disabled]="updating() || !promoCode.trim()">
+                    {{ t('apply') }}
+                  </button>
+                </div>
+              </ui-form-field>
+              @if (promoError()) {
+                <p class="ui-error">{{ promoError() }}</p>
+              }
+            }
+          </div>
+
+          <dl class="space-y-2.5 text-sm tabular-nums">
+            <div class="flex justify-between gap-3">
+              <dt class="text-ink-500">{{ t('subtotal') }}</dt>
+              <dd class="font-medium text-ink-900">{{ subtotal() | iwnCurrency }}</dd>
+            </div>
+            @if (discount() > 0) {
+              <div class="flex justify-between gap-3 text-success-fg">
+                <dt>{{ t('discount') }}</dt>
+                <dd>− {{ discount() | iwnCurrency }}</dd>
+              </div>
+            }
+          </dl>
+
+          <div class="checkout-summary-total flex items-center justify-between gap-3">
+            <span class="text-sm font-medium text-white/80">{{ t('total') }}</span>
+            <span class="text-xl font-bold tabular-nums">{{ (discount() > 0 ? total() : subtotal()) | iwnCurrency }}</span>
+          </div>
+
+          <p class="checkout-trust">
+            <span class="material-icons text-[18px] text-brand-600" aria-hidden="true">lock</span>
+            {{ t('trustedOriginals') }} · {{ t('sameDayDelivery') }}
+          </p>
+
+          <a routerLink="/checkout" class="ui-btn-primary mt-5 hidden w-full lg:inline-flex">{{ t('proceedCheckout') }}</a>
+          <button type="button" class="ui-btn-ghost mt-2 hidden w-full text-danger lg:inline-flex" (click)="clearCart()" [disabled]="updating()">
+            {{ t('clearCart') }}
+          </button>
+        </ui-card>
+      </aside>
+    </div>
+
+    <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset lg:hidden">
+      <div class="checkout-mobile-bar__meta">
+        <p class="text-xs text-ink-500">{{ t('total') }}</p>
+        <p class="text-lg font-bold tabular-nums text-ink-900">{{ (discount() > 0 ? total() : subtotal()) | iwnCurrency }}</p>
+      </div>
+      <a routerLink="/checkout" class="ui-btn-primary checkout-mobile-bar__btn flex-1 text-center">{{ t('proceedCheckout') }}</a>
+    </div>
+  }
+</section>

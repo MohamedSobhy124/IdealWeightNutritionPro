@@ -1,0 +1,318 @@
+<section class="checkout-shell ui-fade-in">
+  <ui-page-header [title]="t('checkout')" [breadcrumbs]="[{ label: t('shoppingCart'), link: '/cart' }]" />
+
+  @if (loading()) {
+    <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div class="space-y-4">
+        <ui-skeleton height="4.5rem" class="rounded-2xl" />
+        <ui-skeleton height="16rem" class="rounded-2xl" />
+      </div>
+      <ui-skeleton height="20rem" class="rounded-2xl" />
+    </div>
+  } @else if (cartEmpty()) {
+    <ui-empty-state icon="shopping_cart" [title]="t('cartEmpty')">
+      <a routerLink="/shop" class="ui-btn-primary">{{ t('continueShopping') }}</a>
+    </ui-empty-state>
+  } @else {
+    <div class="grid gap-6 lg:grid-cols-[1fr_360px] lg:gap-8">
+      <form class="space-y-5" (ngSubmit)="submit()">
+        <div class="checkout-context rounded-2xl border border-brand-100 bg-brand-50/60 px-3 py-2.5 text-sm text-ink-700 sm:px-4">
+          <p class="font-medium text-ink-900">{{ t(checkoutSteps[checkoutStep()].labelKey) }}</p>
+          <p class="mt-0.5 text-xs text-ink-600">{{ t('securePayments') }} · {{ t('sameDayDelivery') }}</p>
+        </div>
+        <nav class="checkout-stepper" [attr.aria-label]="t('checkoutStepsLabel')">
+          <div class="checkout-stepper__track" aria-hidden="true">
+            <div class="checkout-stepper__fill" [style.width.%]="stepProgress()"></div>
+          </div>
+          <ol class="checkout-stepper__list">
+            @for (step of checkoutSteps; track step.labelKey; let i = $index) {
+              <li class="checkout-stepper__item">
+                <span
+                  class="checkout-stepper__dot"
+                  [class.checkout-stepper__dot--done]="checkoutStep() > i"
+                  [class.checkout-stepper__dot--current]="checkoutStep() === i"
+                  [class.checkout-stepper__dot--upcoming]="checkoutStep() < i"
+                  [attr.aria-current]="checkoutStep() === i ? 'step' : null"
+                >
+                  @if (checkoutStep() > i) {
+                    <span class="material-icons !text-[18px]" aria-hidden="true">check</span>
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </span>
+                <span
+                  class="checkout-stepper__label"
+                  [class.checkout-stepper__label--active]="checkoutStep() >= i"
+                >{{ t(step.labelKey) }}</span>
+              </li>
+            }
+          </ol>
+        </nav>
+
+        @if (checkoutStep() === 0) {
+          <ui-card class="ui-card-pad block">
+            <div class="checkout-panel__head">
+              <span class="checkout-panel__icon" aria-hidden="true">
+                <span class="material-icons">person</span>
+              </span>
+              <div>
+                <h2 class="checkout-panel__title">{{ t('contact') }}</h2>
+                <p class="checkout-panel__subtitle">{{ t('checkoutStepContact') }}</p>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <ui-form-field [label]="t('fullName')">
+                <input class="ui-input" [(ngModel)]="name" name="name" autocomplete="name" required />
+              </ui-form-field>
+              <ui-form-field [label]="t('email')">
+                <input class="ui-input" type="email" [(ngModel)]="email" name="email" autocomplete="email" spellcheck="false" required />
+              </ui-form-field>
+              @if (!isAuthenticated()) {
+                <div class="checkout-otp rounded-xl border border-brand-100 bg-brand-50/40 p-3 sm:p-4">
+                  <p class="text-sm font-medium text-ink-700">{{ t('verifyEmailFirst') }}</p>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm min-h-10" (click)="sendOtp()" [disabled]="otpBusy() || !email">
+                    {{ t('sendCode') }}
+                  </button>
+                  <ui-form-field [label]="t('verificationCode')">
+                    <input class="ui-input ui-input-ltr" [(ngModel)]="otp" name="otp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" spellcheck="false" />
+                  </ui-form-field>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm min-h-10" (click)="verifyOtpCode()" [disabled]="otpBusy() || !otp">
+                    {{ t('verifyCode') }}
+                  </button>
+                  @if (otpMessage()) {
+                    <p class="text-sm" role="status" aria-live="polite" [class.text-success-fg]="emailVerified()" [class.text-danger]="!emailVerified()">{{ otpMessage() }}</p>
+                  }
+                </div>
+                @if (emailVerified()) {
+                  <label class="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink-700">
+                    <input type="checkbox" [(ngModel)]="createAccountForGuest" name="createAccountForGuest" />
+                    {{ t('createAccountForGuest') }}
+                  </label>
+                }
+              }
+              <ui-form-field [label]="t('phone')">
+                <input class="ui-input ui-input-ltr" type="tel" [(ngModel)]="phone" name="phone" autocomplete="tel" inputmode="tel" required />
+              </ui-form-field>
+            </div>
+          </ui-card>
+        }
+
+        @if (checkoutStep() === 1) {
+          <ui-card class="ui-card-pad block">
+            <div class="checkout-panel__head">
+              <span class="checkout-panel__icon" aria-hidden="true">
+                <span class="material-icons">local_shipping</span>
+              </span>
+              <div>
+                <h2 class="checkout-panel__title">{{ t('deliveryAddress') }}</h2>
+                <p class="checkout-panel__subtitle">{{ t('checkoutStepDelivery') }}</p>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <ui-form-field [label]="t('streetAddress')">
+                <input class="ui-input" [(ngModel)]="street" name="street" autocomplete="street-address" required />
+              </ui-form-field>
+              <ui-form-field [label]="t('city')">
+                <select class="ui-select" [(ngModel)]="cityId" name="cityId" required (ngModelChange)="onCityChange($event)">
+                  <option [ngValue]="null">{{ t('selectCity') }}</option>
+                  @for (city of cities(); track city.id) {
+                    <option [ngValue]="city.id">{{ cityLabel(city) }}</option>
+                  }
+                </select>
+              </ui-form-field>
+              @if (remoteAreas().length > 0) {
+                <ui-form-field [label]="t('area')">
+                  <select class="ui-select" [(ngModel)]="remoteAreaId" name="remoteAreaId" required (ngModelChange)="refreshQuote()">
+                    <option [ngValue]="null">{{ t('selectArea') }}</option>
+                    @for (area of remoteAreas(); track area.id) {
+                      <option [ngValue]="area.id">{{ areaLabel(area) }}</option>
+                    }
+                  </select>
+                </ui-form-field>
+              }
+            </div>
+          </ui-card>
+        }
+
+        @if (checkoutStep() === 2) {
+          <ui-card class="ui-card-pad block">
+            <div class="checkout-panel__head">
+              <span class="checkout-panel__icon" aria-hidden="true">
+                <span class="material-icons">credit_card</span>
+              </span>
+              <div>
+                <h2 class="checkout-panel__title">{{ t('payment') }}</h2>
+                <p class="checkout-panel__subtitle">{{ t('checkoutStepPayment') }}</p>
+              </div>
+            </div>
+            <div class="space-y-3" role="radiogroup" [attr.aria-label]="t('payment')">
+              @if (paymentMethods().length === 0) {
+                <label
+                  class="checkout-pay"
+                  [class.checkout-pay--selected]="paymentMethod === 'COD'"
+                >
+                  <input type="radio" class="checkout-pay__radio" name="payment" value="COD" [(ngModel)]="paymentMethod" />
+                  <span class="checkout-pay__icon" aria-hidden="true">
+                    <span class="material-icons !text-[22px]">payments</span>
+                  </span>
+                  <span class="min-w-0 flex-1 pt-0.5">
+                    <span class="block text-sm font-semibold text-ink-900">{{ t('cashOnDelivery') }}</span>
+                    <span class="mt-0.5 block text-xs text-ink-500">{{ t('securePayments') }}</span>
+                  </span>
+                </label>
+              } @else {
+                @for (method of paymentMethods(); track method.id) {
+                  <label
+                    class="checkout-pay"
+                    [class.checkout-pay--selected]="paymentMethod === method.id"
+                    [class.checkout-pay--disabled]="!method.available"
+                  >
+                    <input
+                      type="radio"
+                      class="checkout-pay__radio"
+                      name="payment"
+                      [value]="method.id"
+                      [(ngModel)]="paymentMethod"
+                      [disabled]="!method.available"
+                    />
+                    <span class="checkout-pay__icon" aria-hidden="true">
+                      <span class="material-icons !text-[22px]">{{ paymentMethodIcon(method.id) }}</span>
+                    </span>
+                    <span class="min-w-0 flex-1 pt-0.5 text-sm">
+                      <span class="block font-semibold text-ink-900">{{ paymentLabel(method) }}</span>
+                      @if (!method.available && (method.unavailableReasonCode || method.unavailableReason)) {
+                        <span class="mt-0.5 block text-xs text-ink-500">{{ paymentUnavailableReason(method) }}</span>
+                      }
+                    </span>
+                  </label>
+                }
+              }
+            </div>
+          </ui-card>
+        }
+
+        @if (checkoutStep() === 3) {
+          <ui-card class="ui-card-pad block">
+            <div class="checkout-panel__head">
+              <span class="checkout-panel__icon" aria-hidden="true">
+                <span class="material-icons">fact_check</span>
+              </span>
+              <div>
+                <h2 class="checkout-panel__title">{{ t('checkoutStepReview') }}</h2>
+                <p class="checkout-panel__subtitle">{{ t('placeOrder') }}</p>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div class="checkout-review-group">
+                <p class="checkout-review-group__title">
+                  <span class="material-icons !text-[16px]" aria-hidden="true">person</span>
+                  {{ t('contact') }}
+                </p>
+                <dl>
+                  <div class="checkout-review-row"><dt class="text-ink-500">{{ t('fullName') }}</dt><dd class="font-medium text-ink-900 text-end">{{ name }}</dd></div>
+                  <div class="checkout-review-row"><dt class="text-ink-500">{{ t('email') }}</dt><dd class="font-medium text-ink-900 text-end">{{ email }}</dd></div>
+                  <div class="checkout-review-row"><dt class="text-ink-500">{{ t('phone') }}</dt><dd class="font-medium text-ink-900 text-end tabular-nums">{{ phone }}</dd></div>
+                </dl>
+              </div>
+              <div class="checkout-review-group">
+                <p class="checkout-review-group__title">
+                  <span class="material-icons !text-[16px]" aria-hidden="true">local_shipping</span>
+                  {{ t('deliveryAddress') }}
+                </p>
+                <dl>
+                  <div class="checkout-review-row"><dt class="text-ink-500">{{ t('streetAddress') }}</dt><dd class="max-w-[55%] text-end font-medium text-ink-900">{{ street }}</dd></div>
+                  @if (reviewCityName()) {
+                    <div class="checkout-review-row"><dt class="text-ink-500">{{ t('city') }}</dt><dd class="font-medium text-ink-900 text-end">{{ reviewCityName() }}</dd></div>
+                  }
+                  @if (reviewAreaName()) {
+                    <div class="checkout-review-row"><dt class="text-ink-500">{{ t('area') }}</dt><dd class="font-medium text-ink-900 text-end">{{ reviewAreaName() }}</dd></div>
+                  }
+                </dl>
+              </div>
+              <div class="checkout-review-group">
+                <p class="checkout-review-group__title">
+                  <span class="material-icons !text-[16px]" aria-hidden="true">credit_card</span>
+                  {{ t('payment') }}
+                </p>
+                <p class="text-sm font-semibold text-ink-900">{{ selectedPaymentLabel() }}</p>
+              </div>
+            </div>
+          </ui-card>
+        }
+
+        @if (error()) {
+          <p class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger-fg" role="alert" aria-live="polite">{{ error() }}</p>
+        }
+
+        <div class="checkout-actions-bar hidden lg:flex">
+          @if (checkoutStep() > 0) {
+            <button type="button" class="ui-btn-secondary min-h-11 min-w-[7rem]" (click)="prevStep()">{{ t('previousStep') }}</button>
+          }
+          @if (checkoutStep() < 3) {
+            <button type="button" class="ui-btn-primary min-h-11 flex-1 sm:flex-none sm:min-w-[10rem]" (click)="nextStep()" [disabled]="!canProceedFromStep(checkoutStep())">
+              {{ t('nextStep') }}
+            </button>
+          } @else {
+            <button type="submit" class="ui-btn-primary min-h-11 flex-1 sm:flex-none sm:min-w-[12rem]" [disabled]="submitting() || !canPlaceOrder()" [attr.aria-busy]="submitting()">
+              {{ submitting() ? t('placingOrder') : t('placeOrder') }}
+            </button>
+          }
+        </div>
+      </form>
+
+      <aside class="ui-sticky-summary h-fit">
+        <ui-card class="ui-card-pad">
+          <h2 class="mb-1 text-lg font-bold text-ink-900">{{ t('orderSummary') }}</h2>
+          <p class="mb-4 text-xs text-ink-500">{{ t('securePayments') }}</p>
+          <div class="checkout-summary-chips mb-4">
+            <span class="checkout-summary-chip">{{ t('trustedOriginals') }}</span>
+            <span class="checkout-summary-chip">{{ t('sameDayDelivery') }}</span>
+          </div>
+          <dl class="space-y-2.5 text-sm tabular-nums">
+            <div class="flex justify-between gap-3">
+              <dt class="text-ink-500">{{ t('subtotal') }}</dt>
+              <dd class="font-medium text-ink-900">{{ (quote()?.subtotal ?? cartSubtotal()) | iwnCurrency }}</dd>
+            </div>
+            @if ((quote()?.discount ?? cartDiscount()) > 0) {
+              <div class="flex justify-between gap-3 text-success-fg">
+                <dt>{{ t('discount') }}</dt>
+                <dd>− {{ (quote()?.discount ?? cartDiscount()) | iwnCurrency }}</dd>
+              </div>
+            }
+            <div class="flex justify-between gap-3">
+              <dt class="text-ink-500">{{ t('shipping') }}</dt>
+              <dd class="font-medium text-ink-900">{{ (quote()?.shipping ?? 0) | iwnCurrency }}</dd>
+            </div>
+          </dl>
+          <div class="checkout-summary-total flex items-center justify-between gap-3">
+            <span class="text-sm font-medium text-white/80">{{ t('total') }}</span>
+            <span class="text-xl font-bold tabular-nums">{{ orderTotal() | iwnCurrency }}</span>
+          </div>
+          <p class="checkout-trust">
+            <span class="material-icons !text-[18px] text-brand-600" aria-hidden="true">lock</span>
+            {{ t('trustedOriginals') }} · {{ t('sameDayDelivery') }}
+          </p>
+        </ui-card>
+      </aside>
+    </div>
+
+    <div class="checkout-mobile-bar">
+      <div class="checkout-mobile-bar__meta">
+        <p class="text-xs text-ink-500">{{ t('total') }}</p>
+        <p class="text-lg font-bold tabular-nums text-ink-900">{{ orderTotal() | iwnCurrency }}</p>
+      </div>
+      @if (checkoutStep() > 0) {
+        <button type="button" class="ui-btn-secondary checkout-mobile-bar__btn" (click)="prevStep()">{{ t('previousStep') }}</button>
+      }
+      @if (checkoutStep() < 3) {
+        <button type="button" class="ui-btn-primary checkout-mobile-bar__btn" (click)="nextStep()" [disabled]="!canProceedFromStep(checkoutStep())">
+          {{ t('nextStep') }}
+        </button>
+      } @else {
+        <button type="button" class="ui-btn-primary checkout-mobile-bar__btn" [disabled]="submitting() || !canPlaceOrder()" [attr.aria-busy]="submitting()" (click)="submit()">
+          {{ submitting() ? t('placingOrder') : t('placeOrder') }}
+        </button>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,142 @@
+<ui-page-header [title]="t('categoriesTitle')">
+
+  <div header-actions>
+
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">{{ t('newCategory') }}</button>
+
+  </div>
+
+</ui-page-header>
+
+
+
+@if (message()) {
+
+  <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
+
+}
+
+
+
+@if (showForm()) {
+  <form class="mb-6" (ngSubmit)="submit()">
+    <ui-card [heading]="editingId() ? t('editCategory') : t('newCategory')" class="max-w-lg">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('titleEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="name" name="name" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('titleAr')" [required]="true">
+          <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('description')">
+          <input class="ui-input" [(ngModel)]="description" name="description" />
+        </ui-form-field>
+        <ui-form-field [label]="t('descriptionAr')">
+          <input class="ui-input" [(ngModel)]="descriptionAr" name="descriptionAr" />
+        </ui-form-field>
+        <ui-form-field [label]="t('imageUrl')" class="sm:col-span-2">
+          <input class="ui-input" [(ngModel)]="imageUrl" name="imageUrl" />
+        </ui-form-field>
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+      </div>
+    </ui-card>
+  </form>
+}
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(items())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="20"
+
+  [emptyTitle]="t('noCategories')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+  <div table-toolbar>
+
+    <ui-filter-bar>
+
+      <label class="flex items-center gap-2 text-sm text-ink-600">
+
+        <input type="checkbox" class="accent-brand-600" [(ngModel)]="includeDeleted" name="includeDeleted" (change)="load()" />
+
+        {{ t('showDeleted') }}
+
+      </label>
+
+    </ui-filter-bar>
+
+  </div>
+
+
+
+  <ng-template uiCell="title" let-row>
+
+    @let item = $any(row);
+
+    <span class="font-medium" [class.opacity-60]="item.isDeleted">{{ categoryName(item) }}</span>
+
+    <span class="ms-2 text-xs text-ink-400">#{{ item.id }}</span>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="status" let-row>
+
+    @let item = $any(row);
+
+    <ui-badge [variant]="item.isDeleted ? 'neutral' : 'success'" [dot]="!item.isDeleted">
+
+      {{ item.isDeleted ? t('deleted') : t('active') }}
+
+    </ui-badge>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let item = $any(row);
+
+    <div class="flex flex-wrap gap-1.5">
+
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="openEdit(item)" [disabled]="busyId() === item.id">{{ t('edit') }}</button>
+
+      @if (!item.isDeleted) {
+
+        <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('remove') }}</button>
+
+      }
+
+    </div>
+
+  </ng-template>
+
+</ui-data-table>
+
+

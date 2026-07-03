@@ -1,0 +1,62 @@
+<section class="ui-fade-in space-y-6">
+  @if (loading()) {
+    <div class="product-grid">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="ui-card overflow-hidden">
+          <ui-skeleton height="0" class="block aspect-square" />
+          <div class="space-y-2 p-2">
+            <ui-skeleton height="0.9rem" />
+            <ui-skeleton width="40%" height="0.9rem" />
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/flash-sales" class="ui-btn-secondary ui-btn-sm">{{ t('allFlashSales') }}</a>
+    </ui-empty-state>
+  } @else if (sale()) {
+    @if (sale(); as s) {
+      <ui-page-header
+        [title]="saleName(s)"
+        [breadcrumbs]="[{ label: t('allFlashSales'), link: '/flash-sales' }]"
+      />
+
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3">
+        <p class="flex items-center gap-2 text-sm font-medium text-danger">
+          <span class="material-icons text-[20px]" aria-hidden="true">bolt</span>
+          {{ t('saleEndsIn') }}
+        </p>
+        <app-flash-sale-countdown [endDate]="s.endDate" />
+      </div>
+
+      <div class="product-grid ui-stagger-children">
+        @for (item of s.items; track item.id) {
+          <div class="flex flex-col gap-2">
+            <ui-product-card
+              density="compact"
+              [alwaysShowActions]="true"
+              [title]="itemTitle(item)"
+              [slug]="item.slug"
+              [imageUrl]="catalogue.resolveImageUrl(item.imageUrl)"
+              [price]="item.flashSalePrice"
+              [listPrice]="item.normalPrice"
+              [flashSale]="true"
+              [inStock]="item.availableQuantity > 0"
+              [busy]="adding()"
+              [flashLabel]="t('flashSaleBadge')"
+              [quickAddLabel]="addLabel(item)"
+              [outOfStockLabel]="t('outOfStock')"
+              (quickAdd)="addToCart(item)"
+            />
+            <p class="text-center text-xs text-ink-500">{{ item.availableQuantity }} {{ t('leftInStock') }}</p>
+            @if (cartMessage() && cartMessageItemId() === item.id) {
+              <p class="text-center text-xs text-success">{{ cartMessage() }}</p>
+            }
+            <a [routerLink]="['/product', item.slug]" class="ui-btn-ghost ui-btn-sm w-full text-center">{{ t('viewDetails') }}</a>
+          </div>
+        }
+      </div>
+    }
+  }
+</section>

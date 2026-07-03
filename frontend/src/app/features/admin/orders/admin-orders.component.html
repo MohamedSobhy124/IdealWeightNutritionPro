@@ -1,0 +1,167 @@
+<ui-page-header [title]="t('ordersTitle')">
+  <div header-actions>
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="exportCsv()" [disabled]="exporting()">
+      <span class="material-icons !text-[18px]">download</span>
+      {{ exporting() ? t('exporting') : t('exportOrders') }}
+    </button>
+    @if (isAdmin()) {
+      <button
+        type="button"
+        class="ui-btn-secondary ui-btn-sm"
+        (click)="exportProductProfits()"
+        [disabled]="exportingProfits()"
+      >
+        {{ exportingProfits() ? t('exporting') : t('exportProductProfits') }}
+      </button>
+    }
+  </div>
+</ui-page-header>
+
+@if (stats(); as s) {
+  <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('')">
+      <span class="text-sm text-ink-500">{{ t('ordersAll') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-ink-900">{{ s.all }}</span>
+    </button>
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('Pending')">
+      <span class="text-sm text-ink-500">{{ t('filterPending') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-warning-fg">{{ s.pending }}</span>
+    </button>
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('Paid')">
+      <span class="text-sm text-ink-500">{{ t('filterApproved') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-success-fg">{{ s.approved }}</span>
+    </button>
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('Processing')">
+      <span class="text-sm text-ink-500">{{ t('filterProcessing') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-ink-900">{{ s.processing }}</span>
+    </button>
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('Shipped')">
+      <span class="text-sm text-ink-500">{{ t('filterShipped') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-ink-900">{{ s.shipped }}</span>
+    </button>
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('Delivered')">
+      <span class="text-sm text-ink-500">{{ t('filterDelivered') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-success-fg">{{ s.delivered }}</span>
+    </button>
+    <button type="button" class="ui-card ui-card-pad text-start transition-colors hover:bg-ink-50" (click)="filterByStatus('Cancelled')">
+      <span class="text-sm text-ink-500">{{ t('filterCancelled') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-danger">{{ s.cancelled }}</span>
+    </button>
+  </div>
+}
+
+@if (message()) {
+  <p class="mb-4 text-danger">{{ message() }}</p>
+}
+@if (error()) {
+  <p class="mb-4 text-danger">{{ error() }}</p>
+}
+
+<ui-data-table
+  [columns]="cols"
+  [rows]="$any(orders())"
+  [loading]="loading()"
+  [searchable]="false"
+  [pageSize]="9999"
+  [emptyTitle]="t('noOrders')"
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+  <div table-toolbar>
+    <form class="flex flex-wrap items-end gap-3" (ngSubmit)="applyFilters()">
+      <label class="flex flex-col gap-1">
+        <span class="ui-label">{{ t('productStatus') }}</span>
+        <select class="ui-select" [(ngModel)]="status" name="status">
+          <option value="">{{ t('filterAll') }}</option>
+          @for (s of orderStatusOptions.slice(1); track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="ui-label">{{ t('paymentStatus') }}</span>
+        <select class="ui-select" [(ngModel)]="paymentStatus" name="paymentStatus">
+          <option value="">{{ t('filterAll') }}</option>
+          @for (s of paymentStatusOptions.slice(1); track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="ui-label">{{ t('paymentMethod') }}</span>
+        <select class="ui-select" [(ngModel)]="paymentMethod" name="paymentMethod">
+          <option value="">{{ t('filterAll') }}</option>
+          @for (m of paymentMethodOptions.slice(1); track m) {
+            <option [value]="m">{{ m }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="ui-label">{{ t('dateFrom') }}</span>
+        <input type="date" class="ui-input" [(ngModel)]="dateFrom" name="dateFrom" />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="ui-label">{{ t('dateTo') }}</span>
+        <input type="date" class="ui-input" [(ngModel)]="dateTo" name="dateTo" />
+      </label>
+
+      <label class="flex flex-1 flex-col gap-1">
+        <span class="ui-label">{{ t('search') }}</span>
+        <input type="search" class="ui-input" [(ngModel)]="search" name="search" [placeholder]="t('orderSearchPlaceholder')" />
+      </label>
+
+      <div class="flex gap-2">
+        <button type="submit" class="ui-btn-primary ui-btn-sm">{{ t('search') }}</button>
+        <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearFilters()">{{ t('clearFilter') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <ng-template uiCell="id" let-row>
+    @let r = $any(row);
+    <a [routerLink]="['/admin/orders', r.id]" class="font-semibold text-brand-600 hover:underline">#{{ r.id }}</a>
+    <span class="mt-0.5 block text-xs text-ink-500">{{ r.orderDate | date: 'medium' }}</span>
+  </ng-template>
+
+  <ng-template uiCell="customerName" let-row>
+    @let r = $any(row);
+    <div class="flex items-center gap-2">
+      <span>{{ r.customerName }}</span>
+      @if (r.isGuestOrder) {
+        <ui-badge [variant]="'neutral'">{{ t('guest') }}</ui-badge>
+      }
+    </div>
+    @if (r.email) {
+      <span class="mt-0.5 block text-xs text-ink-500">{{ r.email }}</span>
+    }
+  </ng-template>
+
+  <ng-template uiCell="orderStatus" let-row>
+    <ui-badge [variant]="statusVariant($any(row).orderStatus)" [dot]="true">{{ $any(row).orderStatus }}</ui-badge>
+  </ng-template>
+
+  <ng-template uiCell="paymentStatus" let-row>
+    <ui-badge [variant]="statusVariant($any(row).paymentStatus)">{{ $any(row).paymentStatus }}</ui-badge>
+  </ng-template>
+
+  <ng-template uiCell="orderTotal" let-row>
+    <span class="font-semibold text-ink-900">{{ $any(row).orderTotal | iwnCurrency }}</span>
+  </ng-template>
+</ui-data-table>
+
+@if (!loading() && orders().length > 0) {
+  <div class="mt-4 flex items-center justify-end gap-3">
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="prevPage()" [disabled]="page() <= 1">
+      {{ t('prevPage') }}
+    </button>
+    <span class="text-sm text-ink-600">{{ t('pageOf') }} {{ page() }} / {{ totalPages() }} ({{ totalCount() }})</span>
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="nextPage()" [disabled]="page() >= totalPages()">
+      {{ t('nextPage') }}
+    </button>
+  </div>
+}

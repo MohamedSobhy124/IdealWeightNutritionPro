@@ -1,0 +1,16 @@
+.rich-text-host {
+  background: #fff;
+  border-radius: 6px;
+}
+
+:host ::ng-deep .ql-toolbar {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+:host ::ng-deep .ql-container {
+  min-height: 180px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  font-size: 0.95rem;
+}

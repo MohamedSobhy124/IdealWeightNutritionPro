@@ -1,0 +1,103 @@
+<section class="ui-fade-in">
+  @if (loading()) {
+    <div class="grid gap-6 pb-28 lg:grid-cols-2">
+      <ui-skeleton height="20rem" class="rounded-2xl sm:h-[28rem]" />
+      <div class="space-y-4">
+        <ui-skeleton height="1.5rem" width="6rem" />
+        <ui-skeleton height="2rem" width="80%" />
+        <ui-skeleton height="4rem" />
+        <ui-skeleton height="2rem" width="40%" />
+        <ui-skeleton height="3rem" width="50%" />
+      </div>
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/services" class="ui-btn-secondary">{{ t('allServices') }}</a>
+    </ui-empty-state>
+  } @else if (service()) {
+    @if (service(); as s) {
+      <article class="space-y-6 pb-28 sm:pb-6">
+        <ui-page-header [title]="title()" [breadcrumbs]="[{ label: t('wellnessServices'), link: '/services' }]" />
+
+        <div class="grid gap-6 lg:grid-cols-[1fr_1fr]">
+          <div>
+            @if (s.imageUrls.length > 0) {
+              <div class="group overflow-hidden rounded-2xl bg-ink-100">
+                <img
+                  [src]="catalogue.resolveImageUrl(s.imageUrls[0])"
+                  [alt]="title()"
+                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
+                />
+              </div>
+              @if (s.imageUrls.length > 1) {
+                <div class="no-scrollbar mt-3 flex snap-x gap-2 overflow-x-auto">
+                  @for (url of s.imageUrls; track url) {
+                    <div class="shrink-0 overflow-hidden rounded-xl border border-ink-200 bg-ink-100">
+                      <img [src]="catalogue.resolveImageUrl(url)" [alt]="title()" class="h-20 w-20 object-cover" />
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+
+          <div class="space-y-4">
+            <ui-badge variant="brand">{{ s.serviceType }}</ui-badge>
+            @if (description()) {
+              <p class="text-sm leading-relaxed text-ink-600 sm:text-base">{{ description() }}</p>
+            }
+
+            <div class="flex flex-wrap items-center gap-3">
+              @if (s.salePrice != null && s.hasActiveOffer) {
+                <p class="text-2xl font-bold tabular-nums text-ink-900">{{ s.salePrice | iwnCurrency }}</p>
+                <p class="text-base text-ink-400 line-through tabular-nums">{{ s.price | iwnCurrency }}</p>
+                <ui-badge variant="danger">{{ t('limitedOffer') }}</ui-badge>
+              } @else {
+                <p class="text-2xl font-bold tabular-nums text-ink-900">{{ s.price | iwnCurrency }}</p>
+              }
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <span class="ui-badge-brand"><span class="material-icons text-[14px]">lock</span>{{ t('securePayments') }}</span>
+            </div>
+
+            @if (s.serviceType === 'Offline' && s.offlinePaymentPercent) {
+              <p class="rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600">{{ t('offlineNote') }}</p>
+            }
+
+            @if (s.activeOffers.length > 0) {
+              <ui-card class="ui-card-pad block">
+                <h2 class="mb-3 text-base font-semibold text-ink-900">{{ t('activeOffers') }}</h2>
+                <ul class="space-y-2 text-sm text-ink-700">
+                  @for (offer of s.activeOffers; track offer.id) {
+                    <li class="flex items-start gap-2">
+                      <span class="material-icons text-[18px] text-brand-600">local_offer</span>
+                      <span>
+                        {{ offer.discountType === 'Percentage' ? offer.discountValue + '% off' : (offer.discountValue | iwnCurrency) + ' off' }}
+                        · until {{ offer.endDate | date: 'mediumDate' }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </ui-card>
+            }
+
+            <a class="ui-btn-primary hidden w-full sm:inline-flex sm:w-auto" [routerLink]="['/services', s.id, 'checkout']">
+              {{ t('subscribe') }}
+            </a>
+          </div>
+        </div>
+
+        <app-product-reviews [serviceId]="s.id" />
+      </article>
+
+      <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset sm:hidden">
+        <div class="checkout-mobile-bar__meta">
+          <p class="text-xs text-ink-500">{{ t('subscribe') }}</p>
+          <p class="text-lg font-bold tabular-nums text-ink-900">{{ displayPrice() | iwnCurrency }}</p>
+        </div>
+        <a class="ui-btn-primary checkout-mobile-bar__btn" [routerLink]="['/services', s.id, 'checkout']">{{ t('subscribe') }}</a>
+      </div>
+    }
+  }
+</section>

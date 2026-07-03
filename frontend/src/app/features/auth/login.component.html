@@ -1,0 +1,63 @@
+<section class="auth-shell">
+  <div class="auth-layout">
+    <aside class="auth-brand-panel" aria-hidden="true">
+      <div class="auth-brand-panel__logo">
+        <span class="material-icons text-[32px]">eco</span>
+      </div>
+      <h2 class="auth-brand-panel__title">{{ t('whyChooseUsTitle') }}</h2>
+      <p class="auth-brand-panel__lead">{{ t('whyChooseUsLead') }}</p>
+      <ul class="auth-brand-panel__trust">
+        <li><span class="material-icons text-[18px]" aria-hidden="true">verified</span>{{ t('trustedOriginals') }}</li>
+        <li><span class="material-icons text-[18px]" aria-hidden="true">local_shipping</span>{{ t('sameDayDelivery') }}</li>
+        <li><span class="material-icons text-[18px]" aria-hidden="true">lock</span>{{ t('securePayments') }}</li>
+      </ul>
+    </aside>
+
+    <div class="auth-form-wrap">
+      <ui-page-header [title]="t('login')" [breadcrumbs]="[{ label: t('navHome'), link: '/' }]" />
+
+      <div class="auth-form-card">
+        <div class="auth-form-icon lg:hidden">
+          <span class="material-icons text-[28px]">eco</span>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+          <ui-form-field [label]="t('email')">
+            <input type="email" formControlName="email" name="email" autocomplete="email" spellcheck="false" class="ui-input" />
+          </ui-form-field>
+
+          <ui-form-field [label]="t('password')">
+            <input type="password" formControlName="password" name="password" autocomplete="current-password" class="ui-input" />
+          </ui-form-field>
+
+          @if (error()) {
+            <p class="ui-error" role="alert" aria-live="polite">{{ error() }}</p>
+          }
+
+          <button type="submit" class="ui-btn-primary w-full" [disabled]="form.invalid || loading()" [attr.aria-busy]="loading()">
+            @if (loading()) {
+              <span class="material-icons animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+            }
+            {{ t('signIn') }}
+          </button>
+        </form>
+
+        <p class="auth-divider">{{ t('or') }}</p>
+
+        <button type="button" class="ui-btn-secondary w-full" (click)="auth.loginWithGoogle()">
+          <span class="material-icons text-[18px]">account_circle</span>
+          {{ t('signInWithGoogle') }}
+        </button>
+
+        <div class="mt-6 space-y-2 text-center text-sm">
+          <p>
+            <a routerLink="/auth/register" class="font-medium text-brand-600 hover:text-brand-700">{{ t('createAccount') }}</a>
+          </p>
+          <p>
+            <a routerLink="/auth/forgot-password" class="text-ink-500 hover:text-ink-700">{{ t('forgotPassword') }}</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

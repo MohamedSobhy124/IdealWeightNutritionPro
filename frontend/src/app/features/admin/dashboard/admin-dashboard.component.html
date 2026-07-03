@@ -1,0 +1,290 @@
+<ui-page-header [title]="t('dashboardTitle')" [subtitle]="t('recentOrders')" />
+
+
+
+@if (data(); as d) {
+
+  <!-- KPI cards -->
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    <a routerLink="/admin/orders" class="block">
+
+      <ui-stat-card
+
+        [label]="t('ordersAll')"
+
+        [value]="d.ordersTotal"
+
+        icon="receipt_long"
+
+        [hint]="d.ordersPending + ' ' + t('filterPending')"
+
+        [loading]="loading()"
+
+      />
+
+    </a>
+
+    <a routerLink="/admin/orders" class="block">
+
+      <ui-stat-card
+
+        [label]="t('ordersToday')"
+
+        [value]="d.ordersToday"
+
+        icon="today"
+
+        [trend]="(d.revenueToday | iwnCurrency) ?? ''"
+
+        trendDirection="up"
+
+        [trendLabel]="t('revenueToday')"
+
+        [loading]="loading()"
+
+      />
+
+    </a>
+
+    <a routerLink="/admin/returns" class="block">
+
+      <ui-stat-card
+
+        [label]="t('pendingReturns')"
+
+        [value]="d.pendingReturns"
+
+        icon="assignment_return"
+
+        [hint]="d.activeReturns + ' ' + t('activeReturns')"
+
+        [loading]="loading()"
+
+      />
+
+    </a>
+
+    <a [routerLink]="['/admin/products']" [queryParams]="{ filter: 'lowstock' }" class="block">
+
+      <ui-stat-card
+
+        [label]="t('lowStockProducts')"
+
+        [value]="d.lowStockProducts"
+
+        icon="inventory_2"
+
+        [hint]="d.outOfStockProducts + ' ' + t('outOfStockProducts')"
+
+        [loading]="loading()"
+
+      />
+
+    </a>
+
+  </div>
+
+
+
+  <!-- Charts -->
+
+  <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+    <ui-card class="lg:col-span-1" [heading]="t('ordersAll')">
+
+      <ui-chart type="doughnut" [data]="orderStatusChart()" [options]="doughnutOptions" height="280px" />
+
+    </ui-card>
+
+    <ui-card class="lg:col-span-2" [heading]="t('groupOverview')">
+
+      <ui-chart type="bar" [data]="operationsChart()" [options]="barOptions" height="280px" />
+
+    </ui-card>
+
+  </div>
+
+
+
+  <!-- Quick actions -->
+
+  <div class="mt-6">
+
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-400">{{ t('actions') }}</h2>
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+
+      @for (action of quickActions; track action.link) {
+
+        <a
+
+          [routerLink]="action.link"
+
+          class="ui-card flex flex-col items-center gap-2 p-4 text-center transition-shadow hover:shadow-elevated"
+
+        >
+
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+
+            <span class="material-icons !text-[22px]">{{ action.icon }}</span>
+
+          </span>
+
+          <span class="text-xs font-medium text-ink-700">{{ t(action.labelKey) }}</span>
+
+        </a>
+
+      }
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Secondary KPIs -->
+
+  <div class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+
+    <a routerLink="/admin/flash-sales" class="block">
+
+      <ui-stat-card [label]="t('activeFlashSales')" [value]="d.activeFlashSales" icon="bolt"
+
+        [hint]="d.activeComboOffers + ' ' + t('activeComboOffers')" />
+
+    </a>
+
+    <a routerLink="/admin/services" class="block">
+
+      <ui-stat-card [label]="t('activeServices')" [value]="d.activeServices" icon="medical_services"
+
+        [hint]="d.activeCities + ' ' + t('activeCities')" />
+
+    </a>
+
+    <a routerLink="/admin/blog" class="block">
+
+      <ui-stat-card [label]="t('publishedBlogPosts')" [value]="d.publishedBlogPosts" icon="article"
+
+        [hint]="d.hiddenBlogPosts + ' ' + t('hiddenBlogPosts')" />
+
+    </a>
+
+    <a routerLink="/admin/service-purchases" class="block">
+
+      <ui-stat-card [label]="t('servicePurchasesTotal')" [value]="d.servicePurchasesTotal" icon="shopping_bag"
+
+        [hint]="d.servicePurchasesPending + ' ' + t('filterPending')" />
+
+    </a>
+
+  </div>
+
+
+
+  <!-- Recent orders -->
+
+  <div class="mt-6">
+
+    <div class="mb-3 flex items-center justify-between">
+
+      <h2 class="text-lg font-semibold text-ink-900">{{ t('recentOrders') }}</h2>
+
+      <a routerLink="/admin/orders" class="ui-btn-ghost ui-btn-sm">
+
+        {{ t('ordersAll') }}
+
+        <span class="material-icons !text-[16px] rtl:rotate-180">chevron_right</span>
+
+      </a>
+
+    </div>
+
+    <ui-data-table
+
+      [columns]="recentOrderCols"
+
+      [rows]="$any(d.recentOrders)"
+
+      [loading]="loading()"
+
+      [searchable]="false"
+
+      [pageSize]="10"
+
+      [emptyTitle]="t('noOrders')"
+
+      [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+      <ng-template uiCell="id" let-row>
+
+        @let r = $any(row);
+
+        <a [routerLink]="['/admin/orders', r.id]" class="font-medium text-brand-700 hover:underline">#{{ r.id }}</a>
+
+        <span class="block text-xs text-ink-400">{{ r.orderDate | date: 'medium' }}</span>
+
+      </ng-template>
+
+
+
+      <ng-template uiCell="customerName" let-row>
+
+        {{ $any(row).customerName }}
+
+      </ng-template>
+
+
+
+      <ng-template uiCell="orderStatus" let-row>
+
+        <ui-badge [variant]="statusVariant($any(row).orderStatus)" [dot]="true">{{ $any(row).orderStatus }}</ui-badge>
+
+      </ng-template>
+
+
+
+      <ng-template uiCell="paymentStatus" let-row>
+
+        <ui-badge [variant]="statusVariant($any(row).paymentStatus)">{{ $any(row).paymentStatus }}</ui-badge>
+
+      </ng-template>
+
+
+
+      <ng-template uiCell="orderTotal" let-row>
+
+        <span class="font-medium text-ink-900">{{ $any(row).orderTotal | iwnCurrency }}</span>
+
+      </ng-template>
+
+    </ui-data-table>
+
+  </div>
+
+} @else if (error()) {
+
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+
+} @else {
+
+  <!-- Loading skeletons -->
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    @for (s of [1,2,3,4]; track s) {
+
+      <ui-stat-card label="" [loading]="true" />
+
+    }
+
+  </div>
+
+}
+
+

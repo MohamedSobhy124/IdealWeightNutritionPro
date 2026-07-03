@@ -1,0 +1,120 @@
+<ui-page-header [title]="t('flashSalesTitle')">
+
+  <div header-actions>
+
+    <a routerLink="/admin/flash-sales/new" class="ui-btn-primary ui-btn-sm">
+
+      <span class="material-icons !text-[18px]">add</span>
+
+      {{ t('newFlashSale') }}
+
+    </a>
+
+  </div>
+
+</ui-page-header>
+
+
+
+@if (message()) {
+
+  <p class="mb-4 text-sm text-success-fg">{{ message() }}</p>
+
+}
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(items())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="20"
+
+  [emptyTitle]="t('noFlashSales')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+
+
+  <ng-template uiCell="title" let-row>
+
+    @let item = $any(row);
+
+    <a [routerLink]="['/admin/flash-sales', item.id]" class="font-semibold text-brand-600 hover:underline">{{ displayName(item) }}</a>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="dates" let-row>
+
+    @let item = $any(row);
+
+    {{ item.startDate | date: 'mediumDate' }} – {{ item.endDate | date: 'mediumDate' }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="productCount" let-row>
+
+    {{ $any(row).productCount }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="status" let-row>
+
+    @let item = $any(row);
+
+    <ui-badge [variant]="item.isActive ? 'success' : 'neutral'" [dot]="item.isActive">
+
+      {{ item.isActive ? t('active') : t('inactive') }}
+
+    </ui-badge>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let item = $any(row);
+
+    <div class="flex flex-wrap gap-1.5">
+
+      <a [routerLink]="['/admin/flash-sales', item.id]" class="ui-btn-secondary ui-btn-sm">{{ t('edit') }}</a>
+
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="toggle(item)" [disabled]="busyId() === item.id">
+
+        {{ item.isActive ? t('deactivate') : t('activate') }}
+
+      </button>
+
+      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('remove') }}</button>
+
+    </div>
+
+  </ng-template>
+
+</ui-data-table>
+
+

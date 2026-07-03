@@ -1,0 +1,71 @@
+<ui-page-header [title]="t('videoBannerTitle')" [subtitle]="t('videoBannerLead')" />
+
+@if (message()) {
+  <div
+    class="mb-4 rounded-xl px-4 py-3 text-sm"
+    [class.bg-danger-soft]="error()"
+    [class.text-danger]="error()"
+    [class.bg-success-soft]="!error()"
+    [class.text-success-fg]="!error()"
+  >
+    {{ message() }}
+  </div>
+}
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="12rem" />
+    <ui-skeleton height="12rem" />
+  </div>
+} @else {
+  @if (banner(); as b) {
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <ui-card [heading]="t('currentVideo')">
+        @if (b.hasVideo && b.videoUrl) {
+          <video controls class="w-full rounded-xl" [poster]="b.posterUrl ?? undefined">
+            <source [src]="b.videoUrl" type="video/mp4" />
+          </video>
+          <p class="mt-2 text-xs text-ink-500">{{ b.videoSizeBytes ?? 0 | number }} bytes</p>
+          <button type="button" class="ui-btn-danger ui-btn-sm mt-3" (click)="removeVideo()" [disabled]="busy()">
+            {{ t('deleteVideo') }}
+          </button>
+        } @else {
+          <p class="text-sm text-ink-500">{{ t('noVideoUploaded') }}</p>
+        }
+        <label class="ui-label mt-4 block">
+          {{ t('uploadVideo') }}
+          <input
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            (change)="onVideoSelected($event)"
+            [disabled]="busy()"
+            class="mt-1 block text-sm"
+          />
+        </label>
+      </ui-card>
+
+      <ui-card [heading]="t('currentPoster')">
+        @if (b.hasPoster && b.posterUrl) {
+          <img [src]="b.posterUrl" alt="Poster" class="max-h-64 w-full rounded-xl object-cover" />
+          <p class="mt-2 text-xs text-ink-500">{{ b.posterSizeBytes ?? 0 | number }} bytes</p>
+          <button type="button" class="ui-btn-danger ui-btn-sm mt-3" (click)="removePoster()" [disabled]="busy()">
+            {{ t('deletePoster') }}
+          </button>
+        } @else {
+          <p class="text-sm text-ink-500">{{ t('noPosterUploaded') }}</p>
+        }
+        <label class="ui-label mt-4 block">
+          {{ t('uploadPoster') }}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            (change)="onPosterSelected($event)"
+            [disabled]="busy()"
+            class="mt-1 block text-sm"
+          />
+        </label>
+      </ui-card>
+    </div>
+  }
+}

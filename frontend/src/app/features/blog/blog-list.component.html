@@ -1,0 +1,28 @@
+<section class="ui-fade-in space-y-6">
+  <ui-page-header [title]="t('blogTitle')" [subtitle]="t('blogLead')" />
+
+  @if (loading()) {
+    <div class="content-grid-2">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <ui-skeleton height="220px" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  } @else if (posts().length === 0) {
+    <ui-empty-state icon="article" [title]="t('noArticles')" />
+  } @else {
+    <div class="content-grid-2 ui-stagger-children">
+      @for (post of posts(); track post.id) {
+        <ui-article-card
+          [title]="displayTitle(post)"
+          [link]="['/blog', post.slug]"
+          [imageUrl]="post.imageUrl ? catalogue.resolveImageUrl(post.imageUrl) : null"
+          [excerpt]="displayExcerpt(post)"
+          [category]="displayCategory(post)"
+          [date]="(post.publishedDate | date: 'mediumDate') + ' · ' + post.readTime + ' ' + t('minRead') + ' · ' + t('by') + ' ' + displayAuthor(post)"
+        />
+      }
+    </div>
+  }
+</section>

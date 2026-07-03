@@ -1,0 +1,24 @@
+.cart-context {
+  box-shadow: 0 8px 20px rgb(5 150 105 / 0.08);
+}
+
+.cart-item-card {
+  border: 1px solid rgb(148 163 184 / 0.2);
+  box-shadow: 0 10px 24px rgb(15 23 42 / 0.06);
+}
+
+.cart-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cart-summary-chip {
+  border-radius: 999px;
+  border: 1px solid rgb(148 163 184 / 0.28);
+  background: #fff;
+  padding: 0.22rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-700);
+}

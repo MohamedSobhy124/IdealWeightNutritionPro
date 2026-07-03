@@ -1,0 +1,85 @@
+<ui-page-header
+  [title]="isEdit() ? t('editServiceOffer') : t('newServiceOffer')"
+  [breadcrumbs]="[{ label: t('serviceOffersTitle'), link: '/admin/service-offers' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="2.5rem" />
+    <ui-skeleton height="2.5rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else {
+  <form class="space-y-6" (ngSubmit)="submit()">
+    <ui-card [heading]="t('sectionBasicInfo')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('reviewService')" [required]="true">
+          <select class="ui-select" [(ngModel)]="serviceSubscriptionId" name="serviceSubscriptionId" required>
+            <option [ngValue]="null">{{ t('selectService') }}</option>
+            @for (service of services(); track service.id) {
+              <option [ngValue]="service.id">{{ serviceLabel(service) }}</option>
+            }
+          </select>
+        </ui-form-field>
+        <ui-form-field [label]="t('promoCodeOptional')">
+          <select class="ui-select" [(ngModel)]="promoCodeId" name="promoCodeId">
+            <option [ngValue]="null">{{ t('none') }}</option>
+            @for (promo of promos(); track promo.id) {
+              <option [ngValue]="promo.id">{{ promo.code }} — {{ promo.description }}</option>
+            }
+          </select>
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionPricing')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('promoDiscountType')">
+          <select class="ui-select" [(ngModel)]="discountType" name="discountType">
+            <option value="Percentage">{{ t('discountPercentage') }}</option>
+            <option value="FixedAmount">{{ t('discountFixed') }}</option>
+          </select>
+        </ui-form-field>
+        <ui-form-field [label]="t('promoDiscountValue')" [required]="true">
+          <input
+            class="ui-input"
+            type="number"
+            [(ngModel)]="discountValue"
+            name="discountValue"
+            min="0"
+            step="0.01"
+            required
+          />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionSchedule')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('promoStartDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="startDate" name="startDate" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoEndDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="endDate" name="endDate" required />
+        </ui-form-field>
+      </div>
+      <label class="mt-4 flex items-center gap-2 text-sm text-ink-700">
+        <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+        {{ t('active') }}
+      </label>
+    </ui-card>
+
+    @if (saveError()) {
+      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+    }
+
+    <div class="flex justify-end gap-2">
+      <a routerLink="/admin/service-offers" class="ui-btn-secondary">{{ t('cancel') }}</a>
+      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
+        {{ submitting() ? t('saving') : t('save') }}
+      </button>
+    </div>
+  </form>
+}

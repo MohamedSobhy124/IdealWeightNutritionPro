@@ -1,0 +1,102 @@
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.field label,
+.inline-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-700, #334155);
+}
+
+.field input,
+.field select,
+.field textarea,
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='tel'],
+input[type='number'],
+input[type='search'],
+input[type='url'],
+input[type='date'],
+select,
+textarea {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.875rem;
+  font: inherit;
+  font-size: 0.875rem;
+  color: inherit;
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(5 150 105 / 0.2);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+}
+
+legend {
+  padding: 0 var(--space-xs);
+  font-weight: 600;
+}
+
+.check-row,
+label.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+  font-size: var(--font-size-sm);
+}
+
+.check-row input[type='checkbox'],
+.check-row input[type='radio'],
+label.check input[type='checkbox'] {
+  width: auto;
+  margin-top: 0.2rem;
+  accent-color: var(--color-primary);
+}
+
+.otp-box {
+  padding: var(--space-md);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.otp-box button {
+  margin-inline-end: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}

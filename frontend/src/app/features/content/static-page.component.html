@@ -1,0 +1,13 @@
+<section class="ui-fade-in static-page-shell mx-auto max-w-4xl py-6 sm:py-8">
+  @if (page()) {
+    <ui-page-header [title]="title()" [breadcrumbs]="[{ label: t('navHome'), link: '/' }]" />
+    <ui-card class="ui-card-pad static-page-card block">
+      <div class="ui-prose static-page-content" [innerHTML]="safeBody()"></div>
+    </ui-card>
+  } @else {
+    <ui-page-header [title]="t('pageNotFound')" />
+    <ui-empty-state icon="article" [title]="t('pageNotFound')">
+      <a routerLink="/" class="ui-btn-primary">{{ t('backToHome') }}</a>
+    </ui-empty-state>
+  }
+</section>

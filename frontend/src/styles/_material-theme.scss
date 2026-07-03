@@ -1,0 +1,34 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$green-palette,
+    tertiary: mat.$spring-green-palette,
+  ),
+  typography: (
+    brand-family: ('Inter', system-ui, sans-serif),
+    plain-family: ('Inter', system-ui, sans-serif),
+  ),
+  density: (
+    scale: 0,
+  ),
+));
+
+html {
+  @include mat.all-component-themes($theme);
+}
+
+.mat-mdc-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-raised-button.mat-primary {
+  --mdc-filled-button-container-color: var(--color-primary);
+  --mdc-filled-button-label-text-color: #fff;
+}
+
+html[dir='rtl'] .mat-mdc-form-field,
+html[dir='rtl'] .mat-mdc-button {
+  direction: rtl;
+}

@@ -1,0 +1,155 @@
+<ui-page-header [title]="t('servicePurchasesTitle')">
+  <div header-actions>
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="exportCsv()" [disabled]="exporting()">
+      <span class="material-icons !text-[18px]">download</span>
+      {{ exporting() ? t('exporting') : t('exportServicePurchases') }}
+    </button>
+  </div>
+</ui-page-header>
+
+@if (stats(); as s) {
+  <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="ui-card ui-card-pad">
+      <span class="text-sm text-ink-500">{{ t('servicePurchasesAll') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-ink-900">{{ s.all }}</span>
+    </div>
+    <div class="ui-card ui-card-pad">
+      <span class="text-sm text-ink-500">{{ t('filterPending') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-warning-fg">{{ s.pending }}</span>
+    </div>
+    <div class="ui-card ui-card-pad">
+      <span class="text-sm text-ink-500">{{ t('filterApproved') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-success-fg">{{ s.approved }}</span>
+    </div>
+    <div class="ui-card ui-card-pad">
+      <span class="text-sm text-ink-500">{{ t('filterRejected') }}</span>
+      <span class="mt-1 block text-2xl font-bold text-danger">{{ s.rejected }}</span>
+    </div>
+  </div>
+}
+
+@if (message()) {
+  <p class="mb-4 text-danger">{{ message() }}</p>
+}
+@if (error()) {
+  <p class="mb-4 text-danger">{{ error() }}</p>
+}
+
+<ui-data-table
+  [columns]="cols"
+  [rows]="$any(items())"
+  [loading]="loading()"
+  [searchable]="false"
+  [pageSize]="pageSize()"
+  [emptyTitle]="t('noServicePurchases')"
+  [ofLabel]="t('of')"
+
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+  <div table-toolbar>
+    <form class="flex flex-wrap items-end gap-3" (ngSubmit)="applyFilters()">
+      <ui-filter-bar>
+        <label class="flex flex-col gap-1">
+          <span class="ui-label">{{ t('paymentStatus') }}</span>
+          <select class="ui-select" [(ngModel)]="paymentStatus" name="paymentStatus">
+            <option value="">{{ t('filterAll') }}</option>
+            @for (status of paymentStatusOptions.slice(1); track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="ui-label">{{ t('serviceStatus') }}</span>
+          <select class="ui-select" [(ngModel)]="serviceStatus" name="serviceStatus">
+            <option value="">{{ t('filterAll') }}</option>
+            @for (status of serviceStatusOptions.slice(1); track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="ui-label">{{ t('dateFrom') }}</span>
+          <input class="ui-input" type="date" [(ngModel)]="dateFrom" name="dateFrom" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="ui-label">{{ t('dateTo') }}</span>
+          <input class="ui-input" type="date" [(ngModel)]="dateTo" name="dateTo" />
+        </label>
+        <label class="flex min-w-[12rem] flex-col gap-1">
+          <span class="ui-label">{{ t('search') }}</span>
+          <input
+            class="ui-input"
+            type="search"
+            [(ngModel)]="search"
+            name="search"
+            [placeholder]="t('servicePurchaseSearchPlaceholder')"
+          />
+        </label>
+      </ui-filter-bar>
+      <div class="flex gap-2">
+        <button type="submit" class="ui-btn-secondary ui-btn-sm">{{ t('search') }}</button>
+        <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearFilters()">{{ t('clearFilter') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <ng-template uiCell="id" let-row>
+    <a [routerLink]="['/admin/service-purchases', $any(row).id]" class="font-medium text-brand-600 hover:underline">
+      #{{ $any(row).id }}
+    </a>
+  </ng-template>
+
+  <ng-template uiCell="customerName" let-row>
+    @let item = $any(row);
+    <div>
+      <div>{{ item.customerName }}</div>
+      @if (item.email) {
+        <div class="text-xs text-ink-400">{{ item.email }}</div>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template uiCell="totalAmount" let-row>
+    {{ $any(row).totalAmount | iwnCurrency }}
+  </ng-template>
+
+  <ng-template uiCell="amountPaid" let-row>
+    {{ $any(row).amountPaid | iwnCurrency }}
+  </ng-template>
+
+  <ng-template uiCell="paymentStatus" let-row>
+    <ui-badge [variant]="statusVariant($any(row).paymentStatus)" [dot]="true">
+      {{ $any(row).paymentStatus }}
+    </ui-badge>
+  </ng-template>
+
+  <ng-template uiCell="serviceStatus" let-row>
+    <ui-badge [variant]="statusVariant($any(row).serviceStatus)">
+      {{ $any(row).serviceStatus }}
+    </ui-badge>
+  </ng-template>
+
+  <ng-template uiCell="purchaseDate" let-row>
+    {{ $any(row).purchaseDate | date: 'medium' }}
+  </ng-template>
+
+  <ng-template uiCell="actions" let-row>
+    <a [routerLink]="['/admin/service-purchases', $any(row).id]" class="ui-btn-secondary ui-btn-sm">
+      {{ t('view') }}
+    </a>
+  </ng-template>
+</ui-data-table>
+
+@if (!loading() && totalCount() > pageSize()) {
+  <ui-pagination
+    class="mt-4 block"
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    [ofLabel]="t('of')"
+    [prevLabel]="t('prevPage')"
+    [nextLabel]="t('nextPage')"
+    (pageChange)="goToPage($event)"
+  />
+}

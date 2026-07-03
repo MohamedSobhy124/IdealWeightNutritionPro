@@ -1,0 +1,183 @@
+<section class="ui-fade-in shop-shell space-y-4 sm:space-y-6">
+  <ui-page-header
+    class="shop-header"
+    [compact]="true"
+    [title]="t('shop')"
+    [subtitle]="!loading() && !error() ? totalCount() + ' ' + t('productsLabel') : null"
+  >
+    <button
+      type="button"
+      header-actions
+      class="shop-mobile-filter-btn ui-btn-secondary min-h-10 shrink-0 lg:hidden"
+      (click)="mobileFiltersOpen.set(true)"
+      [attr.aria-expanded]="mobileFiltersOpen()"
+      aria-controls="shop-filters-drawer"
+    >
+      <span class="material-icons !text-[18px]" aria-hidden="true">tune</span>
+      {{ t('filtersTitle') }}
+    </button>
+  </ui-page-header>
+
+  <div class="shop-layout flex flex-col gap-6 lg:grid lg:grid-cols-[280px_1fr] lg:gap-7">
+    <aside class="ui-sticky-filters hidden lg:block">
+      <form class="filters space-y-3" [formGroup]="filters" (ngSubmit)="applyFilters()">
+        <h2 class="text-sm font-semibold text-ink-800">{{ t('filtersTitle') }}</h2>
+        <input class="ui-input" type="search" [placeholder]="t('searchProducts')" formControlName="search" />
+        <select class="ui-select" formControlName="categoryId">
+          <option value="">{{ t('allCategories') }}</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.id">{{ categoryName(c) }}</option>
+          }
+        </select>
+        <select class="ui-select" formControlName="brandId">
+          <option value="">{{ t('allBrands') }}</option>
+          @for (b of brands(); track b.id) {
+            <option [value]="b.id">{{ brandName(b) }}</option>
+          }
+        </select>
+        <select class="ui-select" formControlName="sortBy">
+          <option value="">{{ t('sortFeatured') }}</option>
+          <option value="trending">{{ t('bestSellers') }}</option>
+          <option value="new">{{ t('newArrivals') }}</option>
+          <option value="price_low">{{ t('sortPriceLow') }}</option>
+          <option value="price_high">{{ t('sortPriceHigh') }}</option>
+          <option value="newest">{{ t('sortNewest') }}</option>
+          <option value="name">{{ t('sortName') }}</option>
+        </select>
+        <button class="ui-btn-primary w-full" type="submit">{{ t('apply') }}</button>
+      </form>
+    </aside>
+
+    <div class="space-y-4 sm:space-y-5">
+      @if (loading()) {
+        <div class="product-grid product-grid--sidebar shop-products-grid">
+          @for (i of [1,2,3,4,5,6,7,8]; track i) {
+            <div class="ui-card overflow-hidden">
+              <ui-skeleton height="0" class="block aspect-square" />
+              <div class="space-y-2 p-2">
+                <ui-skeleton height="0.9rem" />
+                <ui-skeleton width="40%" height="0.9rem" />
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (error()) {
+        <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+          <button type="button" class="ui-btn-secondary" (click)="reload()">{{ t('tryAgain') }}</button>
+        </ui-empty-state>
+      } @else if (products().length === 0) {
+        <ui-empty-state icon="inventory_2" [title]="t('noProductsFound')">
+          <button type="button" class="ui-btn-secondary" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+        </ui-empty-state>
+      } @else {
+        <div class="shop-results-toolbar rounded-2xl border border-ink-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+          <p class="text-sm text-ink-600">
+            <span class="font-semibold text-ink-900">{{ totalCount() }}</span>
+            {{ t('productsLabel') }}
+          </p>
+          <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+        </div>
+        <div class="product-grid product-grid--sidebar shop-products-grid ui-stagger-children">
+          @for (p of products(); track p.id) {
+            @let pricing = cardPricing(p);
+            <ui-product-card
+              density="compact"
+              [title]="productTitle(p)"
+              [slug]="p.slug"
+              [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
+              [price]="pricing.price"
+              [listPrice]="pricing.listPrice"
+              [flashSale]="pricing.isFlashSale"
+              [inStock]="p.inStock"
+              [inWishlist]="isInWishlist(p.id)"
+              [busy]="wishlistBusyId() === p.id || quickAddBusyId() === p.id"
+              [showQuickView]="true"
+              [quickAddLabel]="quickAddLabel(p)"
+              [quickViewLabel]="t('quickView')"
+              [outOfStockLabel]="t('outOfStock')"
+              [flashLabel]="t('flashSaleBadge')"
+              [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
+              (toggleWishlist)="toggleWishlist($event, p.id)"
+              (quickAdd)="quickAdd(p)"
+              (quickView)="openQuickView(p)"
+            />
+          }
+        </div>
+        <ui-pagination
+          [page]="page()"
+          [pageSize]="pageSize"
+          [totalCount]="totalCount()"
+          [ofLabel]="t('paginationOf')"
+          [prevLabel]="t('previousPage')"
+          [nextLabel]="t('nextPage')"
+          (pageChange)="goToPage($event)"
+        />
+      }
+    </div>
+  </div>
+
+  <ui-filter-drawer
+    [open]="mobileFiltersOpen()"
+    [heading]="t('filtersTitle')"
+    [cancelLabel]="t('cancel')"
+    [applyLabel]="t('apply')"
+    [closeLabel]="t('closeDialog')"
+    panelId="shop-filters-drawer"
+    (closed)="mobileFiltersOpen.set(false)"
+    (apply)="applyMobileFilters()"
+  >
+    <form class="space-y-3" [formGroup]="filters">
+      <ui-form-field [label]="t('searchProducts')">
+        <input class="ui-input" type="search" [placeholder]="t('searchProducts')" formControlName="search" name="search" autocomplete="off" />
+      </ui-form-field>
+      <ui-form-field [label]="t('allCategories')">
+        <select class="ui-select" formControlName="categoryId" name="categoryId">
+          <option value="">{{ t('allCategories') }}</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.id">{{ categoryName(c) }}</option>
+          }
+        </select>
+      </ui-form-field>
+      <ui-form-field [label]="t('allBrands')">
+        <select class="ui-select" formControlName="brandId" name="brandId">
+          <option value="">{{ t('allBrands') }}</option>
+          @for (b of brands(); track b.id) {
+            <option [value]="b.id">{{ brandName(b) }}</option>
+          }
+        </select>
+      </ui-form-field>
+      <ui-form-field [label]="t('sortFeatured')">
+        <select class="ui-select" formControlName="sortBy" name="sortBy">
+          <option value="">{{ t('sortFeatured') }}</option>
+          <option value="trending">{{ t('bestSellers') }}</option>
+          <option value="new">{{ t('newArrivals') }}</option>
+          <option value="price_low">{{ t('sortPriceLow') }}</option>
+          <option value="price_high">{{ t('sortPriceHigh') }}</option>
+          <option value="newest">{{ t('sortNewest') }}</option>
+          <option value="name">{{ t('sortName') }}</option>
+        </select>
+      </ui-form-field>
+    </form>
+  </ui-filter-drawer>
+
+  @if (quickViewProduct(); as qv) {
+    @let pricing = cardPricing(qv);
+    <ui-quick-view
+      [open]="true"
+      [title]="productTitle(qv)"
+      [slug]="qv.slug"
+      [imageUrl]="catalogue.resolveImageUrl(qv.imageUrl)"
+      [price]="pricing.price"
+      [listPrice]="pricing.listPrice"
+      [brand]="qv.brandName ?? null"
+      [inStock]="qv.inStock"
+      [busy]="quickAddBusyId() === qv.id"
+      [inStockLabel]="t('inStock')"
+      [outOfStockLabel]="t('outOfStock')"
+      [addToCartLabel]="t('addToCart')"
+      [viewDetailsLabel]="t('viewDetails')"
+      (closed)="closeQuickView()"
+      (addToCart)="quickViewAdd()"
+    />
+  }
+</section>

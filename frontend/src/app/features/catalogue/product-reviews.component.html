@@ -1,0 +1,89 @@
+<ui-card [heading]="t('reviewsTitle')" class="block">
+  @if (summary(); as s) {
+    <div class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-ink-200 bg-ink-50/80 px-4 py-3">
+      @if (s.reviewCount > 0) {
+        <span class="text-2xl font-bold text-ink-900">{{ s.averageRating | number: '1.1-1' }}</span>
+        <div class="flex items-center gap-0.5 text-brand-500" aria-hidden="true">
+          @for (star of [1, 2, 3, 4, 5]; track star) {
+            <span class="material-icons text-[20px]" [class.text-ink-300]="star > s.averageRating">star</span>
+          }
+        </div>
+        <span class="text-sm text-ink-600">{{ s.reviewCount }} {{ t('reviewsCountLabel') }}</span>
+      } @else {
+        <span class="text-sm text-ink-600">{{ t('noReviewsYet') }}</span>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="space-y-4">
+      @for (i of [1, 2]; track i) {
+        <ui-skeleton height="5rem" class="rounded-xl" />
+      }
+    </div>
+  } @else if (reviews().length === 0) {
+    <ui-empty-state icon="rate_review" [title]="t('noReviewsYet')" />
+  } @else {
+    <div class="space-y-4 ui-stagger-children">
+      @for (review of reviews(); track review.id) {
+        <div>
+          <ui-review-card
+            [quote]="review.comment"
+            [author]="review.userName"
+            [rating]="review.rating"
+          />
+          @if (review.isVerifiedPurchase) {
+            <p class="-mt-2 flex items-center gap-1 text-xs text-brand-600">
+              <span class="material-icons text-[14px]" aria-hidden="true">verified</span>
+              {{ t('verifiedPurchase') }}
+            </p>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <div class="mt-6 border-t border-ink-200 pt-6">
+    <h3 class="mb-4 text-base font-semibold text-ink-900">{{ t('writeReview') }}</h3>
+    @if (!auth.isAuthenticated()) {
+      <p class="text-sm text-ink-600">
+        {{ t('loginToReview') }}
+        <a routerLink="/auth/login" class="font-medium text-brand-600 hover:underline">{{ t('login') }}</a>
+      </p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+        <ui-form-field [label]="t('rating')">
+          <div class="review-rating-picker" role="radiogroup" [attr.aria-label]="t('rating')">
+            @for (n of [1, 2, 3, 4, 5]; track n) {
+              <button
+                type="button"
+                class="review-rating-star"
+                [class.is-active]="n <= form.controls.rating.value"
+                [attr.aria-checked]="n === form.controls.rating.value"
+                role="radio"
+                (click)="setRating(n)"
+              >
+                <span class="material-icons">{{ n <= form.controls.rating.value ? 'star' : 'star_outline' }}</span>
+              </button>
+            }
+            <span class="review-rating-value">{{ form.controls.rating.value }}/5</span>
+          </div>
+        </ui-form-field>
+        <ui-form-field [label]="t('reviewComment')">
+          <textarea class="ui-textarea" formControlName="comment" rows="4"></textarea>
+        </ui-form-field>
+        @if (message()) {
+          <p class="text-sm" [class.ui-error]="isError()" [class.text-success-fg]="!isError()" role="alert" aria-live="polite">
+            {{ message() }}
+          </p>
+        }
+        <button type="submit" class="ui-btn-primary w-full sm:w-auto" [disabled]="form.invalid || submitting()" [attr.aria-busy]="submitting()">
+          @if (submitting()) {
+            <span class="material-icons animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+          }
+          {{ submitting() ? t('submitting') : t('submitReview') }}
+        </button>
+      </form>
+    }
+  </div>
+</ui-card>

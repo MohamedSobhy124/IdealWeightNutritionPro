@@ -1,0 +1,110 @@
+<section class="auth-shell">
+  <div class="auth-layout">
+    <aside class="auth-brand-panel" aria-hidden="true">
+      <div class="auth-brand-panel__logo">
+        <span class="material-icons text-[32px]">eco</span>
+      </div>
+      <h2 class="auth-brand-panel__title">{{ t('whyChooseUsTitle') }}</h2>
+      <p class="auth-brand-panel__lead">{{ t('whyChooseUsLead') }}</p>
+      <ul class="auth-brand-panel__trust">
+        <li><span class="material-icons text-[18px]" aria-hidden="true">verified</span>{{ t('trustedOriginals') }}</li>
+        <li><span class="material-icons text-[18px]" aria-hidden="true">local_shipping</span>{{ t('sameDayDelivery') }}</li>
+        <li><span class="material-icons text-[18px]" aria-hidden="true">lock</span>{{ t('securePayments') }}</li>
+      </ul>
+    </aside>
+
+    <div class="auth-form-wrap">
+      <ui-page-header [title]="t('registerTitle')" [breadcrumbs]="[{ label: t('navHome'), link: '/' }]" />
+
+      <div class="auth-form-card">
+        <div class="auth-form-icon lg:hidden">
+          <span class="material-icons text-[28px]">eco</span>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+          <ui-form-field [label]="t('fullName')">
+            <input type="text" formControlName="fullName" name="fullName" autocomplete="name" class="ui-input" />
+          </ui-form-field>
+
+          <ui-form-field [label]="t('email')">
+            <input type="email" formControlName="email" name="email" autocomplete="email" spellcheck="false" class="ui-input" />
+          </ui-form-field>
+
+          <div class="checkout-otp">
+            <p class="text-sm font-medium text-ink-700">{{ t('verifyEmailFirst') }}</p>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <ui-form-field [label]="t('verificationCode')" class="flex-1">
+                <input
+                  [(ngModel)]="otp"
+                  [ngModelOptions]="{ standalone: true }"
+                  name="otp"
+                  maxlength="6"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  spellcheck="false"
+                  class="ui-input ui-input-ltr"
+                />
+              </ui-form-field>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="ui-btn-secondary ui-btn-sm min-h-10 whitespace-nowrap"
+                  (click)="sendOtp()"
+                  [disabled]="otpBusy() || form.controls.email.invalid"
+                >
+                  {{ t('sendCode') }}
+                </button>
+                <button
+                  type="button"
+                  class="ui-btn-primary ui-btn-sm min-h-10 whitespace-nowrap"
+                  (click)="verifyOtpCode()"
+                  [disabled]="otpBusy() || !otp"
+                >
+                  {{ t('verifyCode') }}
+                </button>
+              </div>
+            </div>
+            @if (otpMessage()) {
+              <p class="flex items-center gap-1.5 text-xs font-medium" role="status" aria-live="polite" [class.text-success-fg]="emailVerified()" [class.text-ink-500]="!emailVerified()">
+                @if (emailVerified()) {
+                  <span class="material-icons text-[16px]" aria-hidden="true">check_circle</span>
+                }
+                {{ otpMessage() }}
+              </p>
+            }
+          </div>
+
+          <ui-form-field [label]="t('phoneOptional')">
+            <input type="tel" formControlName="phone" name="phone" autocomplete="tel" class="ui-input ui-input-ltr" />
+          </ui-form-field>
+
+          <ui-form-field [label]="t('password')">
+            <input type="password" formControlName="password" name="password" autocomplete="new-password" class="ui-input" />
+          </ui-form-field>
+
+          @if (error()) {
+            <p class="ui-error" role="alert" aria-live="polite">{{ error() }}</p>
+          }
+
+          <button type="submit" class="ui-btn-primary w-full" [disabled]="form.invalid || loading() || !emailVerified()" [attr.aria-busy]="loading()">
+            @if (loading()) {
+              <span class="material-icons animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+            }
+            {{ t('createAccount') }}
+          </button>
+        </form>
+
+        <p class="auth-divider">{{ t('or') }}</p>
+
+        <button type="button" class="ui-btn-secondary w-full" (click)="auth.loginWithGoogle()">
+          <span class="material-icons text-[18px]">account_circle</span>
+          {{ t('signInWithGoogle') }}
+        </button>
+
+        <p class="mt-6 text-center text-sm">
+          <a routerLink="/auth/login" class="font-medium text-brand-600 hover:text-brand-700">{{ t('alreadyHaveAccount') }}</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

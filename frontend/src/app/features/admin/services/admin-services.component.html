@@ -1,0 +1,152 @@
+<ui-page-header [title]="t('servicesTitle')">
+
+  <div header-actions>
+
+    <a routerLink="/admin/services/new" class="ui-btn-primary ui-btn-sm">
+
+      <span class="material-icons !text-[18px]">add</span>
+
+      {{ t('newService') }}
+
+    </a>
+
+  </div>
+
+</ui-page-header>
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(services())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="20"
+
+  [emptyTitle]="t('noServices')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+  <div table-toolbar>
+
+    <ui-filter-bar>
+
+      <label class="flex items-center gap-2 text-sm text-ink-600">
+
+        <input type="checkbox" class="accent-brand-600" [checked]="showInactive()" (change)="toggleShowInactive()" />
+
+        {{ t('showInactive') }}
+
+      </label>
+
+    </ui-filter-bar>
+
+  </div>
+
+
+
+  <ng-template uiCell="imageUrl" let-row>
+
+    @let service = $any(row);
+
+    @if (service.imageUrl) {
+
+      <img [src]="catalogue.resolveImageUrl(service.imageUrl)" [alt]="title(service)" class="h-12 w-12 rounded-lg object-cover" />
+
+    }
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="title" let-row>
+
+    @let service = $any(row);
+
+    <div [class.opacity-60]="!service.isActive">
+
+      <a [routerLink]="['/admin/services', service.id]" class="font-medium text-brand-600 hover:underline">{{ title(service) }}</a>
+
+      <span class="block text-xs text-ink-500">{{ service.purchaseCount }} {{ t('purchases') }}</span>
+
+    </div>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="price" let-row>
+
+    <span class="font-semibold text-ink-900">{{ $any(row).price | iwnCurrency }}</span>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="serviceType" let-row>
+
+    {{ $any(row).serviceType }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="status" let-row>
+
+    @let service = $any(row);
+
+    <ui-badge [variant]="service.isActive ? 'success' : 'neutral'" [dot]="service.isActive">
+
+      {{ service.isActive ? t('active') : t('inactive') }}
+
+    </ui-badge>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let service = $any(row);
+
+    <div class="flex flex-wrap gap-1.5">
+
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="toggleActive(service.id)">
+
+        {{ service.isActive ? t('deactivate') : t('activate') }}
+
+      </button>
+
+      <a [routerLink]="['/admin/services', service.id]" class="ui-btn-secondary ui-btn-sm">{{ t('edit') }}</a>
+
+      <a [routerLink]="['/admin/service-offers']" [queryParams]="{ serviceSubscriptionId: service.id }" class="ui-btn-ghost ui-btn-sm">
+
+        {{ t('viewServiceOffers') }}
+
+      </a>
+
+      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="deleteService(service.id)">{{ t('delete') }}</button>
+
+    </div>
+
+  </ng-template>
+
+</ui-data-table>
+
+

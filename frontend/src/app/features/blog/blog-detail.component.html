@@ -1,0 +1,60 @@
+<section class="ui-fade-in">
+  @if (loading()) {
+    <div class="mx-auto max-w-3xl space-y-6">
+      <ui-skeleton height="1rem" width="8rem" />
+      <ui-skeleton height="16rem" class="rounded-2xl" />
+      <ui-skeleton height="1rem" width="60%" />
+      <ui-skeleton height="2.5rem" width="90%" />
+      <ui-skeleton height="12rem" />
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/blog" class="ui-btn-secondary">{{ t('allArticles') }}</a>
+    </ui-empty-state>
+  } @else if (post()) {
+    @if (post(); as p) {
+      <article class="mx-auto max-w-3xl space-y-6">
+        <ui-page-header [title]="displayTitle(p)" [breadcrumbs]="[{ label: t('blog'), link: '/blog' }]" />
+
+        @if (p.imageUrl) {
+          <div class="group overflow-hidden rounded-2xl bg-ink-100 shadow-card">
+            <img
+              [src]="catalogue.resolveImageUrl(p.imageUrl)"
+              [alt]="displayTitle(p)"
+              class="max-h-[420px] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transform-none"
+            />
+          </div>
+        }
+
+        <div class="flex flex-wrap items-center gap-2 rounded-xl border border-ink-200 bg-ink-50/80 px-4 py-3 text-xs sm:text-sm">
+          <ui-badge variant="brand">{{ displayCategory(p) }}</ui-badge>
+          <span class="text-ink-500">{{ p.publishedDate | date: 'longDate' }}</span>
+          <span class="text-ink-300">·</span>
+          <span class="text-ink-500">{{ p.readTime }} {{ t('minRead') }}</span>
+          <span class="text-ink-300">·</span>
+          <span class="text-ink-500">{{ t('by') }} {{ displayAuthor(p) }}</span>
+        </div>
+
+        <div class="ui-prose" [innerHTML]="displayContent(p)"></div>
+
+        @if (p.relatedPosts.length > 0) {
+          <section class="border-t border-ink-200 pt-8">
+            <h2 class="mb-4 text-lg font-bold text-ink-900">{{ t('relatedArticles') }}</h2>
+            <div class="content-grid-2 ui-stagger-children">
+              @for (related of p.relatedPosts; track related.id) {
+                <ui-article-card
+                  [title]="displayTitle(related)"
+                  [link]="['/blog', related.slug]"
+                  [imageUrl]="related.imageUrl ? catalogue.resolveImageUrl(related.imageUrl) : null"
+                  [excerpt]="displayExcerpt(related)"
+                  [category]="displayCategorySummary(related)"
+                  [date]="related.readTime + ' ' + t('minRead')"
+                />
+              }
+            </div>
+          </section>
+        }
+      </article>
+    }
+  }
+</section>

@@ -1,0 +1,28 @@
+<section class="ui-fade-in">
+  <ui-page-header [title]="t('wellnessServices')" [subtitle]="t('servicesLead')" />
+
+  @if (loading()) {
+    <div class="content-grid-2">
+      @for (_ of [1, 2, 3, 4]; track $index) {
+        <ui-skeleton height="220px" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  } @else if (services().length === 0) {
+    <ui-empty-state icon="medical_services" [title]="t('noServicesAvailable')" />
+  } @else {
+    <div class="content-grid-2 ui-stagger-children">
+      @for (service of services(); track service.id) {
+        <ui-service-card
+          [title]="displayTitle(service)"
+          [link]="['/services', service.id + '']"
+          [price]="service.salePrice != null && service.hasActiveOffer ? service.salePrice : service.price"
+          [imageUrl]="service.imageUrl ? catalogue.resolveImageUrl(service.imageUrl) : null"
+          [subtitle]="displayDescription(service) || null"
+          [ctaLabel]="t('viewDetails')"
+        />
+      }
+    </div>
+  }
+</section>

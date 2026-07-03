@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>Ideal Weight Nutrition</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Shop premium supplements, nutrition products, flash sales, and wellness services in the UAE.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Ideal Weight Nutrition">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script>
+    (function () {
+      try {
+        var locale = localStorage.getItem('iwn-locale');
+        var lang = locale === 'en' ? 'en' : 'ar';
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      try {
+        var k = 'iwn-theme';
+        var s = localStorage.getItem(k);
+        var dark = s === 'dark' || (s === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

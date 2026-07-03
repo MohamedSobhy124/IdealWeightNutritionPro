@@ -1,0 +1,40 @@
+{
+  "/api": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/hubs": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "ws": true,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/videos": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/images": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/sitemap.xml": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/robots.txt": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/signin-google": {
+    "target": "http://localhost:5228",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

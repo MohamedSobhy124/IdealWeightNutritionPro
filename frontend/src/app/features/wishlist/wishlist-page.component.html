@@ -1,0 +1,55 @@
+<section class="ui-fade-in space-y-6">
+  <ui-page-header [title]="t('wishlistTitle')" />
+
+  @if (loading()) {
+    <div class="product-grid">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="ui-card overflow-hidden">
+          <ui-skeleton height="0" class="block aspect-square" />
+          <div class="space-y-2 p-2">
+            <ui-skeleton height="0.9rem" />
+            <ui-skeleton width="40%" height="0.9rem" />
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  } @else if (items().length === 0) {
+    <ui-empty-state icon="favorite_border" [title]="t('wishlistEmpty')">
+      <a routerLink="/shop" class="ui-btn-primary">{{ t('startShopping') }}</a>
+    </ui-empty-state>
+  } @else {
+    @if (message()) {
+      <p class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg" role="status" aria-live="polite">
+        {{ message() }}
+        <a routerLink="/cart" class="ms-2 font-medium underline">{{ t('viewCart') }}</a>
+      </p>
+    }
+
+    <div class="product-grid ui-stagger-children">
+      @for (item of items(); track item.id) {
+        @let pricing = cardPricing(item);
+        <ui-product-card
+          density="compact"
+          [alwaysShowActions]="true"
+          [title]="itemTitle(item)"
+          [slug]="item.slug"
+          [imageUrl]="catalogue.resolveImageUrl(item.imageUrl)"
+          [price]="pricing.price"
+          [listPrice]="pricing.listPrice"
+          [flashSale]="pricing.isFlashSale"
+          [inStock]="item.inStock"
+          [inWishlist]="true"
+          [busy]="busyId() === item.id"
+          [flashLabel]="t('flashSaleBadge')"
+          [quickAddLabel]="cartActionLabel(item)"
+          [wishlistLabel]="t('removeFromWishlist')"
+          [outOfStockLabel]="t('outOfStock')"
+          (toggleWishlist)="remove(item)"
+          (quickAdd)="addToCart(item)"
+        />
+      }
+    </div>
+  }
+</section>

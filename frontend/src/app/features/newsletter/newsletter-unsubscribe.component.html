@@ -1,0 +1,61 @@
+<section class="auth-shell ui-fade-in">
+  <div class="auth-layout auth-layout--single">
+    <div class="auth-form-wrap mx-auto max-w-md">
+      <ui-page-header
+        [title]="t('newsletterUnsubscribePageTitle')"
+        [subtitle]="t('newsletterUnsubscribePageLead')"
+        [breadcrumbs]="[{ label: t('navHome'), link: '/' }]"
+      />
+
+      @if (done()) {
+        <div class="auth-form-card text-center">
+          <div class="ui-success-icon mx-auto mb-4" aria-hidden="true">
+            <span class="material-icons text-[32px]">mark_email_unread</span>
+          </div>
+          <p class="text-sm font-medium text-success-fg">{{ message() }}</p>
+          <a routerLink="/" class="ui-btn-primary mt-6 inline-flex w-full justify-center">{{ t('backToHome') }}</a>
+        </div>
+      } @else {
+        <div class="auth-form-card">
+          <div class="auth-form-icon lg:hidden">
+            <span class="material-icons text-[28px]">unsubscribe</span>
+          </div>
+
+          <form class="space-y-4" (submit)="$event.preventDefault(); unsubscribe()">
+            <ui-form-field [label]="t('newsletterEmailPlaceholder')">
+              <input
+                id="newsletter-email"
+                class="ui-input"
+                type="email"
+                name="email"
+                autocomplete="email"
+                [value]="email()"
+                (input)="email.set($any($event.target).value)"
+                [disabled]="busy()"
+                required
+              />
+            </ui-form-field>
+
+            @if (message()) {
+              <p class="text-sm" [class.ui-error]="error()" [class.text-success-fg]="!error()" role="alert" aria-live="polite">
+                {{ message() }}
+              </p>
+            }
+
+            <button
+              type="submit"
+              class="ui-btn-secondary w-full border-danger text-danger hover:bg-danger-soft"
+              [disabled]="busy()"
+              [attr.aria-busy]="busy()"
+            >
+              @if (busy()) {
+                <span class="material-icons animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+              }
+              {{ busy() ? t('newsletterUnsubscribing') : t('newsletterUnsubscribe') }}
+            </button>
+          </form>
+        </div>
+      }
+    </div>
+  </div>
+</section>

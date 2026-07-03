@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-api",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Get-Process -Name 'IdealWeightNutrition.Api' -ErrorAction SilentlyContinue | Stop-Process -Force; dotnet build ${workspaceFolder}/src/IdealWeightNutrition.Api/IdealWeightNutrition.Api.csproj /property:GenerateFullPaths=true /consoleloggerparameters:NoSummary"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "run-api",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/src/IdealWeightNutrition.Api/IdealWeightNutrition.Api.csproj",
+        "--launch-profile",
+        "https"
+      ],
+      "problemMatcher": "$msCompile",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+<section class="ui-fade-in space-y-6">
+  <ui-page-header [title]="t('flashSales')" />
+
+  @if (loading()) {
+    <div class="content-grid-2">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <ui-skeleton height="200px" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  } @else if (sales().length === 0) {
+    <ui-empty-state icon="bolt" [title]="t('noFlashSales')">
+      <a routerLink="/shop" class="ui-btn-primary">{{ t('browseShop') }}</a>
+    </ui-empty-state>
+  } @else {
+    <div class="content-grid-2 ui-stagger-children">
+      @for (sale of sales(); track sale.id) {
+        <article class="promo-card ui-card ui-hover-lift group overflow-hidden">
+          @if (sale.imageUrl) {
+            <a [routerLink]="['/flash-sales', sale.id]" class="promo-card__media block">
+              <span class="absolute start-2 top-2 z-10"><ui-badge variant="danger">{{ t('flashSaleBadge') }}</ui-badge></span>
+              <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" [alt]="saleName(sale)" loading="lazy" />
+            </a>
+          }
+          <div class="promo-card__body">
+            <h2 class="line-clamp-2 text-sm font-semibold text-ink-900 sm:text-base">
+              <a [routerLink]="['/flash-sales', sale.id]" class="hover:text-brand-700">{{ saleName(sale) }}</a>
+            </h2>
+            @if (sale.description) {
+              <p class="mt-1 line-clamp-2 text-xs text-ink-500 sm:text-sm">{{ sale.description }}</p>
+            }
+            <p class="mt-2 flex flex-wrap items-center gap-1 text-xs text-ink-600 sm:text-sm">
+              {{ t('saleEndsIn') }}
+              <app-flash-sale-countdown [endDate]="sale.endDate" />
+              <span class="text-ink-300">·</span>
+              {{ sale.productCount }} {{ t('productsLabel') }}
+            </p>
+            <a class="ui-btn-primary ui-btn-sm mt-3 w-full justify-center sm:w-auto" [routerLink]="['/flash-sales', sale.id]">{{ t('shopNow') }}</a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

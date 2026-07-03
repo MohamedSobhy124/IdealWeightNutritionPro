@@ -1,0 +1,63 @@
+<ui-page-header [title]="t('returnsTitle')" />
+
+@if (error()) {
+  <p class="mb-4 text-danger">{{ error() }}</p>
+}
+
+<ui-data-table
+  [columns]="cols"
+  [rows]="$any(items())"
+  [loading]="loading()"
+  [searchable]="true"
+  [exportable]="true"
+  [pageSize]="20"
+  [searchPlaceholder]="t('search')"
+  [emptyTitle]="t('noReturns')"
+  [exportLabel]="t('exportOrders')"
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+  <div table-toolbar>
+    <label class="flex flex-col gap-1">
+      <span class="ui-label">{{ t('productStatus') }}</span>
+      <select class="ui-select" [(ngModel)]="status" name="status" (change)="load()">
+        <option value="all">{{ t('filterAll') }}</option>
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="Processing">Processing</option>
+        <option value="Completed">Completed</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+    </label>
+  </div>
+
+  <ng-template uiCell="id" let-row>
+    <a [routerLink]="['/admin/returns', $any(row).id]" class="font-semibold text-brand-600 hover:underline">#{{ $any(row).id }}</a>
+  </ng-template>
+
+  <ng-template uiCell="orderId" let-row>
+    #{{ $any(row).orderId }}
+  </ng-template>
+
+  <ng-template uiCell="status" let-row>
+    <ui-badge [variant]="statusVariant($any(row).status)" [dot]="true">{{ $any(row).status }}</ui-badge>
+  </ng-template>
+
+  <ng-template uiCell="customerEmail" let-row>
+    {{ $any(row).customerEmail ?? '—' }}
+  </ng-template>
+
+  <ng-template uiCell="refundAmount" let-row>
+    @let r = $any(row);
+    @if (r.refundAmount != null) {
+      <span class="font-semibold text-ink-900">{{ r.refundAmount | iwnCurrency }}</span>
+    } @else {
+      —
+    }
+  </ng-template>
+
+  <ng-template uiCell="requestDate" let-row>
+    {{ $any(row).requestDate | date: 'medium' }}
+  </ng-template>
+</ui-data-table>

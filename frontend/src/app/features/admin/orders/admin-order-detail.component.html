@@ -1,0 +1,193 @@
+<ui-page-header
+  [title]="order() ? t('orderNumber') + ' #' + order()!.id : t('orderNumber')"
+  [breadcrumbs]="[{ label: t('ordersTitle'), link: '/admin/orders' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="8rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else if (order()) {
+  @if (order(); as o) {
+  <div class="mb-4 flex flex-wrap items-center gap-2">
+    <ui-badge [variant]="statusVariant(o.orderStatus)" [dot]="true">{{ o.orderStatus }}</ui-badge>
+    <ui-badge [variant]="statusVariant(o.paymentStatus)">{{ o.paymentStatus }}</ui-badge>
+    @if (o.paymentMethod) {
+      <span class="text-sm text-ink-500">{{ o.paymentMethod }}</span>
+    }
+    <span class="text-sm text-ink-400">{{ o.orderDate | date: 'medium' }}</span>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <ui-card [heading]="t('customer')">
+      <p class="font-medium text-ink-900">{{ o.name }}</p>
+      @if (o.email) {
+        <p class="mt-1 text-sm text-ink-600">{{ o.email }}</p>
+      }
+      <p class="mt-1 text-sm text-ink-600">{{ o.phoneNumber }}</p>
+      <p class="mt-2 text-sm text-ink-600">{{ o.streetAddress }}, {{ o.city }}@if (o.area) {, {{ o.area }}}</p>
+      @if (o.isGuestOrder) {
+        <ui-badge class="mt-3 inline-flex" [variant]="'neutral'">{{ t('guestOrder') }}</ui-badge>
+      }
+    </ui-card>
+
+    <ui-card [heading]="t('items')" class="lg:col-span-1">
+      <ul class="divide-y divide-ink-100">
+        @for (item of o.items; track item.productId) {
+          <li class="space-y-2 py-2 text-sm">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-ink-700">{{ item.title }} × {{ item.quantity }}</span>
+              <span class="font-medium text-ink-900">{{ item.lineTotal | iwnCurrency }}</span>
+            </div>
+            @if (lineEditFor(item.orderDetailId); as lineEdit) {
+              <div class="grid grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  class="ui-input"
+                  [value]="lineEdit.quantity"
+                  (input)="lineEdit.quantity = +$any($event.target).value"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="ui-input"
+                  [value]="lineEdit.unitPrice"
+                  (input)="lineEdit.unitPrice = +$any($event.target).value"
+                />
+                <button
+                  type="button"
+                  class="ui-btn-secondary ui-btn-sm"
+                  (click)="updateLineItem(item.orderDetailId)"
+                  [disabled]="busy()"
+                >
+                  {{ t('saveLine') }}
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+      <div class="mt-4 space-y-1 border-t border-ink-100 pt-3 text-sm">
+        <p class="flex justify-between text-ink-600">
+          <span>{{ t('subtotal') }}</span>
+          <span>{{ o.orderSubtotal ?? 0 | iwnCurrency }}</span>
+        </p>
+        @if (o.discountAmount) {
+          <p class="flex justify-between text-ink-600">
+            <span>{{ t('discount') }}</span>
+            <span>− {{ o.discountAmount | iwnCurrency }}</span>
+          </p>
+        }
+        <p class="flex justify-between text-ink-600">
+          <span>{{ t('shipping') }}</span>
+          <span>{{ o.shipping | iwnCurrency }}</span>
+        </p>
+        <p class="flex justify-between pt-1 text-base font-semibold text-ink-900">
+          <span>{{ t('totalLabel') }}</span>
+          <span>{{ o.orderTotal | iwnCurrency }}</span>
+        </p>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('actions')">
+      @if (actionMessage()) {
+        <p class="mb-3 text-sm" [class.text-danger]="actionError()" [class.text-success-fg]="!actionError()">
+          {{ actionMessage() }}
+        </p>
+      }
+
+      <div class="space-y-3">
+        @if (canStartProcessing(o)) {
+          <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="runAction('processing')" [disabled]="busy()">
+            {{ t('startProcessing') }}
+          </button>
+        }
+
+        @if (canShip(o)) {
+          <div class="space-y-3 rounded-xl border border-ink-200 p-3">
+            <ui-form-field [label]="t('carrier')">
+              <input class="ui-input" [(ngModel)]="carrier" name="carrier" />
+            </ui-form-field>
+            <ui-form-field [label]="t('trackingNumber')">
+              <input class="ui-input" [(ngModel)]="trackingNumber" name="tracking" />
+            </ui-form-field>
+            <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="runAction('ship')" [disabled]="busy()">
+              {{ t('markShipped') }}
+            </button>
+          </div>
+        }
+
+        @if (canDeliver(o)) {
+          <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="runAction('deliver')" [disabled]="busy()">
+            {{ t('markDelivered') }}
+          </button>
+        }
+
+        @if (canCancel(o)) {
+          <button type="button" class="ui-btn-danger ui-btn-sm w-full" (click)="runAction('cancel')" [disabled]="busy()">
+            {{ t('cancelOrder') }}
+          </button>
+        }
+
+        @if (canRecheckPayment(o)) {
+          <button type="button" class="ui-btn-secondary ui-btn-sm w-full" (click)="runAction('recheckPayment')" [disabled]="busy()">
+            {{ t('recheckPayment') }}
+          </button>
+        }
+
+        <div class="space-y-3 rounded-xl border border-ink-200 p-3">
+          <ui-form-field [label]="t('reason')">
+            <input class="ui-input" [(ngModel)]="forceReason" name="forceReason" />
+          </ui-form-field>
+          @if (canForceComplete(o)) {
+            <button type="button" class="ui-btn-secondary ui-btn-sm w-full" (click)="runAction('forceComplete')" [disabled]="busy()">
+              {{ t('forceComplete') }}
+            </button>
+          }
+          @if (canForceCancel(o)) {
+            <button type="button" class="ui-btn-danger ui-btn-sm w-full" (click)="runAction('forceCancel')" [disabled]="busy()">
+              {{ t('forceCancel') }}
+            </button>
+          }
+        </div>
+
+        @if (canRefund(o)) {
+          <div class="space-y-3 rounded-xl border border-ink-200 p-3">
+            <p class="text-sm font-semibold text-ink-900">{{ t('refund') }}</p>
+            <ui-form-field [label]="t('amountAed')">
+              <input type="number" min="0" step="0.01" class="ui-input" [(ngModel)]="refundAmount" name="refundAmount" />
+            </ui-form-field>
+            <ui-form-field [label]="t('reason')">
+              <input class="ui-input" [(ngModel)]="refundReason" name="refundReason" />
+            </ui-form-field>
+            <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="refundOrder()" [disabled]="busy()">
+              {{ t('processRefund') }}
+            </button>
+          </div>
+        }
+
+        @if (o.trackingNumber) {
+          <p class="text-sm text-ink-600">
+            <strong>{{ o.carrier }}</strong> — {{ o.trackingNumber }}
+          </p>
+        }
+      </div>
+    </ui-card>
+  </div>
+
+  <ui-card [heading]="t('auditLogTitle')" class="mt-6 block">
+    @if (loadingAudit()) {
+      <ui-skeleton height="6rem" />
+    } @else if (auditLogs().length === 0) {
+      <p class="text-sm text-ink-500">{{ t('auditLogEmpty') }}</p>
+    } @else {
+      <ui-timeline [items]="auditTimelineItems()" [ariaLabel]="t('auditLogTitle')" />
+    }
+  </ui-card>
+  }
+}

@@ -1,0 +1,163 @@
+<ui-page-header [title]="t('citiesTitle')">
+
+  <div header-actions>
+
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">{{ t('newCity') }}</button>
+
+  </div>
+
+</ui-page-header>
+
+
+
+@if (message()) {
+
+  <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
+
+}
+
+
+
+@if (showForm()) {
+  <form class="mb-6" (ngSubmit)="submit()">
+    <ui-card [heading]="editingId() ? t('editCity') : t('newCity')" class="max-w-lg">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('titleEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="name" name="name" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('titleAr')">
+          <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" />
+        </ui-form-field>
+        <ui-form-field [label]="t('emirate')" [required]="true">
+          <input class="ui-input" [(ngModel)]="emirate" name="emirate" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('emirateAr')">
+          <input class="ui-input" [(ngModel)]="emirateAr" name="emirateAr" />
+        </ui-form-field>
+        <ui-form-field [label]="t('deliveryCharge')">
+          <input type="number" min="0" step="0.01" class="ui-input" [(ngModel)]="deliveryCharge" name="deliveryCharge" />
+        </ui-form-field>
+        <ui-form-field [label]="t('displayOrder')">
+          <input type="number" min="0" class="ui-input" [(ngModel)]="displayOrder" name="displayOrder" />
+        </ui-form-field>
+      </div>
+      <label class="mt-4 flex items-center gap-2 text-sm text-ink-700">
+        <input type="checkbox" class="accent-brand-600" [(ngModel)]="isActive" name="isActive" />
+        {{ t('active') }}
+      </label>
+      <div class="mt-4 flex gap-2">
+        <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+      </div>
+    </ui-card>
+  </form>
+}
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(items())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="20"
+
+  [emptyTitle]="t('noCities')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+
+
+  <ng-template uiCell="city" let-row>
+
+    @let item = $any(row);
+
+    <span class="font-medium">{{ cityName(item) }}</span>
+
+    <span class="block text-xs text-ink-400">#{{ item.id }}</span>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="emirate" let-row>
+
+    @let item = $any(row);
+
+    {{ locale.pick(item.emirate, item.emirateAr ?? item.emirate) }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="deliveryCharge" let-row>
+
+    <span class="font-semibold text-ink-900">{{ $any(row).deliveryCharge | iwnCurrency }}</span>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="remoteAreas" let-row>
+
+    @let item = $any(row);
+
+    <a [routerLink]="['/admin/cities', item.id, 'areas']" class="text-brand-600 hover:underline">
+
+      {{ item.remoteAreaCount ?? 0 }} {{ t('remoteAreas') }}
+
+    </a>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="status" let-row>
+
+    @let item = $any(row);
+
+    <ui-badge [variant]="item.isActive ? 'success' : 'neutral'" [dot]="item.isActive">
+
+      {{ item.isActive ? t('active') : t('inactive') }}
+
+    </ui-badge>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let item = $any(row);
+
+    <div class="flex flex-wrap gap-1.5">
+
+      <a [routerLink]="['/admin/cities', item.id, 'areas']" class="ui-btn-secondary ui-btn-sm">{{ t('remoteAreas') }}</a>
+
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="openEdit(item)" [disabled]="busyId() === item.id">{{ t('edit') }}</button>
+
+      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('remove') }}</button>
+
+    </div>
+
+  </ng-template>
+
+</ui-data-table>
+
+

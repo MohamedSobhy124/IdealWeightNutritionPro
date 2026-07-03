@@ -1,0 +1,148 @@
+<ui-page-header [title]="t('serviceOffersTitle')">
+
+  <div header-actions>
+
+    <a
+
+      routerLink="/admin/service-offers/new"
+
+      [queryParams]="filterServiceId() ? { serviceSubscriptionId: filterServiceId() } : null"
+
+      class="ui-btn-primary ui-btn-sm"
+
+    >
+
+      <span class="material-icons !text-[18px]">add</span>
+
+      {{ t('newServiceOffer') }}
+
+    </a>
+
+  </div>
+
+</ui-page-header>
+
+
+
+@if (filterServiceId()) {
+
+  <p class="mb-4 flex flex-wrap items-center gap-2 text-sm text-ink-600">
+
+    {{ t('filteredByService') }}
+
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="clearServiceFilter()">{{ t('clearFilter') }}</button>
+
+  </p>
+
+}
+
+
+
+@if (message()) {
+
+  <p class="mb-4 text-sm text-success-fg">{{ message() }}</p>
+
+}
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(items())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="20"
+
+  [emptyTitle]="t('noServiceOffers')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+
+
+  <ng-template uiCell="serviceTitle" let-row>
+
+    <a [routerLink]="['/admin/service-offers', $any(row).id]" class="font-semibold text-brand-600 hover:underline">{{ $any(row).serviceTitle }}</a>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="promoCode" let-row>
+
+    {{ $any(row).promoCode ?? t('none') }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="discount" let-row>
+
+    {{ discountLabel($any(row)) }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="dates" let-row>
+
+    @let item = $any(row);
+
+    {{ item.startDate | date: 'mediumDate' }} – {{ item.endDate | date: 'mediumDate' }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="status" let-row>
+
+    @let item = $any(row);
+
+    <ui-badge [variant]="item.isActive ? 'success' : 'neutral'" [dot]="item.isActive">
+
+      {{ item.isActive ? t('active') : t('inactive') }}
+
+    </ui-badge>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let item = $any(row);
+
+    <div class="flex flex-wrap gap-1.5">
+
+      <a [routerLink]="['/admin/service-offers', item.id]" class="ui-btn-secondary ui-btn-sm">{{ t('edit') }}</a>
+
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="toggle(item)" [disabled]="busyId() === item.id">
+
+        {{ item.isActive ? t('deactivate') : t('activate') }}
+
+      </button>
+
+      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('remove') }}</button>
+
+    </div>
+
+  </ng-template>
+
+</ui-data-table>
+
+

@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7AFC422F-69B4-4B3B-A47B-73B26CDCDB11}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdealWeightNutrition.Api", "src\IdealWeightNutrition.Api\IdealWeightNutrition.Api.csproj", "{BEF8FE8D-BDA2-44CA-8A99-46DB0203DB42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdealWeightNutrition.Application", "src\IdealWeightNutrition.Application\IdealWeightNutrition.Application.csproj", "{CBE6FD7B-BE96-495A-B5E6-DB2FA632790A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdealWeightNutrition.Domain", "src\IdealWeightNutrition.Domain\IdealWeightNutrition.Domain.csproj", "{745E6D2D-DD7F-4B78-A676-BBF01DCD6010}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdealWeightNutrition.Infrastructure", "src\IdealWeightNutrition.Infrastructure\IdealWeightNutrition.Infrastructure.csproj", "{0D8C6FE1-0D3F-425F-8DB9-24B7319C2F05}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdealWeightNutrition.Contracts", "src\IdealWeightNutrition.Contracts\IdealWeightNutrition.Contracts.csproj", "{8CE2FEBA-9DEF-4350-8C8E-533BE5E3E1F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B4C2A9F4-DB0A-416A-8D7B-E9B22A24E080}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdealWeightNutrition.Application.Tests", "tests\IdealWeightNutrition.Application.Tests\IdealWeightNutrition.Application.Tests.csproj", "{2B59B3FF-9FFA-43AE-8A47-7F94B8A0F2A8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BEF8FE8D-BDA2-44CA-8A99-46DB0203DB42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEF8FE8D-BDA2-44CA-8A99-46DB0203DB42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEF8FE8D-BDA2-44CA-8A99-46DB0203DB42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEF8FE8D-BDA2-44CA-8A99-46DB0203DB42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBE6FD7B-BE96-495A-B5E6-DB2FA632790A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBE6FD7B-BE96-495A-B5E6-DB2FA632790A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBE6FD7B-BE96-495A-B5E6-DB2FA632790A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBE6FD7B-BE96-495A-B5E6-DB2FA632790A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{745E6D2D-DD7F-4B78-A676-BBF01DCD6010}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{745E6D2D-DD7F-4B78-A676-BBF01DCD6010}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{745E6D2D-DD7F-4B78-A676-BBF01DCD6010}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{745E6D2D-DD7F-4B78-A676-BBF01DCD6010}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D8C6FE1-0D3F-425F-8DB9-24B7319C2F05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D8C6FE1-0D3F-425F-8DB9-24B7319C2F05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D8C6FE1-0D3F-425F-8DB9-24B7319C2F05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D8C6FE1-0D3F-425F-8DB9-24B7319C2F05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CE2FEBA-9DEF-4350-8C8E-533BE5E3E1F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CE2FEBA-9DEF-4350-8C8E-533BE5E3E1F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CE2FEBA-9DEF-4350-8C8E-533BE5E3E1F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CE2FEBA-9DEF-4350-8C8E-533BE5E3E1F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B59B3FF-9FFA-43AE-8A47-7F94B8A0F2A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B59B3FF-9FFA-43AE-8A47-7F94B8A0F2A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B59B3FF-9FFA-43AE-8A47-7F94B8A0F2A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B59B3FF-9FFA-43AE-8A47-7F94B8A0F2A8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BEF8FE8D-BDA2-44CA-8A99-46DB0203DB42} = {7AFC422F-69B4-4B3B-A47B-73B26CDCDB11}
+		{CBE6FD7B-BE96-495A-B5E6-DB2FA632790A} = {7AFC422F-69B4-4B3B-A47B-73B26CDCDB11}
+		{745E6D2D-DD7F-4B78-A676-BBF01DCD6010} = {7AFC422F-69B4-4B3B-A47B-73B26CDCDB11}
+		{0D8C6FE1-0D3F-425F-8DB9-24B7319C2F05} = {7AFC422F-69B4-4B3B-A47B-73B26CDCDB11}
+		{8CE2FEBA-9DEF-4350-8C8E-533BE5E3E1F6} = {7AFC422F-69B4-4B3B-A47B-73B26CDCDB11}
+		{2B59B3FF-9FFA-43AE-8A47-7F94B8A0F2A8} = {B4C2A9F4-DB0A-416A-8D7B-E9B22A24E080}
+	EndGlobalSection
+EndGlobal

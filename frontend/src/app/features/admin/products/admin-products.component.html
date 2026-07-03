@@ -1,0 +1,109 @@
+<ui-page-header [title]="t('productsTitle')" [subtitle]="totalCount() + ' ' + t('productCount')">
+  <div header-actions>
+    <button type="button" class="ui-btn-ghost ui-btn-sm" [disabled]="regeneratingSlugs()" (click)="regenerateSlugs()">
+      {{ regeneratingSlugs() ? t('exporting') : t('regenerateSlugs') }}
+    </button>
+    <button type="button" class="ui-btn-secondary ui-btn-sm" [disabled]="exporting()" (click)="exportCsv()">
+      <span class="material-icons !text-[18px]">download</span>
+      {{ exporting() ? t('exporting') : t('exportProducts') }}
+    </button>
+    <a routerLink="/admin/products/new" class="ui-btn-primary ui-btn-sm">
+      <span class="material-icons !text-[18px]">add</span>
+      {{ t('newProduct') }}
+    </a>
+  </div>
+</ui-page-header>
+
+@if (message()) {
+  <p class="mb-4 text-success-fg">{{ message() }}</p>
+}
+@if (error()) {
+  <p class="mb-4 text-danger">{{ error() }}</p>
+}
+
+<ui-data-table
+  [columns]="cols"
+  [rows]="$any(products())"
+  [loading]="loading()"
+  [searchable]="false"
+  [pageSize]="20"
+  [emptyTitle]="t('noProducts')"
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+  <div table-toolbar>
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="relative w-full max-w-xs">
+        <span class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400">search</span>
+        <input
+          class="ui-input ps-10"
+          [(ngModel)]="search"
+          name="search"
+          [placeholder]="t('searchProductsPlaceholder')"
+          (keyup.enter)="load()"
+        />
+      </div>
+      <label class="flex flex-col gap-1">
+        <span class="ui-label">{{ t('productFilterLabel') }}</span>
+        <select class="ui-select" [(ngModel)]="filter" name="filter" (change)="load()">
+          @for (option of filters; track option) {
+            <option [ngValue]="option">{{ filterLabel(option) }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" class="ui-btn-primary ui-btn-sm" (click)="load()">{{ t('search') }}</button>
+    </div>
+  </div>
+
+  <ng-template uiCell="title" let-row>
+    @let p = $any(row);
+    <div class="flex items-center gap-3" [class.opacity-60]="p.isDeleted">
+      <img
+        [src]="catalogue.resolveImageUrl(p.imageUrl)"
+        [alt]="p.title"
+        class="h-12 w-12 shrink-0 rounded-lg object-cover"
+      />
+      <div class="min-w-0">
+        <a [routerLink]="['/admin/products', p.id]" class="font-medium text-brand-600 hover:underline">{{ p.title }}</a>
+        <span class="block text-xs text-ink-500">#{{ p.id }}</span>
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template uiCell="categoryName" let-row>
+    {{ $any(row).categoryName ?? '—' }}
+  </ng-template>
+
+  <ng-template uiCell="price" let-row>
+    @let p = $any(row);
+    <span class="font-semibold text-ink-900">{{ p.price | iwnCurrency }}</span>
+    @if (p.listPrice > p.price) {
+      <span class="ms-1 text-xs text-ink-400 line-through">{{ p.listPrice | iwnCurrency }}</span>
+    }
+  </ng-template>
+
+  <ng-template uiCell="stockQuantity" let-row>
+    @let p = $any(row);
+    <span [class.text-danger]="!p.inStock" [class.font-semibold]="!p.inStock">{{ p.stockQuantity }}</span>
+  </ng-template>
+
+  <ng-template uiCell="status" let-row>
+    @let p = $any(row);
+    <div class="flex flex-wrap items-center gap-1.5">
+      @if (p.isDeleted) {
+        <ui-badge [variant]="'neutral'">{{ t('deleted') }}</ui-badge>
+      } @else if (!p.inStock) {
+        <ui-badge [variant]="'danger'">{{ t('outOfStock') }}</ui-badge>
+      } @else {
+        <ui-badge [variant]="'success'" [dot]="true">{{ t('active') }}</ui-badge>
+      }
+      @if (p.isNew) {
+        <ui-badge [variant]="'info'">{{ t('newBadge') }}</ui-badge>
+      }
+      @if (p.isTrending) {
+        <ui-badge [variant]="'brand'">{{ t('trendingBadge') }}</ui-badge>
+      }
+    </div>
+  </ng-template>
+</ui-data-table>

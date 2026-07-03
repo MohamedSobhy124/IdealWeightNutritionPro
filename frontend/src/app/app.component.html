@@ -1,0 +1,358 @@
+@if (!isAdminRoute()) {
+  <a href="#main-content" class="skip-link">{{ t('skipToContent') }}</a>
+  <app-flash-sale-banner />
+}
+
+@if (!isAdminRoute()) {
+  <!-- Header -->
+  <header class="app-header sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface-overlay)] backdrop-blur-md" [class.app-header--scrolled]="headerScrolled()">
+    <div class="container flex h-12 items-center gap-1.5 sm:h-16 sm:gap-3">
+      <button
+        type="button"
+        class="ui-btn-icon lg:hidden"
+        (click)="mobileMenuOpen.set(true)"
+        [attr.aria-label]="t('menu')"
+        [attr.aria-expanded]="mobileMenuOpen()"
+        aria-controls="mobile-nav-drawer"
+      >
+        <span class="material-icons" aria-hidden="true">menu</span>
+      </button>
+
+      <a routerLink="/" class="app-brand flex shrink-0 items-center gap-2 no-underline">
+        <img
+          src="/images/logo.png"
+          [alt]="t('brandName')"
+          width="36"
+          height="36"
+          class="h-9 w-9 rounded-xl object-contain"
+        />
+        <span class="hidden text-base font-bold tracking-tight text-[var(--text)] sm:block">{{ t('brandName') }}</span>
+      </a>
+
+      <!-- Desktop search -->
+      <form
+        class="relative mx-auto hidden w-full max-w-md md:block"
+        (submit)="$event.preventDefault(); submitSearch()"
+      >
+        <span class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400" aria-hidden="true">search</span>
+        <input
+          type="search"
+          class="ui-input ps-10 !py-2.5"
+          [placeholder]="t('searchProductsNav')"
+          [ngModel]="headerSearch()"
+          (ngModelChange)="headerSearch.set($event)"
+          name="q"
+          [attr.aria-label]="t('searchProductsNav')"
+          autocomplete="off"
+        />
+      </form>
+
+      <div class="ms-auto flex items-center gap-1 sm:gap-1.5">
+        <button
+          type="button"
+          class="ui-btn-icon md:hidden"
+          (click)="openSearch()"
+          [attr.aria-label]="t('searchAction')"
+          [attr.aria-expanded]="searchOpen()"
+          aria-controls="mobile-search-panel"
+        >
+          <span class="material-icons !text-[22px]" aria-hidden="true">search</span>
+        </button>
+
+        <ui-theme-toggle [ariaLabel]="t('themeToggle')" />
+        <button
+          type="button"
+          class="ui-btn-icon"
+          (click)="locale.toggle()"
+          [attr.aria-label]="t('language')"
+        >
+          <span class="text-sm font-semibold">{{ locale.isArabic() ? 'EN' : 'ع' }}</span>
+        </button>
+
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/wishlist" class="ui-btn-icon relative hidden lg:inline-flex" [attr.aria-label]="wishlistAriaLabel()">
+            <span class="material-icons !text-[22px]" aria-hidden="true">favorite_border</span>
+            @if (wishlist.count() > 0) {
+              <span class="absolute -top-0.5 -end-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold leading-[18px] text-white">{{ wishlist.count() }}</span>
+            }
+          </a>
+          <app-notification-bell />
+        }
+
+        <a routerLink="/cart" class="ui-btn-icon relative hidden lg:inline-flex" [attr.aria-label]="cartAriaLabel()">
+          <span class="material-icons !text-[22px]" aria-hidden="true">shopping_cart</span>
+          @if (cart.itemCount() > 0) {
+            <span class="absolute -top-0.5 -end-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold leading-[18px] text-white">{{ cart.itemCount() }}</span>
+          }
+        </a>
+
+        @if (auth.isAuthenticated()) {
+          <div class="user-menu relative hidden lg:block">
+            <button
+              type="button"
+              class="ui-btn-icon"
+              (click)="userMenuOpen.set(!userMenuOpen()); $event.stopPropagation()"
+              [attr.aria-label]="t('account')"
+              [attr.aria-expanded]="userMenuOpen()"
+              aria-controls="user-account-menu"
+            >
+              <span class="material-icons !text-[22px]" aria-hidden="true">person</span>
+            </button>
+            @if (userMenuOpen()) {
+              <div id="user-account-menu" class="absolute end-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-ink-200 bg-[var(--surface)] shadow-elevated animate-slide-up">
+                <a routerLink="/account" class="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50">
+                  <span class="material-icons !text-[18px] text-ink-400">account_circle</span>{{ t('account') }}
+                </a>
+                <a routerLink="/admin" class="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50">
+                  <span class="material-icons !text-[18px] text-ink-400">admin_panel_settings</span>{{ t('admin') }}
+                </a>
+                <button type="button" (click)="auth.logout()" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger-soft">
+                  <span class="material-icons ui-icon-mirror !text-[18px]">logout</span>{{ t('logout') }}
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <a routerLink="/auth/login" class="ui-btn-primary ui-btn-sm ms-1 hidden lg:inline-flex">{{ t('login') }}</a>
+        }
+      </div>
+    </div>
+
+    <!-- Mobile search overlay -->
+    @if (searchOpen()) {
+      <div id="mobile-search-panel" class="border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
+        <form class="flex items-center gap-2" (submit)="$event.preventDefault(); submitSearch()">
+          <div class="relative min-w-0 flex-1">
+            <span class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400">search</span>
+            <input
+              type="search"
+              class="ui-input ps-10"
+              [placeholder]="t('searchProductsNav')"
+              [ngModel]="headerSearch()"
+              (ngModelChange)="headerSearch.set($event)"
+              name="sq"
+            />
+          </div>
+          <button type="button" class="ui-btn-icon shrink-0" (click)="closeSearch()" [attr.aria-label]="t('closeMenu')">
+            <span class="material-icons">close</span>
+          </button>
+        </form>
+      </div>
+    }
+
+    <!-- Desktop primary nav -->
+    <nav class="app-desktop-nav container hidden h-12 items-center gap-1 lg:flex">
+      <a
+        routerLink="/"
+        routerLinkActive="text-brand-700 bg-brand-50"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="app-desktop-nav__link rounded-lg px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-100"
+        >{{ t('navHome') }}</a
+      >
+      @for (item of primaryNav; track item.link) {
+        <a
+          [routerLink]="item.link"
+          routerLinkActive="text-brand-700 bg-brand-50"
+          class="app-desktop-nav__link rounded-lg px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-100"
+          >{{ t(item.labelKey) }}</a
+        >
+      }
+    </nav>
+  </header>
+
+  <!-- Mobile drawer -->
+  @if (mobileMenuOpen()) {
+    <div class="fixed inset-0 z-50 lg:hidden">
+      <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" (click)="mobileMenuOpen.set(false)" aria-hidden="true"></div>
+      <div class="absolute inset-y-0 start-0 flex w-[82%] max-w-xs flex-col bg-[var(--surface)] shadow-overlay animate-fade-in" id="mobile-nav-drawer" role="dialog" aria-modal="true" [attr.aria-label]="t('menu')">
+        <div class="flex h-14 items-center justify-between border-b border-[var(--border)] px-4 sm:h-16">
+          <div class="flex items-center gap-2">
+            <img src="/images/logo.png" [alt]="t('brandName')" width="32" height="32" class="h-8 w-8 rounded-lg object-contain" />
+            <span class="text-base font-bold text-[var(--text)]">{{ t('brandName') }}</span>
+          </div>
+          <button type="button" class="ui-btn-icon" (click)="mobileMenuOpen.set(false)" [attr.aria-label]="t('closeMenu')">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        <form class="relative p-4" (submit)="$event.preventDefault(); submitSearch()">
+          <span class="material-icons pointer-events-none absolute start-7 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400">search</span>
+          <input
+            type="search"
+            class="ui-input ps-10"
+            [placeholder]="t('searchProductsNav')"
+            [ngModel]="headerSearch()"
+            (ngModelChange)="headerSearch.set($event)"
+            name="mq"
+          />
+        </form>
+        <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
+          <p class="mb-2 px-3 pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-400">{{ t('quickLinks') }}</p>
+          <div class="mb-2 flex flex-wrap gap-1.5 px-2">
+            <a routerLink="/offers" class="app-mobile-chip">{{ t('navOffers') }}</a>
+            <a routerLink="/flash-sales" class="app-mobile-chip">{{ t('flashSales') }}</a>
+            <a routerLink="/combos" class="app-mobile-chip">{{ t('combos') }}</a>
+          </div>
+          <a routerLink="/" routerLinkActive="bg-brand-50 text-brand-700" [routerLinkActiveOptions]="{ exact: true }" class="block rounded-lg px-3 py-3 text-sm font-medium text-ink-700 hover:bg-ink-100">{{ t('navHome') }}</a>
+          @for (item of primaryNav; track item.link) {
+            <a [routerLink]="item.link" routerLinkActive="bg-brand-50 text-brand-700" class="block rounded-lg px-3 py-3 text-sm font-medium text-ink-700 hover:bg-ink-100">{{ t(item.labelKey) }}</a>
+          }
+        </nav>
+        <div class="border-t border-ink-200 p-4">
+          @if (auth.isAuthenticated()) {
+            <a routerLink="/account" class="ui-btn-secondary w-full">{{ t('account') }}</a>
+            <button type="button" class="ui-btn-ghost mt-2 w-full text-danger" (click)="auth.logout()">{{ t('logout') }}</button>
+          } @else {
+            <a routerLink="/auth/login" class="ui-btn-primary w-full">{{ t('login') }}</a>
+            <a routerLink="/auth/register" class="ui-btn-secondary mt-2 w-full">{{ t('register') }}</a>
+          }
+        </div>
+      </div>
+    </div>
+  }
+}
+
+<div [class]="isAdminRoute() ? 'min-h-screen bg-ink-50' : 'flex min-h-screen flex-col bg-[var(--surface-muted)]'">
+  <main
+    id="main-content"
+    [class]="isAdminRoute() ? 'min-h-screen' : 'container flex-1 py-4 pb-24 sm:py-6 lg:pb-10'"
+    tabindex="-1"
+  >
+    <router-outlet />
+  </main>
+
+  @if (!isAdminRoute()) {
+    <!-- Footer -->
+    <footer class="app-footer mt-auto border-t border-[var(--border)] bg-[var(--surface)]">
+      <div class="app-footer-payments border-b border-[var(--border)]">
+        <div class="container py-3.5">
+          <div class="app-footer-payments__row">
+            <span class="app-payment-badge app-payment-badge--visa"><span class="material-icons !text-[16px]">credit_card</span>Visa</span>
+            <span class="app-payment-badge app-payment-badge--master"><span class="material-icons !text-[16px]">credit_card</span>Mastercard</span>
+            <span class="app-payment-badge app-payment-badge--apple"><span class="material-icons !text-[16px]">phone_iphone</span>Apple Pay</span>
+            <span class="app-payment-badge app-payment-badge--google"><span class="material-icons !text-[16px]">smartphone</span>Google Pay</span>
+            <span class="app-payment-badge app-payment-badge--tabby"><span class="material-icons !text-[16px]">calendar_view_week</span>Tabby</span>
+            <span class="app-payment-badge app-payment-badge--tamara"><span class="material-icons !text-[16px]">account_balance_wallet</span>Tamara</span>
+          </div>
+        </div>
+      </div>
+      <div class="container grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <div class="app-footer__brand flex items-center gap-2">
+            <img src="/images/logo.png" [alt]="t('brandName')" width="36" height="36" class="h-9 w-9 rounded-xl object-contain" />
+            <span class="text-base font-bold text-[var(--text)]">{{ t('brandName') }}</span>
+          </div>
+          <p class="mt-3 text-sm text-ink-500">{{ t('newsletterLead') }}</p>
+        </div>
+
+        <nav class="text-sm" [attr.aria-label]="t('legalAndHelp')">
+          <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">{{ t('helpCenter') }}</h2>
+          <ul class="space-y-2">
+            <li><a routerLink="/page/about" class="text-ink-600 hover:text-brand-600">{{ t('aboutUs') }}</a></li>
+            <li><a routerLink="/page/privacy" class="text-ink-600 hover:text-brand-600">{{ t('privacyPolicy') }}</a></li>
+            <li><a routerLink="/page/terms" class="text-ink-600 hover:text-brand-600">{{ t('termsConditions') }}</a></li>
+          </ul>
+        </nav>
+
+        <nav class="text-sm" [attr.aria-label]="t('customerService')">
+          <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">{{ t('shippingInfo') }}</h2>
+          <ul class="space-y-2">
+            <li><a routerLink="/page/shipping" class="text-ink-600 hover:text-brand-600">{{ t('shippingInfo') }}</a></li>
+            <li><a routerLink="/page/return-policy" class="text-ink-600 hover:text-brand-600">{{ t('returnsPolicy') }}</a></li>
+            <li><a routerLink="/track" class="text-ink-600 hover:text-brand-600">{{ t('trackOrderTitle') }}</a></li>
+          </ul>
+        </nav>
+
+        <div>
+          <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">{{ t('newsletterTitle') }}</h2>
+          @if (auth.isAuthenticated()) {
+            @if (auth.profile(); as profile) {
+              <p class="mb-2 text-sm text-ink-500">{{ profile.email }}</p>
+            }
+            @if (newsletterStatusLoaded()) {
+              @if (newsletterSubscribed()) {
+                <p class="mb-2 text-sm font-medium text-success-fg">{{ t('newsletterSubscribed') }}</p>
+                <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="unsubscribeNewsletter()" [disabled]="newsletterBusy()">
+                  {{ newsletterBusy() ? t('newsletterUnsubscribing') : t('newsletterUnsubscribe') }}
+                </button>
+              } @else {
+                <button type="button" class="ui-btn-primary ui-btn-sm" (click)="subscribeNewsletter()" [disabled]="newsletterBusy()">
+                  {{ newsletterBusy() ? t('processing') : t('subscribeNewsletter') }}
+                </button>
+              }
+            } @else {
+              <p class="text-sm text-ink-400">{{ t('loading') }}</p>
+            }
+          } @else {
+            @if (!newsletterStatusLoaded()) {
+              <p class="text-sm text-ink-400">{{ t('loading') }}</p>
+            } @else if (newsletterSubscribed()) {
+              <p class="mb-2 text-sm font-medium text-success-fg">{{ t('newsletterSubscribed') }}</p>
+              <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="unsubscribeNewsletter()" [disabled]="newsletterBusy()">
+                {{ newsletterBusy() ? t('newsletterUnsubscribing') : t('newsletterUnsubscribe') }}
+              </button>
+            } @else {
+              <form class="flex flex-col gap-2 sm:flex-row" (submit)="$event.preventDefault(); subscribeGuestNewsletter()">
+                <input
+                  type="email"
+                  name="email"
+                  autocomplete="email"
+                  class="ui-input"
+                  [placeholder]="t('newsletterEmailPlaceholder')"
+                  [value]="guestNewsletterEmail()"
+                  (input)="guestNewsletterEmail.set($any($event.target).value)"
+                  [disabled]="newsletterBusy()"
+                />
+                <button type="submit" class="ui-btn-primary shrink-0" [disabled]="newsletterBusy()">
+                  {{ newsletterBusy() ? t('processing') : t('subscribeNewsletter') }}
+                </button>
+              </form>
+              <p class="mt-2 text-xs">
+                <a routerLink="/newsletter/unsubscribe" class="text-ink-500 underline hover:text-brand-600">{{ t('newsletterUnsubscribeLink') }}</a>
+              </p>
+            }
+          }
+          @if (newsletterMessage()) {
+            <p class="mt-2 text-sm" role="status" aria-live="polite" [class.text-danger]="newsletterError()" [class.text-success-fg]="!newsletterError()">{{ newsletterMessage() }}</p>
+          }
+        </div>
+      </div>
+      <div class="border-t border-[var(--border)] py-4">
+        <p class="container text-center text-xs text-ink-400">© {{ year }} Ideal Weight Nutrition</p>
+      </div>
+    </footer>
+
+    <!-- Mobile bottom navigation -->
+    <nav class="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border)] bg-[var(--surface-overlay)] pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden" [attr.aria-label]="t('primaryNavigation')">
+      <div class="grid grid-cols-5">
+        <a routerLink="/" routerLinkActive="text-brand-600" [routerLinkActiveOptions]="{ exact: true }" class="relative flex min-h-11 flex-col items-center justify-center gap-0.5 py-2.5 text-ink-500 [&.router-link-active]:after:absolute [&.router-link-active]:after:top-0 [&.router-link-active]:after:h-0.5 [&.router-link-active]:after:w-8 [&.router-link-active]:after:rounded-full [&.router-link-active]:after:bg-brand-600">
+          <span class="material-icons !text-[22px]">home</span>
+          <span class="text-[11px] font-medium">{{ t('navHome') }}</span>
+        </a>
+        <a routerLink="/shop" routerLinkActive="text-brand-600" class="relative flex min-h-11 flex-col items-center justify-center gap-0.5 py-2.5 text-ink-500 [&.router-link-active]:after:absolute [&.router-link-active]:after:top-0 [&.router-link-active]:after:h-0.5 [&.router-link-active]:after:w-8 [&.router-link-active]:after:rounded-full [&.router-link-active]:after:bg-brand-600">
+          <span class="material-icons !text-[22px]">grid_view</span>
+          <span class="text-[11px] font-medium">{{ t('shop') }}</span>
+        </a>
+        <a [routerLink]="auth.isAuthenticated() ? '/wishlist' : '/auth/login'" routerLinkActive="text-brand-600" class="relative flex min-h-11 flex-col items-center justify-center gap-0.5 py-2.5 text-ink-500 [&.router-link-active]:after:absolute [&.router-link-active]:after:top-0 [&.router-link-active]:after:h-0.5 [&.router-link-active]:after:w-8 [&.router-link-active]:after:rounded-full [&.router-link-active]:after:bg-brand-600" [attr.aria-label]="wishlistAriaLabel()">
+          <span class="material-icons !text-[22px]" aria-hidden="true">favorite_border</span>
+          @if (wishlist.count() > 0) {
+            <span class="absolute top-1.5 ms-5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold leading-4 text-white">{{ wishlist.count() }}</span>
+          }
+          <span class="text-[11px] font-medium">{{ t('wishlist') }}</span>
+        </a>
+        <a routerLink="/cart" routerLinkActive="text-brand-600" class="relative flex min-h-11 flex-col items-center justify-center gap-0.5 py-2.5 text-ink-500 [&.router-link-active]:after:absolute [&.router-link-active]:after:top-0 [&.router-link-active]:after:h-0.5 [&.router-link-active]:after:w-8 [&.router-link-active]:after:rounded-full [&.router-link-active]:after:bg-brand-600" [attr.aria-label]="cartAriaLabel()">
+          <span class="material-icons !text-[22px]" aria-hidden="true">shopping_cart</span>
+          @if (cart.itemCount() > 0) {
+            <span class="absolute top-1.5 ms-5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold leading-4 text-white">{{ cart.itemCount() }}</span>
+          }
+          <span class="text-[11px] font-medium">{{ t('cart') }}</span>
+        </a>
+        <a [routerLink]="auth.isAuthenticated() ? '/account' : '/auth/login'" routerLinkActive="text-brand-600" class="relative flex min-h-11 flex-col items-center justify-center gap-0.5 py-2.5 text-ink-500 [&.router-link-active]:after:absolute [&.router-link-active]:after:top-0 [&.router-link-active]:after:h-0.5 [&.router-link-active]:after:w-8 [&.router-link-active]:after:rounded-full [&.router-link-active]:after:bg-brand-600">
+          <span class="material-icons !text-[22px]">person</span>
+          <span class="text-[11px] font-medium">{{ t('account') }}</span>
+        </a>
+      </div>
+    </nav>
+
+    <app-contact-floating />
+  }
+</div>

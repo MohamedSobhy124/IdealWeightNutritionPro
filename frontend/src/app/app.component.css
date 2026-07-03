@@ -1,0 +1,117 @@
+/* App shell (storefront header, footer, nav) is handled by Tailwind utility classes. */
+:host {
+  display: block;
+}
+
+.app-header {
+  box-shadow: 0 10px 20px rgb(15 23 42 / 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.app-header.app-header--scrolled {
+  box-shadow: 0 14px 28px rgb(15 23 42 / 0.08);
+  border-bottom-color: rgb(148 163 184 / 0.28);
+}
+
+.app-brand img {
+  box-shadow: 0 6px 14px rgb(15 23 42 / 0.12);
+}
+
+.app-desktop-nav {
+  border-top: 1px solid rgb(148 163 184 / 0.15);
+}
+
+.app-desktop-nav__link {
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.app-desktop-nav__link:hover {
+  transform: translateY(-1px);
+}
+
+.app-mobile-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgb(148 163 184 / 0.26);
+  background: var(--surface-muted);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-700);
+}
+
+.app-footer {
+  background: linear-gradient(180deg, rgb(255 255 255 / 1), rgb(248 250 252 / 1));
+}
+
+.app-footer-payments {
+  background: linear-gradient(180deg, rgb(15 23 42 / 0.02), rgb(15 23 42 / 0.05));
+}
+
+.app-footer-payments__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.app-footer__brand img {
+  box-shadow: 0 8px 18px rgb(15 23 42 / 0.12);
+}
+
+.app-payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.28rem 0.66rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  box-shadow: 0 8px 16px rgb(15 23 42 / 0.1);
+}
+
+.app-payment-badge--visa {
+  background: linear-gradient(135deg, #eaf2ff, #dbeafe);
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.app-payment-badge--master {
+  background: linear-gradient(135deg, #fff1ea, #fee2e2);
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.app-payment-badge--apple {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.app-payment-badge--google {
+  background: linear-gradient(135deg, #ecfeff, #cffafe);
+  border-color: #a5f3fc;
+  color: #0e7490;
+}
+
+.app-payment-badge--tabby {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.app-payment-badge--tamara {
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+@media (max-width: 640px) {
+  .app-payment-badge {
+    font-size: 0.7rem;
+    padding: 0.24rem 0.56rem;
+  }
+}

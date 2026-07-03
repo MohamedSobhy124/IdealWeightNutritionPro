@@ -1,0 +1,35 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_strong_Password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  # Uncomment when API Dockerfile is ready for containerized dev
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.api
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=IdealWeightNutrition;User Id=sa;Password=Your_strong_Password123;TrustServerCertificate=True"
+  #     Redis__ConnectionString: "redis:6379"
+  #   depends_on:
+  #     - sqlserver
+  #     - redis
+
+volumes:
+  sqlserver-data:
+  redis-data:

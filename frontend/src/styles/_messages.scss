@@ -1,0 +1,24 @@
+.error,
+.text-error,
+.warn {
+  color: var(--color-error);
+}
+
+.ok,
+.text-success,
+.discount {
+  color: var(--color-success);
+}
+
+.hint,
+.text-muted,
+.meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.promo-applied {
+  padding: var(--space-md);
+  background: var(--color-success-bg);
+  border-radius: var(--radius-md);
+}

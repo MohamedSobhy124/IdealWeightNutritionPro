@@ -1,0 +1,56 @@
+<section class="ui-fade-in py-6 sm:py-8">
+  <ui-page-header [title]="t('mySubscriptions')" [breadcrumbs]="[{ label: t('myAccount'), link: '/account' }]" />
+
+  @if (loading()) {
+    <div class="content-grid-2">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <ui-skeleton height="280px" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (purchases().length === 0) {
+    <ui-empty-state icon="medical_services" [title]="t('noSubscriptions')">
+      <a routerLink="/services" class="ui-btn-primary">{{ t('browseServices') }}</a>
+    </ui-empty-state>
+  } @else {
+    <div class="content-grid-2 ui-stagger-children">
+      @for (purchase of purchases(); track purchase.id) {
+        <article class="subscription-card group">
+          @if (purchase.serviceImageUrl) {
+            <div class="aspect-[16/10] overflow-hidden bg-ink-100">
+              <img
+                [src]="catalogue.resolveImageUrl(purchase.serviceImageUrl)"
+                [alt]="displayTitle(purchase)"
+                loading="lazy"
+                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none"
+              />
+            </div>
+          }
+          <div class="p-4">
+            <h2 class="text-base font-semibold text-ink-900">
+              <a [routerLink]="['/services', purchase.serviceSubscriptionId]" class="hover:text-brand-700">
+                {{ displayTitle(purchase) }}
+              </a>
+            </h2>
+            <p class="mt-1 text-sm text-ink-500">
+              {{ t('purchaseId') }} #{{ purchase.id }} · {{ purchase.purchaseDate | date: 'mediumDate' }}
+            </p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <ui-badge variant="brand">{{ purchase.serviceType }}</ui-badge>
+              <ui-badge [variant]="statusVariant(purchase.status)">{{ purchase.status }}</ui-badge>
+              <ui-badge [variant]="statusVariant(purchase.paymentStatus)">{{ purchase.paymentStatus }}</ui-badge>
+            </div>
+            <p class="mt-3 flex flex-wrap items-baseline gap-2">
+              <span class="text-lg font-bold text-ink-900">{{ purchase.amountPaid | iwnCurrency }}</span>
+              @if (purchase.discountAmount > 0) {
+                <span class="text-sm text-ink-400 line-through">{{ purchase.totalAmount | iwnCurrency }}</span>
+              }
+            </p>
+            <a class="ui-btn-secondary ui-btn-sm mt-4 inline-flex w-full justify-center" [routerLink]="['/services/confirmation', purchase.id]">
+              {{ t('viewDetails') }}
+            </a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

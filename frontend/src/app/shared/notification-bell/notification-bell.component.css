@@ -1,0 +1,4 @@
+/* Notification bell styling is handled by Tailwind utility classes in the template. */
+:host {
+  display: inline-flex;
+}

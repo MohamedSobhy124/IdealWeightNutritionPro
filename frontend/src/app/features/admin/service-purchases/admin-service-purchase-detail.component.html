@@ -1,0 +1,104 @@
+<ui-page-header
+  [title]="purchase() ? t('servicePurchaseTitle') + ' #' + purchase()!.id : t('servicePurchaseTitle')"
+  [breadcrumbs]="[{ label: t('servicePurchasesTitle'), link: '/admin/service-purchases' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="12rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else if (purchase()) {
+  @if (purchase(); as p) {
+  <div class="mb-4 flex flex-wrap items-center gap-2">
+    <ui-badge [variant]="statusVariant(p.paymentStatus)">{{ p.paymentStatus }}</ui-badge>
+    <ui-badge [variant]="statusVariant(p.serviceStatus)">{{ p.serviceStatus }}</ui-badge>
+    <span class="text-sm text-ink-400">{{ p.purchaseDate | date: 'medium' }}</span>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <ui-card [heading]="t('reviewService')">
+      <p class="text-lg font-semibold text-ink-900">{{ p.serviceTitle }}</p>
+    </ui-card>
+
+    <ui-card [heading]="t('customer')">
+      <p class="font-medium text-ink-900">{{ p.customerName }}</p>
+      @if (p.isGuest) {
+        <ui-badge class="mt-2 inline-flex" [variant]="'neutral'">{{ t('guest') }}</ui-badge>
+      }
+      @if (p.email) {
+        <p class="mt-2 text-sm text-ink-600">{{ p.email }}</p>
+      }
+      @if (p.phone) {
+        <p class="mt-1 text-sm text-ink-600">{{ p.phone }}</p>
+      }
+    </ui-card>
+  </div>
+
+  <ui-card [heading]="t('sectionPricing')" class="mt-6 block">
+    <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
+        <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('totalLabel') }}</dt>
+        <dd class="mt-0.5 font-semibold text-ink-900">{{ p.totalAmount | iwnCurrency }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('discount') }}</dt>
+        <dd class="mt-0.5 text-ink-700">{{ p.discountAmount | iwnCurrency }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('vatAmount') }}</dt>
+        <dd class="mt-0.5 text-ink-700">{{ p.vatAmount | iwnCurrency }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('amountPaid') }}</dt>
+        <dd class="mt-0.5 font-semibold text-success-fg">{{ p.amountPaid | iwnCurrency }}</dd>
+      </div>
+      @if (p.offerSummary) {
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('appliedOffer') }}</dt>
+          <dd class="mt-0.5 text-ink-700">{{ p.offerSummary }}</dd>
+        </div>
+      }
+      @if (p.paymentIntentId) {
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('paymentIntentId') }}</dt>
+          <dd class="mt-0.5"><code class="rounded bg-ink-50 px-2 py-0.5 text-xs">{{ p.paymentIntentId }}</code></dd>
+        </div>
+      }
+      @if (p.sessionId) {
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('sessionId') }}</dt>
+          <dd class="mt-0.5"><code class="rounded bg-ink-50 px-2 py-0.5 text-xs">{{ p.sessionId }}</code></dd>
+        </div>
+      }
+    </dl>
+  </ui-card>
+
+  <ui-card [heading]="t('actions')" class="mt-6 block">
+    @if (actionMessage()) {
+      <p class="mb-3 text-sm" [class.text-danger]="actionError()" [class.text-success-fg]="!actionError()">
+        {{ actionMessage() }}
+      </p>
+    }
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div>
+        <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-500">{{ t('payment') }}</label>
+        <input class="ui-input" [(ngModel)]="paymentStatus" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-500">{{ t('status') }}</label>
+        <input class="ui-input" [(ngModel)]="serviceStatus" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-500">{{ t('amountPaid') }}</label>
+        <input type="number" min="0" step="0.01" class="ui-input" [(ngModel)]="amountPaid" />
+      </div>
+    </div>
+    <button type="button" class="mt-3 ui-btn-primary ui-btn-sm" (click)="save()" [disabled]="saving()">
+      {{ saving() ? t('saving') : t('saveChanges') }}
+    </button>
+  </ui-card>
+  }
+}

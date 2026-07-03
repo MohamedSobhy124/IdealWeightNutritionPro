@@ -1,0 +1,131 @@
+<ui-page-header [title]="t('companiesTitle')">
+
+  <div header-actions>
+
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">{{ t('newCompany') }}</button>
+
+  </div>
+
+</ui-page-header>
+
+
+
+@if (message()) {
+
+  <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
+
+}
+
+
+
+@if (showForm()) {
+  <form class="mb-6" (ngSubmit)="submit()">
+    <ui-card [heading]="editingId() ? t('editCompany') : t('newCompany')" class="max-w-lg">
+      <div class="grid grid-cols-1 gap-4">
+        <ui-form-field [label]="t('companyName')" [required]="true">
+          <input class="ui-input" [(ngModel)]="name" name="name" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('streetAddress')">
+          <input class="ui-input" [(ngModel)]="streetAddress" name="streetAddress" />
+        </ui-form-field>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ui-form-field [label]="t('city')">
+            <input class="ui-input" [(ngModel)]="city" name="city" />
+          </ui-form-field>
+          <ui-form-field [label]="t('emirate')">
+            <input class="ui-input" [(ngModel)]="state" name="state" />
+          </ui-form-field>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ui-form-field [label]="t('postalCode')">
+            <input class="ui-input" [(ngModel)]="postalCode" name="postalCode" />
+          </ui-form-field>
+          <ui-form-field [label]="t('phone')">
+            <input class="ui-input" [(ngModel)]="phoneNumber" name="phoneNumber" />
+          </ui-form-field>
+        </div>
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+      </div>
+    </ui-card>
+  </form>
+}
+
+
+
+@if (error()) {
+
+  <p class="mb-4 text-danger">{{ error() }}</p>
+
+}
+
+
+
+<ui-data-table
+
+  [columns]="cols"
+
+  [rows]="$any(items())"
+
+  [loading]="loading()"
+
+  [searchable]="false"
+
+  [pageSize]="20"
+
+  [emptyTitle]="t('noCompanies')"
+
+  [ofLabel]="t('of')"
+  [previousPageLabel]="t('prevPage')"
+  [nextPageLabel]="t('nextPage')"
+  >
+
+
+
+  <ng-template uiCell="name" let-row>
+
+    @let item = $any(row);
+
+    <span class="font-medium">{{ item.name }}</span>
+
+    <span class="block text-xs text-ink-400">#{{ item.id }}</span>
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="city" let-row>
+
+    {{ $any(row).city }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="phoneNumber" let-row>
+
+    {{ $any(row).phoneNumber }}
+
+  </ng-template>
+
+
+
+  <ng-template uiCell="actions" let-row>
+
+    @let item = $any(row);
+
+    <div class="flex flex-wrap gap-1.5">
+
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="openEdit(item)" [disabled]="busyId() === item.id">{{ t('edit') }}</button>
+
+      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('delete') }}</button>
+
+    </div>
+
+  </ng-template>
+
+</ui-data-table>
+
+

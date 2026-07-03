@@ -1,0 +1,55 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface-muted);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[dir='rtl'] body {
+  font-family: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0 0 var(--space-md);
+}
+
+p {
+  margin: 0 0 var(--space-md);
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

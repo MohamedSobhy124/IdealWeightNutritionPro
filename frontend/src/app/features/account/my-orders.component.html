@@ -1,0 +1,58 @@
+<section class="ui-fade-in py-6 sm:py-8">
+  <ui-page-header
+    [title]="t('myOrders')"
+    [breadcrumbs]="[{ label: t('myAccount'), link: '/account' }]"
+  />
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3]; track i) {
+        <ui-skeleton height="6rem" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (orders().length === 0) {
+    <ui-empty-state icon="receipt_long" [title]="t('noOrders')">
+      <a routerLink="/shop" class="ui-btn-primary">{{ t('startShopping') }}</a>
+    </ui-empty-state>
+  } @else {
+    <div class="space-y-3 ui-stagger-children">
+      @for (order of orders(); track order.id) {
+        <article class="ui-card ui-card-pad ui-hover-lift">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <a [routerLink]="['/order/confirmation', order.id]" class="min-w-0 group">
+              <p class="text-base font-semibold text-ink-900 group-hover:text-brand-700">
+                {{ t('orderLabel') }} #{{ order.id }}
+              </p>
+              <p class="mt-0.5 text-sm text-ink-500">{{ order.orderDate | date: 'mediumDate' }}</p>
+            </a>
+            <div class="flex flex-col items-end gap-1">
+              <ui-badge [variant]="statusVariant(order.orderStatus)">{{ order.orderStatus }}</ui-badge>
+              <span class="text-lg font-bold tabular-nums text-ink-900">{{ order.orderTotal | iwnCurrency }}</span>
+            </div>
+          </div>
+
+          <div class="ui-divider mt-4 flex flex-wrap items-center gap-2 pt-4">
+            <a [routerLink]="['/order/confirmation', order.id]" class="ui-btn-secondary ui-btn-sm">
+              <span class="material-icons text-[16px]">visibility</span>
+              {{ t('viewDetails') }}
+            </a>
+            <button
+              type="button"
+              class="ui-btn-ghost ui-btn-sm"
+              (click)="downloadInvoice(order.id)"
+              [disabled]="downloadingId() === order.id"
+            >
+              <span class="material-icons text-[16px]">download</span>
+              {{ downloadingId() === order.id ? t('loadingOrder') : t('downloadInvoice') }}
+            </button>
+            @if (canRequestReturn(order)) {
+              <a [routerLink]="['/orders', order.id, 'return']" class="ui-btn-ghost ui-btn-sm">
+                <span class="material-icons text-[16px]">assignment_return</span>
+                {{ t('requestReturn') }}
+              </a>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

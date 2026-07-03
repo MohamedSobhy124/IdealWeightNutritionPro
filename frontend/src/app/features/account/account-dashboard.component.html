@@ -1,0 +1,135 @@
+<section class="ui-fade-in py-6 sm:py-8">
+  <ui-page-header [title]="t('myAccount')" />
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-1">
+      <ui-card [padded]="true">
+        @if (auth.profile(); as profile) {
+          <div class="flex items-center gap-4">
+            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xl font-semibold text-brand-700">
+              {{ (profile.fullName || profile.email).charAt(0).toUpperCase() }}
+            </div>
+            <div class="min-w-0">
+              <p class="truncate text-base font-semibold text-ink-900">{{ profile.fullName ?? profile.email }}</p>
+              <p class="truncate text-sm text-ink-500">{{ profile.email }}</p>
+            </div>
+          </div>
+        } @else {
+          <div class="flex items-center gap-4">
+            <ui-skeleton height="3.5rem" width="3.5rem" class="rounded-full" />
+            <div class="flex-1 space-y-2">
+              <ui-skeleton height="1rem" width="66%" />
+              <ui-skeleton height="0.75rem" width="50%" />
+            </div>
+          </div>
+        }
+
+        <button type="button" class="ui-btn-secondary mt-5 w-full" (click)="auth.logout()">
+          <span class="material-icons !text-[18px]">logout</span>
+          {{ t('logout') }}
+        </button>
+      </ui-card>
+
+      <nav class="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
+        <a routerLink="/account/orders" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
+          <span class="material-icons text-brand-600">receipt_long</span>
+          <span class="text-sm font-medium text-ink-800">{{ t('myOrders') }}</span>
+        </a>
+        <a routerLink="/account/returns" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
+          <span class="material-icons text-brand-600">assignment_return</span>
+          <span class="text-sm font-medium text-ink-800">{{ t('myReturns') }}</span>
+        </a>
+        <a routerLink="/account/subscriptions" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
+          <span class="material-icons text-brand-600">workspace_premium</span>
+          <span class="text-sm font-medium text-ink-800">{{ t('mySubscriptions') }}</span>
+        </a>
+        <a routerLink="/wishlist" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
+          <span class="material-icons text-brand-600">favorite_border</span>
+          <span class="text-sm font-medium text-ink-800">{{ t('wishlistTitle') }}</span>
+        </a>
+        <a routerLink="/track" class="ui-card ui-card-pad ui-hover-lift col-span-2 flex items-center gap-2">
+          <span class="material-icons text-brand-600">local_shipping</span>
+          <span class="text-sm font-medium text-ink-800">{{ t('trackOrder') }}</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="space-y-6 lg:col-span-2">
+      <ui-card [heading]="t('recentOrders')">
+        <a card-actions routerLink="/account/orders" class="ui-btn-ghost ui-btn-sm">{{ t('viewAllOrders') }}</a>
+        @if (ordersLoading()) {
+          <div class="space-y-3">
+            <ui-skeleton height="3rem" class="rounded-xl" />
+            <ui-skeleton height="3rem" class="rounded-xl" />
+          </div>
+        } @else if (orders().length === 0) {
+          <p class="text-sm text-ink-500">
+            {{ t('noOrders') }}
+            <a routerLink="/shop" class="font-medium text-brand-600 hover:text-brand-700">{{ t('startShopping') }}</a>
+          </p>
+        } @else {
+          <ul class="divide-y divide-ink-100">
+            @for (order of orders(); track order.id) {
+              <li class="ui-hover-lift flex items-center justify-between gap-3 rounded-xl px-1 py-3 first:pt-0 last:pb-0">
+                <a [routerLink]="['/order/confirmation', order.id]" class="min-w-0">
+                  <p class="truncate text-sm font-medium text-ink-900">{{ t('orderLabel') }} #{{ order.id }}</p>
+                  <p class="text-xs text-ink-500">{{ order.orderDate | date: 'mediumDate' }}</p>
+                </a>
+                <div class="flex shrink-0 flex-col items-end gap-1">
+                  <ui-badge [variant]="statusVariant(order.orderStatus)">{{ order.orderStatus }}</ui-badge>
+                  <span class="text-sm font-semibold text-ink-900">{{ order.orderTotal | iwnCurrency }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </ui-card>
+
+      <ui-card [heading]="t('mySubscriptions')">
+        <a card-actions routerLink="/account/subscriptions" class="ui-btn-ghost ui-btn-sm">{{ t('mySubscriptions') }}</a>
+        @if (subscriptionsLoading()) {
+          <div class="space-y-3">
+            <ui-skeleton height="3rem" class="rounded-xl" />
+            <ui-skeleton height="3rem" class="rounded-xl" />
+          </div>
+        } @else if (subscriptions().length === 0) {
+          <p class="text-sm text-ink-500">
+            {{ t('noSubscriptions') }}
+            <a routerLink="/services" class="font-medium text-brand-600 hover:text-brand-700">{{ t('browseServices') }}</a>
+          </p>
+        } @else {
+          <ul class="divide-y divide-ink-100">
+            @for (sub of subscriptions(); track sub.id) {
+              <li class="ui-hover-lift flex items-center justify-between gap-3 rounded-xl px-1 py-3 first:pt-0 last:pb-0">
+                <a [routerLink]="['/services/confirmation', sub.id]" class="min-w-0">
+                  <p class="truncate text-sm font-medium text-ink-900">{{ displaySubscriptionTitle(sub) }}</p>
+                  <p class="text-xs text-ink-500">{{ sub.purchaseDate | date: 'mediumDate' }}</p>
+                </a>
+                <div class="flex shrink-0 flex-col items-end gap-1">
+                  <ui-badge [variant]="statusVariant(sub.status)">{{ sub.status }}</ui-badge>
+                  <span class="text-sm font-semibold text-ink-900">{{ sub.amountPaid | iwnCurrency }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </ui-card>
+
+      <ui-card heading="Security & Data">
+        @if (actionMessage()) {
+          <p class="mb-3 text-sm" [class.text-danger]="actionError()" [class.text-success-fg]="!actionError()">
+            {{ actionMessage() }}
+          </p>
+        }
+        <div class="grid gap-3 sm:grid-cols-2">
+          <input class="ui-input" type="password" [(ngModel)]="currentPassword" placeholder="Current password" />
+          <input class="ui-input" type="password" [(ngModel)]="newPassword" placeholder="New password" />
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" class="ui-btn-primary ui-btn-sm" (click)="changePassword()" [disabled]="busy()">Change password</button>
+          <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="exportPersonalData()" [disabled]="busy()">Export personal data</button>
+          <button type="button" class="ui-btn-danger ui-btn-sm" (click)="deleteAccount()" [disabled]="busy()">Delete account</button>
+        </div>
+      </ui-card>
+    </div>
+  </div>
+</section>

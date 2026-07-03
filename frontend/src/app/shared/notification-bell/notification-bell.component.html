@@ -1,0 +1,68 @@
+<div class="notification-bell relative">
+  <button
+    type="button"
+    class="ui-btn-icon relative"
+    (click)="toggle(); $event.stopPropagation()"
+    [attr.aria-label]="t('notifications')"
+  >
+    <span class="material-icons !text-[22px]">notifications</span>
+    @if (count() > 0) {
+      <span
+        class="absolute -top-0.5 -end-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-[18px] text-white"
+        >{{ count() > 99 ? '99+' : count() }}</span
+      >
+    }
+  </button>
+
+  @if (open()) {
+    <div
+      class="absolute end-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-elevated animate-slide-up"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between border-b border-ink-200 px-4 py-3">
+        <strong class="text-sm font-semibold text-ink-900">{{ t('notifications') }}</strong>
+        @if (items().length > 0) {
+          <button
+            type="button"
+            class="text-xs font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
+            (click)="markAllRead()"
+            [disabled]="busy()"
+          >
+            {{ t('markAllRead') }}
+          </button>
+        }
+      </div>
+
+      @if (loading()) {
+        <p class="px-4 py-8 text-center text-sm text-ink-400">{{ t('loading') }}</p>
+      } @else if (items().length === 0) {
+        <div class="flex flex-col items-center px-4 py-10 text-center">
+          <span class="material-icons mb-2 !text-[32px] text-ink-300">notifications_off</span>
+          <p class="text-sm text-ink-400">{{ t('noNotifications') }}</p>
+        </div>
+      } @else {
+        <ul class="max-h-[60vh] divide-y divide-ink-100 overflow-y-auto">
+          @for (item of items(); track item.id) {
+            <li>
+              <button
+                type="button"
+                class="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-ink-50"
+                (click)="openNotification(item)"
+              >
+                <span
+                  class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600"
+                  >{{ item.icon || '•' }}</span
+                >
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium text-ink-900">{{ item.title }}</span>
+                  <span class="block text-xs text-ink-500 line-clamp-2">{{ item.message }}</span>
+                  <small class="mt-0.5 block text-[11px] text-ink-400">{{ item.createdAt | date: 'short' }}</small>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</div>

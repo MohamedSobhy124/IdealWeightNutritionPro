@@ -1,0 +1,112 @@
+<section class="checkout-shell ui-fade-in space-y-6">
+  @if (loading()) {
+    <div class="grid gap-6 pb-28 lg:grid-cols-2">
+      <ui-skeleton height="20rem" class="rounded-2xl" />
+      <div class="space-y-4">
+        <ui-skeleton height="2rem" width="70%" />
+        <ui-skeleton height="1rem" />
+        <ui-skeleton height="1.5rem" width="50%" />
+        <ui-skeleton height="2.75rem" width="40%" />
+      </div>
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/combos" class="ui-btn-secondary">{{ t('allComboOffers') }}</a>
+    </ui-empty-state>
+  } @else if (combo()) {
+    @if (combo(); as c) {
+      <ui-page-header [title]="comboName(c)" [breadcrumbs]="[{ label: t('comboOffers'), link: '/combos' }]" />
+
+      <div class="grid gap-6 pb-6 lg:grid-cols-2">
+        <div class="ui-card ui-hover-lift group overflow-hidden">
+          @if (c.imageUrl) {
+            <div class="aspect-square overflow-hidden bg-ink-100 sm:aspect-auto sm:min-h-[320px]">
+              <img
+                [src]="catalogue.resolveImageUrl(c.imageUrl)"
+                [alt]="comboName(c)"
+                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
+              />
+            </div>
+          } @else {
+            <div class="flex aspect-square items-center justify-center bg-ink-100 sm:aspect-auto sm:min-h-[320px]">
+              <span class="material-icons text-5xl text-ink-300">inventory_2</span>
+            </div>
+          }
+        </div>
+
+        <div class="space-y-4">
+          @if (c.description) {
+            <p class="text-sm leading-relaxed text-ink-600 sm:text-base">{{ c.description }}</p>
+          }
+
+          <div class="checkout-summary-total flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-xs text-white/70 line-through tabular-nums">{{ c.originalPrice | iwnCurrency }}</p>
+              <p class="text-xl font-bold tabular-nums">{{ c.comboPrice | iwnCurrency }}</p>
+            </div>
+            <ui-badge variant="success">−{{ c.savingsPercent | number: '1.0-0' }}%</ui-badge>
+          </div>
+
+          <p class="text-sm text-ink-500">{{ t('endsOn') }} {{ c.endDate | date: 'mediumDate' }}</p>
+
+          <ui-badge [variant]="c.inStock ? 'success' : 'danger'" [dot]="true">
+            @if (c.inStock) {
+              {{ t('upToAvailable') }} {{ c.maxQuantity }} {{ t('available') }}
+            } @else {
+              {{ t('outOfStock') }}
+            }
+          </ui-badge>
+
+          @if (cartMessage()) {
+            <p class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg" role="status">{{ cartMessage() }}</p>
+          }
+
+          <button
+            type="button"
+            class="ui-btn-primary hidden w-full sm:inline-flex sm:w-auto"
+            (click)="addToCart()"
+            [disabled]="adding() || !c.inStock || c.maxQuantity < 1"
+            [attr.aria-busy]="adding()"
+          >
+            {{ adding() ? t('adding') : t('addComboToCart') }}
+          </button>
+        </div>
+      </div>
+
+      <ui-card class="overflow-hidden">
+        <div class="border-b border-ink-200 px-4 py-3 sm:px-6">
+          <h2 class="text-lg font-semibold text-ink-900">{{ t('includedProducts') }}</h2>
+        </div>
+        <ul class="divide-y divide-ink-200">
+          @for (item of c.items; track item.productId + '-' + (item.productVariantId ?? 0)) {
+            <li class="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6" [class.text-ink-400]="!item.inStock">
+              <a [routerLink]="['/product', item.slug]" class="font-medium text-ink-900 hover:text-brand-700" [class.!text-ink-400]="!item.inStock">
+                {{ itemTitle(item) }}
+              </a>
+              <span class="text-sm text-ink-500">× {{ item.quantity }}</span>
+              @if (!item.inStock) {
+                <ui-badge variant="danger">{{ t('lowStock') }}</ui-badge>
+              }
+            </li>
+          }
+        </ul>
+      </ui-card>
+
+      <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset lg:hidden">
+        <div class="checkout-mobile-bar__meta">
+          <p class="text-xs text-ink-500">{{ t('total') }}</p>
+          <p class="text-lg font-bold tabular-nums text-ink-900">{{ c.comboPrice | iwnCurrency }}</p>
+        </div>
+        <button
+          type="button"
+          class="ui-btn-primary checkout-mobile-bar__btn flex-1"
+          (click)="addToCart()"
+          [disabled]="adding() || !c.inStock || c.maxQuantity < 1"
+          [attr.aria-busy]="adding()"
+        >
+          {{ adding() ? t('adding') : t('addComboToCart') }}
+        </button>
+      </div>
+    }
+  }
+</section>

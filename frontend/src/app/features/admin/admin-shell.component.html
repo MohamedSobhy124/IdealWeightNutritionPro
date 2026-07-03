@@ -1,0 +1,215 @@
+<div class="min-h-screen bg-ink-50 text-ink-900">
+  <!-- Mobile backdrop -->
+  @if (mobileOpen()) {
+    <div
+      class="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm lg:hidden"
+      (click)="mobileOpen.set(false)"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <!-- Sidebar -->
+  <aside
+    class="fixed inset-y-0 start-0 z-50 flex flex-col border-e border-ink-200 bg-[var(--surface)] transition-[width,transform] duration-200
+           lg:translate-x-0"
+    [class.w-64]="!collapsed()"
+    [class.w-[76px]]="collapsed()"
+    [class.translate-x-0]="mobileOpen()"
+    [class.-translate-x-full]="!mobileOpen()"
+    [class.rtl:translate-x-0]="mobileOpen()"
+  >
+    <div class="flex h-16 items-center gap-3 border-b border-ink-200 px-4">
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+        <span class="material-icons !text-[20px]">eco</span>
+      </div>
+      @if (!collapsed()) {
+        <div class="min-w-0">
+          <p class="truncate text-sm font-bold leading-tight">Ideal Weight</p>
+          <p class="truncate text-xs text-ink-400">{{ t('adminTitle') }}</p>
+        </div>
+      }
+      <button
+        type="button"
+        class="ui-btn-icon ms-auto lg:hidden"
+        (click)="mobileOpen.set(false)"
+        [attr.aria-label]="t('shellClose')"
+      >
+        <span class="material-icons !text-[20px]">close</span>
+      </button>
+    </div>
+
+    <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      @for (group of visibleGroups(); track group.labelKey) {
+        <div>
+          @if (!collapsed()) {
+            <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
+              {{ t(group.labelKey) }}
+            </p>
+          }
+          <ul class="space-y-0.5">
+            @for (item of group.items; track item.link) {
+              <li>
+                <a
+                  [routerLink]="item.link"
+                  routerLinkActive="bg-brand-50 text-brand-700 font-semibold"
+                  [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                  class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-600 transition-colors hover:bg-ink-100"
+                  [class.justify-center]="collapsed()"
+                  [attr.title]="collapsed() ? t(item.labelKey) : null"
+                >
+                  <span class="material-icons !text-[20px]">{{ item.icon }}</span>
+                  @if (!collapsed()) {
+                    <span class="truncate">{{ t(item.labelKey) }}</span>
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </nav>
+
+    <div class="border-t border-ink-200 p-3">
+      <a
+        routerLink="/"
+        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-600 hover:bg-ink-100"
+        [class.justify-center]="collapsed()"
+        [attr.title]="collapsed() ? t('shellViewStore') : null"
+      >
+        <span class="material-icons !text-[20px]">storefront</span>
+        @if (!collapsed()) {
+          <span>{{ t('shellViewStore') }}</span>
+        }
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main column -->
+  <div
+    class="flex min-h-screen flex-col transition-[padding] duration-200"
+    [class.lg:ps-64]="!collapsed()"
+    [class.lg:ps-[76px]]="collapsed()"
+  >
+    <!-- Topbar -->
+    <header
+      class="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-ink-200 bg-[var(--surface-overlay)] px-4 backdrop-blur sm:px-6"
+    >
+      <button
+        type="button"
+        class="ui-btn-icon lg:hidden"
+        (click)="mobileOpen.set(true)"
+        [attr.aria-label]="t('shellMenu')"
+      >
+        <span class="material-icons">menu</span>
+      </button>
+      <button
+        type="button"
+        class="ui-btn-icon hidden lg:inline-flex"
+        (click)="toggleCollapsed()"
+        [attr.aria-label]="collapsed() ? t('shellExpand') : t('shellCollapse')"
+      >
+        <span class="material-icons rtl:rotate-180">{{ collapsed() ? 'menu_open' : 'menu' }}</span>
+      </button>
+
+      <div class="hidden min-w-0 sm:block">
+        <nav class="flex items-center gap-1.5 text-xs text-ink-400" aria-label="Breadcrumb">
+          <span>{{ t('adminTitle') }}</span>
+          <span class="text-ink-300 rtl:rotate-180">›</span>
+          <span class="font-medium text-ink-700">{{ activeLabel() }}</span>
+        </nav>
+      </div>
+
+      <!-- Global search -->
+      <div class="shell-search relative ms-auto w-full max-w-xs">
+        <span
+          class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400"
+          >search</span
+        >
+        <input
+          type="search"
+          class="ui-input ps-10 !py-2"
+          [placeholder]="t('shellSearchPlaceholder')"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+        />
+        @if (searchResults().length > 0) {
+          <div
+            class="absolute inset-x-0 top-full mt-2 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-elevated animate-slide-up"
+          >
+            @for (item of searchResults(); track item.link) {
+              <a
+                [routerLink]="item.link"
+                (click)="onSearchSelect()"
+                class="flex items-center gap-3 px-3 py-2.5 text-sm text-ink-700 hover:bg-ink-50"
+              >
+                <span class="material-icons !text-[18px] text-ink-400">{{ item.icon }}</span>
+                {{ t(item.labelKey) }}
+              </a>
+            }
+          </div>
+        }
+      </div>
+
+      <ui-theme-toggle />
+      <button
+        type="button"
+        class="ui-btn-icon"
+        (click)="locale.toggle()"
+        [attr.aria-label]="locale.isArabic() ? 'English' : 'العربية'"
+      >
+        <span class="text-sm font-semibold">{{ locale.isArabic() ? 'EN' : 'ع' }}</span>
+      </button>
+
+      <app-notification-bell />
+
+      <!-- User menu -->
+      <div class="user-menu relative">
+        <button
+          type="button"
+          class="flex items-center gap-2 rounded-xl p-1 pe-2 hover:bg-ink-100"
+          (click)="userMenuOpen.set(!userMenuOpen()); $event.stopPropagation()"
+        >
+          <span
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white"
+            >{{ initials() }}</span
+          >
+          <span class="material-icons !text-[20px] text-ink-400 hidden sm:inline">expand_more</span>
+        </button>
+        @if (userMenuOpen()) {
+          <div
+            class="absolute end-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-elevated animate-slide-up"
+          >
+            <div class="border-b border-ink-200 px-4 py-3">
+              <p class="truncate text-sm font-semibold text-ink-900">
+                {{ profile()?.fullName || profile()?.email }}
+              </p>
+              <p class="truncate text-xs text-ink-400">
+                {{ isAdmin() ? t('shellAdministrator') : t('shellStaff') }}
+              </p>
+            </div>
+            <a
+              routerLink="/account"
+              class="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50"
+            >
+              <span class="material-icons !text-[18px] text-ink-400">person</span>
+              {{ t('shellMyAccount') }}
+            </a>
+            <button
+              type="button"
+              (click)="logout()"
+              class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger-soft"
+            >
+              <span class="material-icons !text-[18px]">logout</span>
+              {{ t('shellSignOut') }}
+            </button>
+          </div>
+        }
+      </div>
+    </header>
+
+    <!-- Routed content -->
+    <main class="flex-1 p-4 sm:p-6">
+      <router-outlet />
+    </main>
+  </div>
+</div>

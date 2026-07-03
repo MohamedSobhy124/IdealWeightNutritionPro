@@ -1,0 +1,85 @@
+<section class="ui-fade-in mx-auto max-w-2xl space-y-6">
+  @if (loading()) {
+    <ui-skeleton height="2rem" width="50%" class="mx-auto" />
+    <div class="space-y-4">
+      <ui-skeleton height="8rem" class="rounded-2xl" />
+      <ui-skeleton height="10rem" class="rounded-2xl" />
+      <ui-skeleton height="3rem" width="40%" class="mx-auto" />
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/track" class="ui-btn-secondary">{{ t('trackOrder') }}</a>
+    </ui-empty-state>
+  } @else if (order()) {
+    @if (order(); as o) {
+      <div class="text-center">
+        <div class="ui-success-icon mb-4 flex justify-center">
+          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-success-soft text-success-fg">
+            <span class="material-icons text-[32px]">check_circle</span>
+          </span>
+        </div>
+        <ui-page-header [title]="t('orderConfirmed')" [subtitle]="t('orderPlaced')" />
+      </div>
+
+      @if (accountCreated()) {
+        <p class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg">{{ t('accountCreatedAtCheckout') }}</p>
+      } @else if (accountLinked()) {
+        <p class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg">{{ t('accountLinkedAtCheckout') }}</p>
+      }
+
+      <ui-card class="ui-card-pad block">
+        <p class="text-ink-700">
+          {{ t('thankYou') }}, {{ o.name }}!
+          <strong class="text-ink-900">#{{ o.id }}</strong>
+        </p>
+        <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-ink-500">{{ t('placed') }}</dt>
+            <dd class="font-medium text-ink-900">{{ o.orderDate | date: 'medium' }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-500">{{ t('status') }}</dt>
+            <dd><ui-badge [variant]="statusVariant(o.orderStatus)">{{ o.orderStatus }}</ui-badge></dd>
+          </div>
+          <div>
+            <dt class="text-ink-500">{{ t('payment') }}</dt>
+            <dd class="font-medium text-ink-900">{{ o.paymentStatus }}</dd>
+          </div>
+        </dl>
+        <div class="checkout-summary-total mt-4 flex items-center justify-between gap-3">
+          <span class="text-sm font-medium text-white/80">{{ t('total') }}</span>
+          <span class="text-xl font-bold tabular-nums">{{ o.orderTotal | iwnCurrency }}</span>
+        </div>
+      </ui-card>
+
+      <ui-card [heading]="t('items')" class="block">
+        <ul class="divide-y divide-ink-100 text-sm">
+          @for (item of o.items; track item.productId) {
+            <li class="flex justify-between gap-3 py-2.5">
+              <span class="text-ink-700">{{ item.title }} × {{ item.quantity }}</span>
+              <span class="font-medium tabular-nums text-ink-900">{{ item.lineTotal | iwnCurrency }}</span>
+            </li>
+          }
+        </ul>
+      </ui-card>
+
+      <p class="text-center text-sm text-ink-600">
+        {{ t('deliveringTo') }} {{ o.streetAddress }}, {{ o.city }}
+        @if (o.area) { ({{ o.area }}) }
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-3">
+        <a routerLink="/shop" class="ui-btn-primary">{{ t('continueShopping') }}</a>
+        <button type="button" class="ui-btn-secondary" (click)="downloadInvoice()" [disabled]="downloadingInvoice()">
+          {{ downloadingInvoice() ? t('loadingOrder') : t('downloadInvoice') }}
+        </button>
+        @if (canRequestReturn(o)) {
+          <a class="ui-btn-secondary" [routerLink]="['/orders', o.id, 'return']" [queryParams]="o.email ? { email: o.email } : null">
+            {{ t('requestReturn') }}
+          </a>
+        }
+        <a routerLink="/track" class="ui-btn-ghost">{{ t('trackAnotherOrder') }}</a>
+      </div>
+    }
+  }
+</section>

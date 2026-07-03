@@ -1,0 +1,52 @@
+<section class="ui-fade-in space-y-6">
+  <ui-page-header [title]="t('comboOffers')" />
+
+  @if (loading()) {
+    <div class="content-grid-2">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <ui-skeleton height="200px" class="rounded-2xl" />
+      }
+    </div>
+  } @else if (error()) {
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  } @else if (combos().length === 0) {
+    <ui-empty-state icon="inventory_2" [title]="t('noComboOffers')">
+      <a routerLink="/shop" class="ui-btn-primary">{{ t('browseShop') }}</a>
+    </ui-empty-state>
+  } @else {
+    <div class="content-grid-2 ui-stagger-children">
+      @for (combo of combos(); track combo.id) {
+        <article class="promo-card ui-card ui-hover-lift group overflow-hidden">
+          @if (combo.imageUrl) {
+            <a [routerLink]="['/combos', combo.id]" class="promo-card__media block">
+              <img [src]="catalogue.resolveImageUrl(combo.imageUrl)" [alt]="comboName(combo)" loading="lazy" />
+            </a>
+          }
+          <div class="promo-card__body">
+            <h2 class="line-clamp-2 text-sm font-semibold text-ink-900 sm:text-base">
+              <a [routerLink]="['/combos', combo.id]" class="hover:text-brand-700">{{ comboName(combo) }}</a>
+            </h2>
+            @if (combo.description) {
+              <p class="mt-1 line-clamp-2 text-xs text-ink-500 sm:text-sm">{{ combo.description }}</p>
+            }
+            <p class="mt-2 flex flex-wrap items-baseline gap-1.5 tabular-nums">
+              <span class="text-sm font-bold text-danger sm:text-base">{{ combo.comboPrice | iwnCurrency }}</span>
+              <span class="text-xs text-ink-400 line-through sm:text-sm">{{ combo.originalPrice | iwnCurrency }}</span>
+              <ui-badge variant="success">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge>
+            </p>
+            <p class="mt-2 text-xs text-ink-600 sm:text-sm">
+              {{ t('endsOn') }} {{ combo.endDate | date: 'mediumDate' }}
+              <span class="text-ink-300">·</span>
+              {{ combo.productCount }} {{ t('productsLabel') }}
+              @if (!combo.inStock) {
+                <span class="text-ink-300">·</span>
+                <span class="text-danger">{{ t('outOfStock') }}</span>
+              }
+            </p>
+            <a class="ui-btn-primary ui-btn-sm mt-3 w-full justify-center sm:w-auto" [routerLink]="['/combos', combo.id]">{{ t('viewCombo') }}</a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

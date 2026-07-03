@@ -1,0 +1,121 @@
+<ui-page-header
+  [title]="isEdit() ? t('editBlogPost') : t('newBlogPost')"
+  [breadcrumbs]="[{ label: t('blogPostsTitle'), link: '/admin/blog' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="2.5rem" />
+    <ui-skeleton height="2.5rem" />
+    <ui-skeleton height="8rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else {
+  <form class="space-y-6" (ngSubmit)="submit()">
+    <ui-card [heading]="t('sectionBasicInfo')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('titleEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="title" name="title" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('titleAr')" [required]="true">
+          <input class="ui-input" [(ngModel)]="titleAr" name="titleAr" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('slugOptional')">
+          <input class="ui-input" [(ngModel)]="slug" name="slug" [placeholder]="t('slugPlaceholder')" />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogCategoryEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="category" name="category" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogCategoryAr')" [required]="true">
+          <input class="ui-input" [(ngModel)]="categoryAr" name="categoryAr" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogAuthorEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="author" name="author" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogAuthorAr')" [required]="true">
+          <input class="ui-input" [(ngModel)]="authorAr" name="authorAr" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogPublishedDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="publishedDate" name="publishedDate" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogReadTime')">
+          <input class="ui-input" type="number" min="1" [(ngModel)]="readTime" name="readTime" />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionMedia')">
+      <div class="space-y-4">
+        <ui-form-field [label]="t('imageUrl')">
+          <input class="ui-input" [(ngModel)]="imageUrl" name="imageUrl" />
+        </ui-form-field>
+        @if (isEdit() && blogId) {
+          @if (imageUrl) {
+            <img
+              class="max-h-48 w-full rounded-xl border border-ink-200 object-cover"
+              [src]="catalogue.resolveImageUrl(imageUrl)"
+              [alt]="title"
+            />
+          }
+          <p class="text-sm text-ink-500">{{ t('imageUploadHint') }}</p>
+          <label class="ui-btn-secondary ui-btn-sm inline-flex cursor-pointer">
+            {{ uploadingImage() ? t('saving') : t('uploadImage') }}
+            <input class="sr-only" type="file" accept="image/*" (change)="onImageSelected($event)" [disabled]="uploadingImage()" />
+          </label>
+        }
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionSummary')">
+      <div class="grid grid-cols-1 gap-4">
+        <ui-form-field [label]="t('blogExcerptEn')" [required]="true">
+          <textarea class="ui-textarea" rows="3" [(ngModel)]="excerpt" name="excerpt" required></textarea>
+        </ui-form-field>
+        <ui-form-field [label]="t('blogExcerptAr')" [required]="true">
+          <textarea class="ui-textarea" rows="3" [(ngModel)]="excerptAr" name="excerptAr" required></textarea>
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionContent')">
+      <div class="space-y-4">
+        <ui-form-field [label]="t('blogContentEn')" [required]="true">
+          <app-rich-text-editor [(ngModel)]="content" name="content" direction="ltr" />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogContentAr')" [required]="true">
+          <app-rich-text-editor [(ngModel)]="contentAr" name="contentAr" direction="rtl" />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionSeo')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('blogMetaDescriptionEn')">
+          <input class="ui-input" [(ngModel)]="metaDescription" name="metaDescription" />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogMetaDescriptionAr')">
+          <input class="ui-input" [(ngModel)]="metaDescriptionAr" name="metaDescriptionAr" />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogMetaKeywordsEn')">
+          <input class="ui-input" [(ngModel)]="metaKeywords" name="metaKeywords" />
+        </ui-form-field>
+        <ui-form-field [label]="t('blogMetaKeywordsAr')">
+          <input class="ui-input" [(ngModel)]="metaKeywordsAr" name="metaKeywordsAr" />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    @if (saveError()) {
+      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+    }
+
+    <div class="flex justify-end gap-2">
+      <a routerLink="/admin/blog" class="ui-btn-secondary">{{ t('cancel') }}</a>
+      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
+        {{ submitting() ? t('saving') : t('save') }}
+      </button>
+    </div>
+  </form>
+}

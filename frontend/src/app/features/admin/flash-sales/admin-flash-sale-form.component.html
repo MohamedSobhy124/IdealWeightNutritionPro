@@ -1,0 +1,151 @@
+<ui-page-header
+  [title]="isEdit() ? t('editFlashSale') : t('newFlashSale')"
+  [breadcrumbs]="[{ label: t('flashSalesTitle'), link: '/admin/flash-sales' }]"
+/>
+
+@if (loading()) {
+  <div class="ui-card ui-card-pad space-y-3">
+    <ui-skeleton height="2rem" width="40%" />
+    <ui-skeleton height="2.5rem" />
+    <ui-skeleton height="2.5rem" />
+  </div>
+} @else if (error()) {
+  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+} @else {
+  <form class="space-y-6" (ngSubmit)="submit()">
+    <ui-card [heading]="t('sectionBasicInfo')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('titleEn')" [required]="true">
+          <input class="ui-input" [(ngModel)]="name" name="name" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('titleAr')" [required]="true">
+          <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('description')">
+          <input class="ui-input" [(ngModel)]="description" name="description" />
+        </ui-form-field>
+        <ui-form-field [label]="t('descriptionAr')">
+          <input class="ui-input" [(ngModel)]="descriptionAr" name="descriptionAr" />
+        </ui-form-field>
+      </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionMedia')">
+      <ui-form-field [label]="t('imageUrl')">
+        <input class="ui-input" [(ngModel)]="imageUrl" name="imageUrl" />
+      </ui-form-field>
+      @if (isEdit() && flashSaleId) {
+        @if (imageUrl) {
+          <img class="mt-3 h-32 w-32 rounded-xl object-cover" [src]="catalogue.resolveImageUrl(imageUrl)" [alt]="name" />
+        }
+        <p class="ui-help mt-2">{{ t('imageUploadHint') }}</p>
+        <label class="ui-label mt-3 block">
+          {{ t('uploadImage') }}
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onImageSelected($event)"
+            [disabled]="uploadingImage()"
+            class="mt-1 block text-sm"
+          />
+        </label>
+      }
+    </ui-card>
+
+    <ui-card [heading]="t('sectionSchedule')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('promoStartDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="startDate" name="startDate" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('promoEndDate')" [required]="true">
+          <input class="ui-input" type="date" [(ngModel)]="endDate" name="endDate" required />
+        </ui-form-field>
+      </div>
+      <label class="mt-4 flex items-center gap-2 text-sm text-ink-700">
+        <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+        {{ t('active') }}
+      </label>
+      <label class="mt-2 flex items-center gap-2 text-sm text-ink-700">
+        <input type="checkbox" [(ngModel)]="notifySubscribers" name="notifySubscribers" />
+        {{ t('notifySubscribers') }}
+      </label>
+    </ui-card>
+
+    @if (saveError()) {
+      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+    }
+
+    <div class="flex justify-end gap-2">
+      <a routerLink="/admin/flash-sales" class="ui-btn-secondary">{{ t('cancel') }}</a>
+      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
+        {{ submitting() ? t('saving') : t('save') }}
+      </button>
+    </div>
+  </form>
+
+  @if (isEdit()) {
+    <ui-card [heading]="t('flashSaleItemsTitle')" class="mt-6 block">
+      @if (!flashSaleId) {
+        <p class="text-sm text-ink-500">{{ t('flashSaleItemsAfterSave') }}</p>
+      } @else {
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <ui-form-field [label]="t('searchProductsPlaceholder')">
+            <input class="ui-input" [(ngModel)]="productSearch" name="productSearch" (input)="searchProducts()" />
+          </ui-form-field>
+          <ui-form-field [label]="t('flashSalePrice')">
+            <input class="ui-input" type="number" min="0.01" step="0.01" [(ngModel)]="itemPrice" name="itemPrice" />
+          </ui-form-field>
+          <ui-form-field [label]="t('flashSaleQty')">
+            <input class="ui-input" type="number" min="1" [(ngModel)]="itemQty" name="itemQty" />
+          </ui-form-field>
+        </div>
+
+        @if (productResults().length > 0) {
+          <ul class="mt-3 divide-y divide-ink-100 rounded-xl border border-ink-200">
+            @for (p of productResults(); track p.id) {
+              <li class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span>{{ p.title }} <small class="text-ink-400">#{{ p.id }}</small></span>
+                <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="addItem(p.id)">
+                  {{ t('add') }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (itemMessage()) {
+          <p class="mt-3 text-sm" [class.text-danger]="itemError()" [class.text-success-fg]="!itemError()">
+            {{ itemMessage() }}
+          </p>
+        }
+
+        @if (items().length === 0) {
+          <p class="mt-3 text-sm text-ink-500">{{ t('noFlashSaleItems') }}</p>
+        } @else {
+          <ul class="mt-4 divide-y divide-ink-100 rounded-xl border border-ink-200">
+            @for (item of items(); track item.id) {
+              <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-3 text-sm">
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-ink-900">{{ item.title }}</p>
+                  <p class="mt-0.5 text-xs text-ink-500">
+                    {{ item.flashSalePrice | iwnCurrency }} · {{ t('stock') }}: {{ item.availableQuantity }}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="ui-btn-danger ui-btn-sm shrink-0"
+                  (click)="removeItem(item)"
+                  [disabled]="busyItemId() === item.id"
+                >
+                  {{ t('remove') }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      }
+    </ui-card>
+  } @else {
+    <p class="mt-4 text-sm text-ink-500">{{ t('flashSaleItemsAfterSave') }}</p>
+  }
+}
