@@ -1,0 +1,79 @@
+# Render Blueprint for the IdealWeightNutrition modernization stack.
+# Deploy via Render Dashboard -> "New +" -> "Blueprint" and point it at this repo,
+# or configure the two services manually using the values below.
+#
+# Architecture:
+#   iwn-web (Angular 19 SSR / Express)  --proxies /api,/hubs,/images-->  iwn-api (.NET 8)
+#   iwn-api  -->  external SQL Server (Render does NOT provide managed SQL Server)
+#
+# Secrets are intentionally NOT stored here. Values marked `sync: false` must be filled
+# in the Render dashboard (Environment tab) after the first deploy.
+
+services:
+  # ---------------- .NET 8 API ----------------
+  - type: web
+    name: iwn-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # SQL Server connection (SQL auth, not Integrated Security). Example:
+      # Server=your-sql-host,1433;Database=db_ac153b_idealweightdb;User Id=sa;Password=***;TrustServerCertificate=True;Encrypt=True
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__SigningKey
+        generateValue: true
+      # Public origin of the storefront, used for CORS + OAuth callbacks.
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: App__FrontendBaseUrl
+        sync: false
+      - key: App__PublicApiBaseUrl
+        sync: false
+      - key: SiteSettings__BaseUrl
+        sync: false
+      # Redis is optional; leave blank to disable.
+      - key: Redis__ConnectionString
+        value: ""
+      # --- Integrations (fill only what you use) ---
+      - key: Authentication__Google__ClientId
+        sync: false
+      - key: Authentication__Google__ClientSecret
+        sync: false
+      - key: Smtp__Host
+        sync: false
+      - key: Smtp__Username
+        sync: false
+      - key: Smtp__Password
+        sync: false
+      - key: Geidea__MerchantPublicKey
+        sync: false
+      - key: Geidea__MerchantApiPassword
+        sync: false
+      - key: Tamara__ApiToken
+        sync: false
+      - key: Tamara__NotificationToken
+        sync: false
+      - key: Tappy__ApiKey
+        sync: false
+      - key: Tappy__MerchantId
+        sync: false
+
+  # ---------------- Angular 19 SSR ----------------
+  - type: web
+    name: iwn-web
+    runtime: docker
+    rootDir: frontend
+    dockerfilePath: ./Dockerfile
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /
+    envVars:
+      # Full URL (with scheme) of the API service, e.g. https://iwn-api.onrender.com
+      - key: BACKEND_URL
+        sync: false

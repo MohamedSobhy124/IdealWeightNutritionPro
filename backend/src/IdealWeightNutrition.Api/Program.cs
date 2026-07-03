@@ -124,10 +124,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    await DatabaseInitializer.InitializeAsync(app.Services, app.Logger);
-}
+// Idempotent + resilient (checks connectivity, swallows failures): safe to run in every environment
+// so the RefreshTokens table and identity roles exist on a freshly provisioned database.
+await DatabaseInitializer.InitializeAsync(app.Services, app.Logger);
 
 app.UseSerilogRequestLogging();
 app.UseCors("Spa");
