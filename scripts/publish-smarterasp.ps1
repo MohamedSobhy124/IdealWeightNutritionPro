@@ -27,7 +27,7 @@ try {
         npm ci
         if ($LASTEXITCODE -ne 0) { throw "npm ci failed." }
     }
-    npm run build
+    npm run build:smarterasp
     if ($LASTEXITCODE -ne 0) { throw "Angular build failed." }
 
     $browserDist = Join-Path $frontendRoot "dist\ideal-weight-nutrition-web\browser"
@@ -40,6 +40,17 @@ try {
     New-Item -ItemType Directory -Path $webOut | Out-Null
     Copy-Item -Path (Join-Path $browserDist "*") -Destination $webOut -Recurse -Force
     Copy-Item -Path $webConfig -Destination (Join-Path $webOut "web.config") -Force
+
+    # Angular SSR builds emit index.csr.html; IIS needs index.html as the default document.
+    $indexHtml = Join-Path $webOut "index.html"
+    $indexCsr = Join-Path $webOut "index.csr.html"
+    if (-not (Test-Path $indexHtml) -and (Test-Path $indexCsr)) {
+        Copy-Item -Path $indexCsr -Destination $indexHtml -Force
+        Write-Host "Created index.html from index.csr.html for IIS."
+    }
+    if (-not (Test-Path $indexHtml)) {
+        throw "No index.html in publish output. Upload would cause IIS 403."
+    }
 }
 finally {
     Pop-Location
