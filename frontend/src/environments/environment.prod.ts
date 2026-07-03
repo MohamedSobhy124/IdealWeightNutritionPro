@@ -5,7 +5,7 @@ export const environment = {
   legacyAssetsBaseUrl: 'https://admin.idealweightnutrition.ae',
   siteName: 'Ideal Weight Nutrition',
   siteNameAr: 'ايديال ويت للتغذية',
-  siteUrl: 'https://idealweightnutrition.ae',
+  siteUrl: 'http://idealweight-001-site3.ftempurl.com',
   siteDescription:
     'Shop premium supplements, nutrition products, flash sales, and wellness services in the UAE.',
   siteDescriptionAr:
