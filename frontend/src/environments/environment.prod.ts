@@ -1,8 +1,8 @@
 export const environment = {
   production: true,
-  apiBaseUrl: '/api',
-  signalRHubUrl: '/hubs/notifications',
-  legacyAssetsBaseUrl: '',
+  apiBaseUrl: 'https://api.idealweightnutrition.ae/api',
+  signalRHubUrl: 'https://api.idealweightnutrition.ae/hubs/notifications',
+  legacyAssetsBaseUrl: 'https://api.idealweightnutrition.ae',
   siteName: 'Ideal Weight Nutrition',
   siteNameAr: 'ايديال ويت للتغذية',
   siteUrl: 'https://idealweightnutrition.ae',

@@ -1,6 +1,5 @@
 using IdealWeightNutrition.Application.Abstractions;
 using IdealWeightNutrition.Contracts.Content;
-using Microsoft.AspNetCore.Hosting;
 
 namespace IdealWeightNutrition.Infrastructure.Storage;
 
@@ -19,9 +18,9 @@ internal sealed class VideoBannerStorage
     private const long MaxVideoBytes = 50L * 1024 * 1024;
     private const long MaxPosterBytes = 5L * 1024 * 1024;
 
-    private readonly IWebHostEnvironment _env;
+    private readonly LegacyWwwRootPathResolver _wwwRoot;
 
-    public VideoBannerStorage(IWebHostEnvironment env) => _env = env;
+    public VideoBannerStorage(LegacyWwwRootPathResolver wwwRoot) => _wwwRoot = wwwRoot;
 
     public string VideoPath => Path.Combine(GetVideosDirectory(), "home-banner.mp4");
 
@@ -122,12 +121,7 @@ internal sealed class VideoBannerStorage
         };
     }
 
-    private string GetWwwRoot() =>
-        Path.GetFullPath(Path.Combine(
-            _env.ContentRootPath,
-            "..", "..", "..", "..",
-            "IdealWeightNutrition",
-            "wwwroot"));
+    private string GetWwwRoot() => _wwwRoot.Path;
 
     private string GetVideosDirectory() => Path.Combine(GetWwwRoot(), "videos");
 

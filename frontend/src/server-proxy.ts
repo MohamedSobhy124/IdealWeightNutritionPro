@@ -10,6 +10,7 @@ const PROXY_PREFIXES = [
   '/hubs',
   '/videos',
   '/images',
+  '/Images',
   '/sitemap.xml',
   '/robots.txt',
   '/signin-google',

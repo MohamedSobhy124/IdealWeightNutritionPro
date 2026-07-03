@@ -16,34 +16,19 @@ services:
     volumes:
       - redis-data:/data
 
-  api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      PORT: "8080"
-      ASPNETCORE_ENVIRONMENT: "Production"
-      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=db_ac153b_idealweightdb;User Id=sa;Password=Your_strong_Password123;TrustServerCertificate=True"
-      Redis__ConnectionString: "redis:6379"
-      Jwt__SigningKey: "DevOnlySigningKey_ChangeBeforeProduction_32CharsMin!"
-      Cors__AllowedOrigins__0: "http://localhost:4000"
-    depends_on:
-      - sqlserver
-      - redis
-
-  web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "4000:4000"
-    environment:
-      PORT: "4000"
-      BACKEND_URL: "http://api:8080"
-    depends_on:
-      - api
+  # Uncomment when API Dockerfile is ready for containerized dev
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.api
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=IdealWeightNutrition;User Id=sa;Password=Your_strong_Password123;TrustServerCertificate=True"
+  #     Redis__ConnectionString: "redis:6379"
+  #   depends_on:
+  #     - sqlserver
+  #     - redis
 
 volumes:
   sqlserver-data:

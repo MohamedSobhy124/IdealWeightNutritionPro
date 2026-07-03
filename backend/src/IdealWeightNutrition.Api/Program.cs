@@ -6,6 +6,8 @@ using IdealWeightNutrition.Api.Hubs;
 using IdealWeightNutrition.Application.Abstractions;
 using FastEndpoints.Swagger;
 using IdealWeightNutrition.Infrastructure.Options;
+using IdealWeightNutrition.Infrastructure.Storage;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -122,43 +124,20 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
 
-// Idempotent + resilient (checks connectivity, swallows failures): safe to run in every environment
-// so the RefreshTokens table and identity roles exist on a freshly provisioned database.
 await DatabaseInitializer.InitializeAsync(app.Services, app.Logger);
 
+app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
 app.UseCors("Spa");
 app.UseRateLimiter();
-
-var legacyWwwRoot = Path.GetFullPath(Path.Combine(
-    app.Environment.ContentRootPath,
-    "..", "..", "..", "..",
-    "IdealWeightNutrition",
-    "wwwroot"));
-if (Directory.Exists(legacyWwwRoot))
-{
-    var videosPath = Path.Combine(legacyWwwRoot, "videos");
-    if (Directory.Exists(videosPath))
-    {
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(videosPath),
-            RequestPath = "/videos"
-        });
-    }
-
-    var imagesPath = Path.Combine(legacyWwwRoot, "images");
-    if (Directory.Exists(imagesPath))
-    {
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(imagesPath),
-            RequestPath = "/images"
-        });
-    }
-}
+app.UseLegacyMediaStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

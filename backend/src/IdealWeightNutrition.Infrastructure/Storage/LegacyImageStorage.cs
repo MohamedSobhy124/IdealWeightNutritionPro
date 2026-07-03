@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
-
 namespace IdealWeightNutrition.Infrastructure.Storage;
 
 public enum LegacyMediaFolder
@@ -27,9 +25,9 @@ internal sealed class LegacyImageStorage
         [LegacyMediaFolder.Services] = ("images\\services", @"\images\services\"),
     };
 
-    private readonly IWebHostEnvironment _env;
+    private readonly LegacyWwwRootPathResolver _wwwRoot;
 
-    public LegacyImageStorage(IWebHostEnvironment env) => _env = env;
+    public LegacyImageStorage(LegacyWwwRootPathResolver wwwRoot) => _wwwRoot = wwwRoot;
 
     public async Task<string> SaveAsync(
         LegacyMediaFolder folder,
@@ -79,10 +77,5 @@ internal sealed class LegacyImageStorage
         return Path.Combine(GetLegacyWwwRoot(), subFolder);
     }
 
-    private string GetLegacyWwwRoot() =>
-        Path.GetFullPath(Path.Combine(
-            _env.ContentRootPath,
-            "..", "..", "..", "..",
-            "IdealWeightNutrition",
-            "wwwroot"));
+    private string GetLegacyWwwRoot() => _wwwRoot.Path;
 }

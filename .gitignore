@@ -11,6 +11,7 @@ secrets.json
 node_modules/
 dist/
 .angular/
+publish/
 *.log
 npm-debug.log*
 

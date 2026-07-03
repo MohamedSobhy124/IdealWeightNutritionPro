@@ -33,6 +33,8 @@ public static class DependencyInjection
         services.Configure<ExpiringProductsAlertOptions>(configuration.GetSection(ExpiringProductsAlertOptions.SectionName));
         services.Configure<PaymentVerificationOptions>(configuration.GetSection(PaymentVerificationOptions.SectionName));
         services.Configure<ProductStorageOptions>(configuration.GetSection(ProductStorageOptions.SectionName));
+        services.Configure<LegacyStorageOptions>(configuration.GetSection(LegacyStorageOptions.SectionName));
+        services.AddSingleton<LegacyWwwRootPathResolver>();
         services.AddSingleton<ProductStoragePathResolver>();
         services.AddSingleton<LegacyImageStorage>();
         services.AddSingleton<VideoBannerStorage>();
