@@ -185,16 +185,45 @@ https://admin.idealweightnutrition.ae/Images/Products/SOME-GUID.png
 
 ## 4. Deploy the storefront (`iwn-web`)
 
-Upload **everything** inside `publish\smarterasp\web\` to the **main site root**.
+> **IIS requirement:** SmarterASP (IIS) will **not** serve the Angular app unless **`index.html`** exists in the **site root**.  
+> Without it you get **403 Forbidden** or a blank/default page.
+
+### Build (always use the SmarterASP script)
+
+```powershell
+cd modernization
+.\scripts\publish-smarterasp.ps1
+```
+
+This runs `ng build --configuration smarterasp` (static client build → **`index.html`**) and fails if `index.html` is missing.
+
+Verify locally before upload:
+
+```powershell
+Test-Path .\publish\smarterasp\web\index.html   # must be True
+```
+
+### Upload
+
+Upload **the contents** of `publish\smarterasp\web\` into the **frontend site root** (not into a subfolder):
+
+| Must be in site root | Example |
+|----------------------|---------|
+| `index.html` | `/index.html` |
+| `web.config` | `/web.config` |
+| JS bundles | `/chunk-xxxxx.js` |
+
+**Delete** SmarterASP placeholder files first: `Default.asp`, `Default.htm`, etc.
 
 The folder includes:
 
-- `index.html`, JS/CSS bundles
-- `web.config` — IIS rewrite rules for Angular client-side routing
+- `index.html` — **required** IIS default document
+- `web.config` — default document + Angular route fallback
+- JS/CSS bundles, `images/`, etc.
 
 ### Test the storefront
 
-1. Open `https://idealweightnutrition.ae`
+1. Open `http://idealweight-001-site3.ftempurl.com/` (or your custom domain)
 2. Browse shop, open a product
 3. Try login / add to cart
 
