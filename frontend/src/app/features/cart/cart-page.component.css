@@ -1,24 +1,161 @@
 .cart-context {
-  box-shadow: 0 8px 20px rgb(5 150 105 / 0.08);
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--shadow-card);
 }
 
 .cart-item-card {
-  border: 1px solid rgb(148 163 184 / 0.2);
-  box-shadow: 0 10px 24px rgb(15 23 42 / 0.06);
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.cart-item-media {
+  width: 6.75rem;
+  height: 6.75rem;
+  border: 1px solid rgb(var(--rgb-ink-200) / 0.7);
+  background: rgb(var(--rgb-stage));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55);
+}
+
+.cart-item-media__img {
+  padding: 0.65rem;
+}
+
+@media (min-width: 640px) {
+  .cart-item-media {
+    width: 7.75rem;
+    height: 7.75rem;
+  }
+
+  .cart-item-media__img {
+    padding: 0.85rem;
+  }
+}
+
+.cart-item-title {
+  letter-spacing: -0.015em;
+  line-height: 1.35;
 }
 
 .cart-summary-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .cart-summary-chip {
-  border-radius: 999px;
-  border: 1px solid rgb(148 163 184 / 0.28);
-  background: #fff;
-  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--rgb-brand-solid) / 0.16);
+  background: rgb(var(--rgb-brand-50) / 0.65);
+  padding: 0.3rem 0.75rem;
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--ink-700);
+  color: rgb(var(--rgb-brand-solid));
+}
+
+.cart-discount {
+  border: 1px solid rgb(var(--rgb-brand-solid) / 0.16);
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-solid));
+}
+
+.cart-promo-applied {
+  border: 1px solid rgb(var(--rgb-brand-solid) / 0.16);
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-solid));
+}
+
+.cart-checkout-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--rgb-brand-700));
+  background: rgb(var(--rgb-brand-700));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 20px rgb(var(--rgb-brand-700) / 0.28);
+  transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.cart-checkout-cta:hover {
+  background: rgb(var(--rgb-brand-solid-hover));
+  box-shadow: 0 10px 24px rgb(var(--rgb-brand-700) / 0.34);
+  color: #fff;
+}
+
+.cart-checkout-cta:active {
+  transform: translateY(1px);
+}
+
+:host ::ng-deep .ui-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+  border-radius: 1.15rem;
+}
+
+:host ::ng-deep .cart-summary-card {
+  border: 1px solid rgb(var(--rgb-brand-solid) / 0.12);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    var(--shadow-elevated);
+  background:
+    linear-gradient(180deg, rgb(var(--rgb-brand-50) / 0.45), transparent 7rem),
+    #fff;
+}
+
+:host ::ng-deep .checkout-summary-total {
+  margin-top: 1.15rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.05rem;
+  background: rgb(var(--rgb-brand-700));
+  color: #fff;
+  box-shadow: 0 10px 24px rgb(var(--rgb-brand-700) / 0.22);
+}
+
+:host ::ng-deep .cart-mobile-bar.checkout-mobile-bar {
+  background: rgb(var(--rgb-brand-700));
+  border-color: rgb(var(--rgb-brand-700));
+  box-shadow: 0 -8px 24px rgb(var(--rgb-brand-700) / 0.22);
+}
+
+:host ::ng-deep .cart-mobile-bar .cart-checkout-cta {
+  background: #fff;
+  border-color: rgb(255 255 255 / 0.55);
+  color: rgb(var(--rgb-brand-700));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+}
+
+:host ::ng-deep .cart-mobile-bar .cart-checkout-cta:hover {
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-700));
+}
+
+:host-context(.dark) .cart-context,
+:host-context(.dark) .cart-item-card {
+  background: var(--surface-raised);
+  border-color: var(--border);
+}
+
+:host-context(.dark) .cart-item-media {
+  border-color: var(--border);
+  background: rgb(var(--rgb-stage));
+}
+
+:host-context(.dark) .cart-summary-chip {
+  background: rgb(var(--rgb-brand-50) / 0.35);
+  border-color: rgb(var(--rgb-brand-solid) / 0.35);
+  color: rgb(var(--rgb-brand-200));
+}
+
+:host-context(.dark) .cart-summary-card {
+  background: var(--surface-raised);
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
 }

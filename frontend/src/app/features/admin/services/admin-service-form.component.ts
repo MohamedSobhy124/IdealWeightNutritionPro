@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -9,6 +9,7 @@ import {
   UiSkeletonComponent,
 } from '../../../shared/ui';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 import {
   AdminServiceImage,
   UpsertAdminServiceRequest,
@@ -16,8 +17,10 @@ import {
 import { AdminServiceService } from '../../../core/services/admin-service.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -31,12 +34,13 @@ import { LocaleService } from '../../../core/services/locale.service';
   templateUrl: './admin-service-form.component.html',
   styleUrl: './admin-service-form.component.css',
 })
-export class AdminServiceFormComponent implements OnInit {
+export class AdminServiceFormComponent extends UnsavedChangesForm implements OnInit {
   private readonly servicesApi = inject(AdminServiceService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly loading = signal(true);
   readonly submitting = signal(false);
@@ -145,6 +149,7 @@ export class AdminServiceFormComponent implements OnInit {
     op.subscribe({
       next: (service) => {
         this.submitting.set(false);
+        this.markSaved();
         if (!this.isEdit()) {
           void this.router.navigate(['/admin/services', service.id]);
         }
@@ -175,8 +180,8 @@ export class AdminServiceFormComponent implements OnInit {
     (event.target as HTMLInputElement).value = '';
   }
 
-  removeImage(imageId: number): void {
-    if (!this.serviceId || !confirm(this.t('confirmDeleteImage'))) return;
+  async removeImage(imageId: number): Promise<void> {
+    if (!this.serviceId || !(await this.confirmDialog.danger(this.t('confirmDeleteImage')))) return;
     this.servicesApi.deleteImage(this.serviceId, imageId).subscribe({
       next: () => {
         this.images.update((list) => list.filter((i) => i.id !== imageId));

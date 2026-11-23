@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
@@ -7,6 +7,7 @@ import { AdminProductFilter, AdminProductListItem } from '../../../core/models/a
 import { AdminProductService } from '../../../core/services/admin-product.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiPageHeaderComponent,
   UiDataTableComponent,
@@ -27,6 +28,7 @@ const PRODUCT_FILTERS: AdminProductFilter[] = [
 ];
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -45,6 +47,7 @@ export class AdminProductsComponent implements OnInit {
   private readonly productsApi = inject(AdminProductService);
   private readonly route = inject(ActivatedRoute);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly products = signal<AdminProductListItem[]>([]);
   readonly totalCount = signal(0);
@@ -132,8 +135,14 @@ export class AdminProductsComponent implements OnInit {
     });
   }
 
-  regenerateSlugs(): void {
-    if (!confirm(this.t('confirmRegenerateSlugs'))) return;
+  async regenerateSlugs(): Promise<void> {
+    const confirmed = await this.confirmDialog.ask({
+      title: this.t('confirmTitle'),
+      message: this.t('confirmRegenerateSlugs'),
+      confirmLabel: this.t('confirmAction'),
+      icon: 'autorenew',
+    });
+    if (!confirmed) return;
 
     this.regeneratingSlugs.set(true);
     this.error.set(null);

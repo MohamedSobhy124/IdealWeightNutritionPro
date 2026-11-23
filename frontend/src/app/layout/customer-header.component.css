@@ -1,0 +1,48 @@
+:host {
+  display: contents;
+}
+
+.app-header {
+  border-bottom: 1px solid rgb(var(--rgb-ink-200) / 0.85);
+  /* Token-driven so it follows dark mode (a `.dark` ancestor rule can't match
+     through Angular's emulated encapsulation). */
+  background: rgb(var(--rgb-surface) / 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: none;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.app-header.app-header--scrolled {
+  box-shadow: var(--shadow-card);
+}
+
+.app-brand span {
+  color: rgb(var(--rgb-brand-900));
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+.app-brand img {
+  border-radius: 0.75rem;
+}
+
+.app-desktop-nav {
+  border-top: 1px solid rgb(var(--rgb-ink-200) / 0.7);
+  background: transparent;
+}
+
+.app-desktop-nav__link {
+  border-radius: 0.75rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-desktop-nav__link:hover {
+  color: rgb(var(--rgb-brand-solid));
+  background: rgb(var(--rgb-brand-50));
+}
+
+.app-desktop-nav__link.active {
+  color: rgb(var(--rgb-brand-solid));
+  background: rgb(var(--rgb-brand-50));
+  font-weight: 700;
+}

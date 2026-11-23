@@ -1,1 +1,19 @@
-:host { display: block; }
+:host {
+  display: block;
+}
+
+:host ::ng-deep .ui-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+:host ::ng-deep .checkout-summary-total {
+  background: rgb(var(--rgb-brand-700));
+  color: #fff;
+}
+
+.order-success-mark {
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-700));
+}

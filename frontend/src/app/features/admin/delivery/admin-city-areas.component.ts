@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
@@ -10,24 +10,26 @@ import {
 } from '../../../core/models/admin-delivery.models';
 import { AdminDeliveryService } from '../../../core/services/admin-delivery.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
-  UiCardComponent,
   UiCellDirective,
   UiDataTableComponent,
   UiFormFieldComponent,
+  UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     FormsModule,
     IwnCurrencyPipe,
     UiPageHeaderComponent,
-    UiCardComponent,
     UiFormFieldComponent,
+    UiModalComponent,
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
@@ -39,6 +41,7 @@ export class AdminCityAreasComponent implements OnInit {
   private readonly deliveryApi = inject(AdminDeliveryService);
   private readonly route = inject(ActivatedRoute);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly city = signal<AdminCity | null>(null);
   readonly items = signal<AdminRemoteArea[]>([]);
@@ -62,10 +65,25 @@ export class AdminCityAreasComponent implements OnInit {
 
   get cols(): UiTableColumn[] {
     return [
-      { key: 'title', header: this.t('title'), sortable: true },
+      {
+        key: 'title',
+        header: this.t('title'),
+        sortable: true,
+        mobile: 'primary',
+        value: (row) => this.areaName(row as unknown as AdminRemoteArea),
+        searchText: (row) => {
+          const item = row as unknown as AdminRemoteArea;
+          return `${item.name} ${item.nameAr ?? ''}`;
+        },
+      },
       { key: 'deliveryCharge', header: this.t('deliveryCharge'), align: 'end' },
-      { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      {
+        key: 'status',
+        header: this.t('productStatus'),
+        mobile: 'secondary',
+        value: (row) => ((row as unknown as AdminRemoteArea).isActive ? this.t('active') : this.t('inactive')),
+      },
+      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
     ];
   }
 
@@ -180,8 +198,8 @@ export class AdminCityAreasComponent implements OnInit {
     });
   }
 
-  remove(item: AdminRemoteArea): void {
-    if (!confirm(this.t('confirmDeleteRemoteArea'))) return;
+  async remove(item: AdminRemoteArea): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteRemoteArea')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.deliveryApi.deleteRemoteArea(item.id).subscribe({

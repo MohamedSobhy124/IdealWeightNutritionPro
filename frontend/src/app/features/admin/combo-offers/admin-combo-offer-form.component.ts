@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 
 import {
 
@@ -33,6 +34,8 @@ import {
 
 @Component({
 
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
   standalone: true,
 
   imports: [
@@ -51,7 +54,7 @@ import {
 
 })
 
-export class AdminComboOfferFormComponent implements OnInit {
+export class AdminComboOfferFormComponent extends UnsavedChangesForm implements OnInit {
 
   private readonly comboApi = inject(AdminComboOfferService);
   private readonly mediaApi = inject(AdminMediaService);
@@ -424,6 +427,7 @@ export class AdminComboOfferFormComponent implements OnInit {
       next: (combo) => {
 
         this.submitting.set(false);
+        this.markSaved();
 
         if (!this.isEdit()) {
 

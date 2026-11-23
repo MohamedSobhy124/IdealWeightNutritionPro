@@ -1,4 +1,4 @@
-<section class="ui-fade-in py-6 sm:py-8">
+<section class="ui-fade-in">
   <ui-page-header
     [title]="t('myOrders')"
     [breadcrumbs]="[{ label: t('myAccount'), link: '/account' }]"
@@ -16,7 +16,7 @@
   } @else {
     <div class="space-y-3 ui-stagger-children">
       @for (order of orders(); track order.id) {
-        <article class="ui-card ui-card-pad ui-hover-lift">
+        <article class="order-list-card ui-card ui-card-pad ui-hover-lift">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <a [routerLink]="['/order/confirmation', order.id]" class="min-w-0 group">
               <p class="text-base font-semibold text-ink-900 group-hover:text-brand-700">
@@ -25,10 +25,12 @@
               <p class="mt-0.5 text-sm text-ink-500">{{ order.orderDate | date: 'mediumDate' }}</p>
             </a>
             <div class="flex flex-col items-end gap-1">
-              <ui-badge [variant]="statusVariant(order.orderStatus)">{{ order.orderStatus }}</ui-badge>
+              <ui-badge [variant]="statusVariant(order.orderStatus)">{{ labelStatus(order.orderStatus) }}</ui-badge>
               <span class="text-lg font-bold tabular-nums text-ink-900">{{ order.orderTotal | iwnCurrency }}</span>
             </div>
           </div>
+
+          <ui-timeline class="mt-4 block" layout="compact" [ariaLabel]="t('trackOrderTitle')" [items]="timelineItems(order)" />
 
           <div class="ui-divider mt-4 flex flex-wrap items-center gap-2 pt-4">
             <a [routerLink]="['/order/confirmation', order.id]" class="ui-btn-secondary ui-btn-sm">

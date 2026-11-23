@@ -26,7 +26,7 @@
   background: var(--color-primary);
   color: #fff;
   border-color: var(--color-primary);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+  box-shadow: 0 1px 2px rgb(var(--rgb-ink-900) / 0.06);
 }
 
 .btn-primary:hover:not(:disabled),

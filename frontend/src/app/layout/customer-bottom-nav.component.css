@@ -1,0 +1,82 @@
+:host {
+  display: contents;
+}
+
+.app-bottom-nav {
+  background: rgb(255 255 255 / 0.96);
+  border-top: 1px solid rgb(var(--rgb-ink-200));
+  backdrop-filter: blur(12px);
+}
+
+:is(.dark) .app-bottom-nav {
+  background: rgb(var(--rgb-surface) / 0.96);
+}
+
+.app-bottom-nav__item {
+  position: relative;
+  display: flex;
+  min-height: 3.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  color: rgb(var(--rgb-ink-500));
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+
+.app-bottom-nav__item .material-icons {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  transition: color 0.15s ease;
+}
+
+.app-bottom-nav__icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 1.75rem;
+}
+
+.app-bottom-nav__item--active {
+  color: rgb(var(--rgb-brand-solid));
+}
+
+.app-bottom-nav__item--active .app-bottom-nav__icon-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 999px;
+  background: rgb(var(--rgb-brand-50));
+}
+
+.app-bottom-nav__item--active .material-icons {
+  color: rgb(var(--rgb-brand-solid));
+}
+
+.app-bottom-nav__badge {
+  position: absolute;
+  top: -0.2rem;
+  inset-inline-start: 0.95rem;
+  z-index: 2;
+  display: inline-flex;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: rgb(var(--rgb-brand-solid));
+  padding: 0 0.2rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+}

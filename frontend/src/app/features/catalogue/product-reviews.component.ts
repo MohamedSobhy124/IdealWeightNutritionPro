@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, Input, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UI, UiKey } from '../../core/i18n/ui-text';
@@ -8,11 +8,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { ReviewService } from '../../core/services/review.service';
 
-import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiReviewCardComponent, UiSkeletonComponent } from '../../shared/ui';
+import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiModalComponent, UiReviewCardComponent, UiSkeletonComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, DecimalPipe, UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiReviewCardComponent, UiSkeletonComponent],
+  imports: [ReactiveFormsModule, RouterLink, DecimalPipe, NgTemplateOutlet, UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiModalComponent, UiReviewCardComponent, UiSkeletonComponent],
   selector: 'app-product-reviews',
   templateUrl: './product-reviews.component.html',
   styleUrl: './product-reviews.component.css',
@@ -32,6 +33,7 @@ export class ProductReviewsComponent implements OnInit {
   readonly summary = signal<ProductReviewSummary | null>(null);
   readonly message = signal<string | null>(null);
   readonly isError = signal(false);
+  readonly sheetOpen = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     rating: [5, [Validators.required, Validators.min(1), Validators.max(5)]],

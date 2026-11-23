@@ -1,11 +1,11 @@
 @if (sale(); as s) {
-  <aside class="border-b border-brand-500/30 bg-gradient-to-r from-brand-700 to-brand-600 text-white" role="region" [attr.aria-label]="t('flashSales')">
+  <aside class="flash-sale-banner" role="region" [attr.aria-label]="t('flashSales')">
     <div class="container flex min-h-9 items-center gap-2 py-1.5 text-xs sm:gap-3 sm:text-sm">
-      <span class="material-icons shrink-0 !text-[18px]">bolt</span>
+      <span class="flash-sale-banner__bolt material-icons shrink-0 !text-[18px]" aria-hidden="true">bolt</span>
       <span class="truncate font-semibold">{{ saleName(s) }}</span>
-      <span class="hidden shrink-0 text-white/80 sm:inline">{{ t('saleEndsIn') }}</span>
-      <app-flash-sale-countdown class="shrink-0" [endDate]="s.endDate" />
-      <a [routerLink]="['/flash-sales', s.id]" class="ms-auto shrink-0 font-semibold underline-offset-2 hover:underline">{{ t('shopSale') }}</a>
+      <span class="flash-sale-banner__muted hidden shrink-0 sm:inline">{{ t('saleEndsIn') }}</span>
+      <app-flash-sale-countdown class="shrink-0" [endDate]="s.endDate" tone="inverse" [live]="true" />
+      <a [routerLink]="['/flash-sales', s.id]" class="flash-sale-banner__link ms-auto shrink-0 font-semibold">{{ t('shopSale') }}</a>
     </div>
   </aside>
 } @else {

@@ -1,0 +1,24 @@
+/* Citrus accents only for promo / low-stock attention — no lifestyle gradients. */
+
+.admin-attention--citrus {
+  border-radius: 0.75rem;
+  box-shadow: inset 3px 0 0 rgb(var(--rgb-citrus));
+}
+
+:host-context([dir='rtl']) .admin-attention--citrus {
+  box-shadow: inset -3px 0 0 rgb(var(--rgb-citrus));
+}
+
+.admin-quick-action__icon {
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-700));
+}
+
+.admin-quick-action__icon--promo {
+  background: rgb(var(--rgb-citrus-soft));
+  color: rgb(var(--rgb-citrus-fg));
+}
+
+.admin-quick-action--promo {
+  box-shadow: inset 0 0 0 1px rgb(var(--rgb-citrus) / 0.18);
+}

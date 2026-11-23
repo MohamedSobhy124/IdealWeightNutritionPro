@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { ReturnListItem } from '../../core/models/return.models';
 import { LocaleService } from '../../core/services/locale.service';
 import { ReturnService } from '../../core/services/return.service';
+import { statusLabel } from '../../core/utils/status-label';
 import {
   UiBadgeComponent,
   UiEmptyStateComponent,
@@ -15,6 +16,7 @@ import {
 } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -38,6 +40,10 @@ export class MyReturnsComponent implements OnInit {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  labelStatus(status: string | null | undefined): string {
+    return statusLabel(status, (key) => this.t(key));
   }
 
   ngOnInit(): void {

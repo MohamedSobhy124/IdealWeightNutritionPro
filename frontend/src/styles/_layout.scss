@@ -120,7 +120,7 @@ table:not(.mat-mdc-table) {
 }
 
 table:not(.mat-mdc-table) thead {
-  background: var(--ink-50, #f8fafc);
+  background: var(--ink-50);
 }
 
 table:not(.mat-mdc-table) th {
@@ -130,19 +130,19 @@ table:not(.mat-mdc-table) th {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ink-500, #64748b);
+  color: var(--ink-500);
   border-bottom: 1px solid var(--color-border);
 }
 
 table:not(.mat-mdc-table) td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--ink-100, #f1f5f9);
-  color: var(--ink-700, #334155);
+  border-bottom: 1px solid var(--ink-100);
+  color: var(--ink-700);
   vertical-align: middle;
 }
 
 table:not(.mat-mdc-table) tbody tr:hover {
-  background: rgb(248 250 252 / 0.8);
+  background: rgb(var(--rgb-ink-50) / 0.9);
 }
 
 table:not(.mat-mdc-table) tr.deleted {
@@ -156,8 +156,8 @@ table:not(.mat-mdc-table) tr.deleted {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  background: var(--ink-100, #f1f5f9);
-  color: var(--ink-700, #334155);
+  background: var(--ink-100);
+  color: var(--ink-700);
 }
 
 .kpi-grid {
@@ -198,7 +198,7 @@ table:not(.mat-mdc-table) tr.deleted {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--ink-500, #64748b);
+  color: var(--ink-500);
 }
 
 .kpi-value {
@@ -213,29 +213,22 @@ table:not(.mat-mdc-table) tr.deleted {
   display: block;
   margin-top: 0.25rem;
   font-size: 0.75rem;
-  color: var(--ink-400, #94a3b8);
+  color: var(--ink-400);
 }
 
-/* Product grids (legacy markup) */
+/* Product grids. Two columns on a phone, up to five on a wide screen. */
 .products,
 .product-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
 }
 
-@media (min-width: 480px) {
-  .products,
-  .product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .products,
   .product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 0.75rem;
   }
 }
 
@@ -243,11 +236,99 @@ table:not(.mat-mdc-table) tr.deleted {
   .products,
   .product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .products,
+  .product-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Shop keeps the filter column, so it reaches five columns a step later. */
+.product-grid--sidebar {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .product-grid--sidebar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .product-grid--sidebar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .product-grid--sidebar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Unlayered so it wins over the table cell utilities. */
+.admin-density-compact .ui-table-pad {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+/* Complex admin forms: two columns from 1440px, save actions stay in reach. */
+.admin-form {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.admin-form-span,
+.admin-form-bar {
+  grid-column: 1 / -1;
+}
+
+.admin-form-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-inline: -1rem;
+  border-top: 1px solid var(--border);
+  background: rgb(var(--rgb-surface) / 0.94);
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(8px);
+}
+
+@media (min-width: 640px) {
+  .admin-form-bar {
+    margin-inline: -1.5rem;
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .admin-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .ui-btn-icon,
+  .ui-btn-sm,
+  .ui-segmented__option {
+    min-height: 2.75rem;
+  }
+
+  .ui-btn-icon {
+    min-width: 2.75rem;
   }
 }

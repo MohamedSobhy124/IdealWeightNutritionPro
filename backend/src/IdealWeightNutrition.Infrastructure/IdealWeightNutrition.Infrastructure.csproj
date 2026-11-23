@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\IdealWeightNutrition.Utility\IdealWeightNutrition.Utility.csproj" />
+    <ProjectReference Include="..\IdealWeightNutrition.Utility\IdealWeightNutrition.Utility.csproj" />
     <ProjectReference Include="..\IdealWeightNutrition.Application\IdealWeightNutrition.Application.csproj" />
     <ProjectReference Include="..\IdealWeightNutrition.Domain\IdealWeightNutrition.Domain.csproj" />
     <ProjectReference Include="..\IdealWeightNutrition.Contracts\IdealWeightNutrition.Contracts.csproj" />

@@ -1,3 +1,15 @@
 :host {
   display: block;
 }
+
+:host ::ng-deep .ui-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.flash-sale-countdown-panel {
+  background: var(--citrus-soft);
+  border-color: rgb(var(--rgb-citrus) / 0.25);
+  color: var(--citrus-fg);
+}

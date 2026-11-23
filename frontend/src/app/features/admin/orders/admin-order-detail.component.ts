@@ -1,13 +1,16 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UI, UiKey } from '../../../core/i18n/ui-text';
 import { AdminOrderAuditLog, AdminOrderDetail } from '../../../core/models/admin-order.models';
 import { AdminOrderService } from '../../../core/services/admin-order.service';
 import { LocaleService } from '../../../core/services/locale.service';
 import { ReturnService } from '../../../core/services/return.service';
+import { buildOrderTimeline } from '../../../core/utils/order-timeline';
+import { statusLabel } from '../../../core/utils/status-label';
 import {
   UiBadgeComponent,
   UiBadgeVariant,
@@ -21,6 +24,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     DatePipe,
@@ -59,6 +63,13 @@ export class AdminOrderDetailComponent implements OnInit {
   forceReason = '';
   readonly lineEdits = signal<Record<number, { quantity: number; unitPrice: number }>>({});
 
+  readonly orderTimeline = computed(() => {
+    this.locale.locale();
+    const current = this.order();
+    if (!current) return [];
+    return buildOrderTimeline(current, (key: UiKey) => this.locale.pick(UI[key].en, UI[key].ar));
+  });
+
   readonly auditTimelineItems = computed<UiTimelineItem[]>(() =>
     this.auditLogs().map((entry) => {
       const details: string[] = [];
@@ -70,12 +81,12 @@ export class AdminOrderDetailComponent implements OnInit {
       }
       if (entry.oldOrderStatus || entry.newOrderStatus) {
         details.push(
-          `${this.t('auditStatusChange')}: ${entry.oldOrderStatus ?? '—'} → ${entry.newOrderStatus ?? '—'}`
+          `${this.t('auditStatusChange')}: ${this.labelStatus(entry.oldOrderStatus) || '—'} → ${this.labelStatus(entry.newOrderStatus) || '—'}`
         );
       }
       if (entry.oldPaymentStatus || entry.newPaymentStatus) {
         details.push(
-          `${this.t('auditPaymentChange')}: ${entry.oldPaymentStatus ?? '—'} → ${entry.newPaymentStatus ?? '—'}`
+          `${this.t('auditPaymentChange')}: ${this.labelStatus(entry.oldPaymentStatus) || '—'} → ${this.labelStatus(entry.newPaymentStatus) || '—'}`
         );
       }
       return {
@@ -89,6 +100,10 @@ export class AdminOrderDetailComponent implements OnInit {
 
   t(key: AdminUiKey): string {
     return this.locale.pick(ADMIN_UI[key].en, ADMIN_UI[key].ar);
+  }
+
+  labelStatus(status: string | null | undefined): string {
+    return statusLabel(status, (key: UiKey) => this.locale.pick(UI[key].en, UI[key].ar));
   }
 
   statusVariant(status: string): UiBadgeVariant {

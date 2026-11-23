@@ -1,3 +1,8 @@
+/** Theme-aware colour backed by the RGB channel tokens in `src/styles/_tokens.scss`. */
+const token = (name) => `rgb(var(--rgb-${name}) / <alpha-value>)`;
+const scale = (name) =>
+  Object.fromEntries([50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((s) => [s, token(`${name}-${s}`)]));
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{html,ts}'],
@@ -24,67 +29,70 @@ module.exports = {
         '2xl': '1440px',
       },
     },
+    screens: {
+      xs: '376px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+      '3xl': '1920px',
+    },
     extend: {
       colors: {
-        // Brand accent: emerald (health / nutrition), tuned for a premium feel.
-        brand: {
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#10b981',
-          600: '#059669',
-          700: '#047857',
-          800: '#065f46',
-          900: '#064e3b',
-          DEFAULT: '#059669',
+        // Forest brand (trust / buy actions).
+        brand: { ...scale('brand'), DEFAULT: token('brand-700') },
+        // Neutral ink scale; inverts in dark mode.
+        ink: scale('ink'),
+        lime: {
+          DEFAULT: token('lime'),
+          soft: token('lime-soft'),
+          deep: token('lime-deep'),
+          fg: token('lime-fg'),
         },
-        // Neutral surface/ink scale (slate) used across surfaces, borders and text.
-        ink: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
+        citrus: {
+          DEFAULT: token('citrus'),
+          soft: token('citrus-soft'),
+          fg: token('citrus-fg'),
         },
-        success: { DEFAULT: '#059669', soft: '#ecfdf5', fg: '#047857' },
-        warning: { DEFAULT: '#d97706', soft: '#fffbeb', fg: '#b45309' },
-        danger: { DEFAULT: '#dc2626', soft: '#fef2f2', fg: '#b91c1c' },
-        info: { DEFAULT: '#2563eb', soft: '#eff6ff', fg: '#1d4ed8' },
+        stage: token('stage'),
+        success: { DEFAULT: token('success'), soft: token('success-soft'), fg: token('success-fg') },
+        warning: { DEFAULT: token('warning'), soft: token('warning-soft'), fg: token('warning-fg') },
+        danger: { DEFAULT: token('danger'), soft: token('danger-soft'), fg: token('danger-fg') },
+        info: { DEFAULT: token('info'), soft: token('info-soft'), fg: token('info-fg') },
+        surface: {
+          DEFAULT: token('surface'),
+          muted: token('surface-muted'),
+          raised: token('surface-raised'),
+        },
+        // Modal backdrops and image overlays.
+        scrim: token('scrim'),
+      },
+      zIndex: {
+        header: '30',
+        drawer: '50',
+        modal: '100',
+        toast: '110',
       },
       fontFamily: {
-        sans: [
-          'Inter',
-          'system-ui',
-          '-apple-system',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica',
-          'Arial',
-          'sans-serif',
-        ],
+        sans: ['Manrope', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['Outfit', 'Manrope', 'system-ui', 'sans-serif'],
         arabic: ['"IBM Plex Sans Arabic"', 'Tajawal', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: '0.625rem',
-        xl: '0.875rem',
-        '2xl': '1.25rem',
-        '3xl': '1.75rem',
+        xl: '1rem',
+        '2xl': '1rem',
+        '3xl': '1.5rem',
       },
       boxShadow: {
-        xs: '0 1px 2px 0 rgb(15 23 42 / 0.04)',
-        sm: '0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06)',
-        card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.06)',
+        xs: '0 1px 2px 0 rgb(10 28 22 / 0.05)',
+        sm: '0 1px 3px 0 rgb(10 28 22 / 0.08), 0 1px 2px -1px rgb(10 28 22 / 0.06)',
+        card: '0 1px 2px 0 rgb(10 28 22 / 0.05), 0 10px 24px -8px rgb(10 28 22 / 0.08)',
         elevated:
-          '0 4px 6px -2px rgb(15 23 42 / 0.06), 0 12px 28px -8px rgb(15 23 42 / 0.12)',
-        overlay: '0 24px 48px -12px rgb(15 23 42 / 0.25)',
-        focus: '0 0 0 3px rgb(5 150 105 / 0.25)',
+          '0 8px 16px -8px rgb(10 28 22 / 0.08), 0 18px 40px -14px rgb(10 28 22 / 0.14)',
+        overlay: '0 24px 48px -12px rgb(10 28 22 / 0.28)',
+        focus: '0 0 0 3px rgb(11 106 86 / 0.35)',
       },
       keyframes: {
         'fade-in': {

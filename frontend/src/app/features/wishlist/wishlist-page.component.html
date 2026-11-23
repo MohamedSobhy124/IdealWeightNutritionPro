@@ -21,9 +21,9 @@
     </ui-empty-state>
   } @else {
     @if (message()) {
-      <p class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg" role="status" aria-live="polite">
+      <p class="wishlist-toast rounded-xl px-4 py-3 text-sm" role="status" aria-live="polite">
         {{ message() }}
-        <a routerLink="/cart" class="ms-2 font-medium underline">{{ t('viewCart') }}</a>
+        <a routerLink="/cart" class="ms-2 font-medium text-brand-700 underline">{{ t('viewCart') }}</a>
       </p>
     }
 

@@ -1,5 +1,5 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
@@ -8,12 +8,14 @@ import { LocaleService } from '../../core/services/locale.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { ComboOfferDetail, ComboOfferLineItem } from '../../core/models/combo-offer.models';
+import { FlashSaleCountdownComponent } from './flash-sale-countdown.component';
 
 import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiSkeletonComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, DatePipe, DecimalPipe, IwnCurrencyPipe, UiSkeletonComponent, UiBadgeComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiCardComponent],
+  imports: [RouterLink, DatePipe, DecimalPipe, IwnCurrencyPipe, FlashSaleCountdownComponent, UiSkeletonComponent, UiBadgeComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiCardComponent],
   templateUrl: './combo-offer-detail.component.html',
   styleUrl: './combo-offer-detail.component.css',
 })
@@ -23,6 +25,7 @@ export class ComboOfferDetailComponent implements OnInit {
   private readonly cart = inject(CartService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly combo = signal<ComboOfferDetail | null>(null);
   readonly loading = signal(true);
@@ -49,6 +52,7 @@ export class ComboOfferDetailComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+    if (!isPlatformBrowser(this.platformId)) return;
 
     this.combosApi.getActive(id).subscribe({
       next: (combo) => {

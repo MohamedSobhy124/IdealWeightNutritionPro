@@ -1,7 +1,7 @@
-<section class="checkout-shell ui-fade-in space-y-6">
+<section class="checkout-shell ui-fade-in space-y-6 pb-20 lg:pb-0">
   @if (loading()) {
     <div class="grid gap-6 pb-28 lg:grid-cols-2">
-      <ui-skeleton height="20rem" class="rounded-2xl" />
+      <ui-skeleton height="20rem" class="rounded-2xl bg-stage" />
       <div class="space-y-4">
         <ui-skeleton height="2rem" width="70%" />
         <ui-skeleton height="1rem" />
@@ -20,7 +20,7 @@
       <div class="grid gap-6 pb-6 lg:grid-cols-2">
         <div class="ui-card ui-hover-lift group overflow-hidden">
           @if (c.imageUrl) {
-            <div class="aspect-square overflow-hidden bg-ink-100 sm:aspect-auto sm:min-h-[320px]">
+            <div class="aspect-square overflow-hidden bg-stage sm:aspect-auto sm:min-h-[320px]">
               <img
                 [src]="catalogue.resolveImageUrl(c.imageUrl)"
                 [alt]="comboName(c)"
@@ -28,7 +28,7 @@
               />
             </div>
           } @else {
-            <div class="flex aspect-square items-center justify-center bg-ink-100 sm:aspect-auto sm:min-h-[320px]">
+            <div class="flex aspect-square items-center justify-center bg-stage sm:aspect-auto sm:min-h-[320px]">
               <span class="material-icons text-5xl text-ink-300">inventory_2</span>
             </div>
           }
@@ -39,15 +39,20 @@
             <p class="text-sm leading-relaxed text-ink-600 sm:text-base">{{ c.description }}</p>
           }
 
-          <div class="checkout-summary-total flex flex-wrap items-center justify-between gap-3">
+          <div class="combo-price-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-3">
             <div>
-              <p class="text-xs text-white/70 line-through tabular-nums">{{ c.originalPrice | iwnCurrency }}</p>
-              <p class="text-xl font-bold tabular-nums">{{ c.comboPrice | iwnCurrency }}</p>
+              <p class="text-xs text-ink-600 line-through tabular-nums">{{ c.originalPrice | iwnCurrency }}</p>
+              <p class="text-xl font-bold tabular-nums text-citrus">{{ c.comboPrice | iwnCurrency }}</p>
             </div>
-            <ui-badge variant="success">−{{ c.savingsPercent | number: '1.0-0' }}%</ui-badge>
+            <ui-badge variant="citrus">−{{ c.savingsPercent | number: '1.0-0' }}%</ui-badge>
           </div>
 
-          <p class="text-sm text-ink-500">{{ t('endsOn') }} {{ c.endDate | date: 'mediumDate' }}</p>
+          <div class="flex flex-wrap items-center gap-2 rounded-xl border border-citrus/20 bg-citrus-soft px-4 py-3 text-sm text-citrus-fg">
+            {{ t('saleEndsIn') }}
+            <app-flash-sale-countdown [endDate]="c.endDate" [live]="true" />
+            <span class="text-citrus/40">·</span>
+            {{ c.endDate | date: 'mediumDate' }}
+          </div>
 
           <ui-badge [variant]="c.inStock ? 'success' : 'danger'" [dot]="true">
             @if (c.inStock) {
@@ -79,8 +84,8 @@
         </div>
         <ul class="divide-y divide-ink-200">
           @for (item of c.items; track item.productId + '-' + (item.productVariantId ?? 0)) {
-            <li class="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6" [class.text-ink-400]="!item.inStock">
-              <a [routerLink]="['/product', item.slug]" class="font-medium text-ink-900 hover:text-brand-700" [class.!text-ink-400]="!item.inStock">
+            <li class="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6" [class.text-ink-600]="!item.inStock">
+              <a [routerLink]="['/product', item.slug]" class="font-medium text-ink-900 hover:text-brand-700" [class.!text-ink-600]="!item.inStock">
                 {{ itemTitle(item) }}
               </a>
               <span class="text-sm text-ink-500">× {{ item.quantity }}</span>
@@ -95,7 +100,7 @@
       <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset lg:hidden">
         <div class="checkout-mobile-bar__meta">
           <p class="text-xs text-ink-500">{{ t('total') }}</p>
-          <p class="text-lg font-bold tabular-nums text-ink-900">{{ c.comboPrice | iwnCurrency }}</p>
+          <p class="text-lg font-bold tabular-nums text-citrus">{{ c.comboPrice | iwnCurrency }}</p>
         </div>
         <button
           type="button"

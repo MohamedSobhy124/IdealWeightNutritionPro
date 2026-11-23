@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 import { CatalogueService } from '../../core/services/catalogue.service';
 
@@ -9,6 +10,8 @@ import { ServiceSubscriptionService } from '../../core/services/service-subscrip
 import { UI, UiKey } from '../../core/i18n/ui-text';
 
 import { ServiceSubscriptionSummary } from '../../core/models/service.models';
+
+import { serviceTypeLabel } from '../../core/utils/status-label';
 
 import {
 
@@ -26,6 +29,8 @@ import {
 
 @Component({
 
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
   standalone: true,
 
   imports: [UiPageHeaderComponent, UiServiceCardComponent, UiSkeletonComponent, UiEmptyStateComponent],
@@ -37,6 +42,7 @@ import {
 })
 
 export class ServiceListComponent implements OnInit {
+  private readonly platformId = inject(PLATFORM_ID);
 
   private readonly servicesApi = inject(ServiceSubscriptionService);
 
@@ -78,7 +84,16 @@ export class ServiceListComponent implements OnInit {
 
 
 
+  typeLabel(type: string | null | undefined): string {
+
+    return serviceTypeLabel(type, (key) => this.t(key));
+
+  }
+
+
+
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
 
     this.servicesApi.listServices().subscribe({
 

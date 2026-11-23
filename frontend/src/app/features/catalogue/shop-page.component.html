@@ -8,7 +8,7 @@
     <button
       type="button"
       header-actions
-      class="shop-mobile-filter-btn ui-btn-secondary min-h-10 shrink-0 lg:hidden"
+      class="shop-mobile-filter-btn shop-filter-btn min-h-11 shrink-0 lg:hidden"
       (click)="mobileFiltersOpen.set(true)"
       [attr.aria-expanded]="mobileFiltersOpen()"
       aria-controls="shop-filters-drawer"
@@ -20,40 +20,33 @@
 
   <div class="shop-layout flex flex-col gap-6 lg:grid lg:grid-cols-[280px_1fr] lg:gap-7">
     <aside class="ui-sticky-filters hidden lg:block">
-      <form class="filters space-y-3" [formGroup]="filters" (ngSubmit)="applyFilters()">
-        <h2 class="text-sm font-semibold text-ink-800">{{ t('filtersTitle') }}</h2>
+      <form class="filters space-y-3.5" [formGroup]="filters" (ngSubmit)="applyFilters()">
+        <h2 class="text-sm font-semibold tracking-wide text-ink-800">{{ t('filtersTitle') }}</h2>
         <input class="ui-input" type="search" [placeholder]="t('searchProducts')" formControlName="search" />
-        <select class="ui-select" formControlName="categoryId">
-          <option value="">{{ t('allCategories') }}</option>
-          @for (c of categories(); track c.id) {
-            <option [value]="c.id">{{ categoryName(c) }}</option>
-          }
-        </select>
-        <select class="ui-select" formControlName="brandId">
-          <option value="">{{ t('allBrands') }}</option>
-          @for (b of brands(); track b.id) {
-            <option [value]="b.id">{{ brandName(b) }}</option>
-          }
-        </select>
-        <select class="ui-select" formControlName="sortBy">
-          <option value="">{{ t('sortFeatured') }}</option>
-          <option value="trending">{{ t('bestSellers') }}</option>
-          <option value="new">{{ t('newArrivals') }}</option>
-          <option value="price_low">{{ t('sortPriceLow') }}</option>
-          <option value="price_high">{{ t('sortPriceHigh') }}</option>
-          <option value="newest">{{ t('sortNewest') }}</option>
-          <option value="name">{{ t('sortName') }}</option>
-        </select>
-        <button class="ui-btn-primary w-full" type="submit">{{ t('apply') }}</button>
+        <ui-sheet-select formControlName="categoryId" [label]="t('allCategories')" [placeholder]="t('allCategories')" [closeLabel]="t('closeDialog')" [options]="categoryOptions()" />
+        <ui-sheet-select formControlName="brandId" [label]="t('allBrands')" [placeholder]="t('allBrands')" [closeLabel]="t('closeDialog')" [options]="brandOptions()" />
+        <ui-sheet-select formControlName="sortBy" [label]="t('sortFeatured')" [placeholder]="t('sortFeatured')" [closeLabel]="t('closeDialog')" [options]="sortOptions()" />
+        <div class="filters__actions flex w-full flex-col gap-2">
+          <button class="ui-btn-primary w-full" type="submit">{{ t('apply') }}</button>
+          <button class="ui-btn-secondary w-full" type="button" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+        </div>
       </form>
     </aside>
 
     <div class="space-y-4 sm:space-y-5">
+      <div class="lg:hidden">
+        <ui-segmented
+          [ariaLabel]="t('sortFeatured')"
+          [options]="sortOptions()"
+          [value]="filters.controls.sortBy.value"
+          (valueChange)="setSort($event)"
+        />
+      </div>
       @if (loading()) {
         <div class="product-grid product-grid--sidebar shop-products-grid">
           @for (i of [1,2,3,4,5,6,7,8]; track i) {
             <div class="ui-card overflow-hidden">
-              <ui-skeleton height="0" class="block aspect-square" />
+              <ui-skeleton height="0" class="block aspect-square bg-stage" />
               <div class="space-y-2 p-2">
                 <ui-skeleton height="0.9rem" />
                 <ui-skeleton width="40%" height="0.9rem" />
@@ -70,20 +63,44 @@
           <button type="button" class="ui-btn-secondary" (click)="clearFilters()">{{ t('clearFilters') }}</button>
         </ui-empty-state>
       } @else {
-        <div class="shop-results-toolbar rounded-2xl border border-ink-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
-          <p class="text-sm text-ink-600">
-            <span class="font-semibold text-ink-900">{{ totalCount() }}</span>
-            {{ t('productsLabel') }}
-          </p>
-          <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+        <div class="shop-results-toolbar">
+          <div class="shop-results-toolbar__meta min-w-0 flex-1">
+            <p class="shop-results-toolbar__count">
+              <span class="shop-results-toolbar__count-num">{{ totalCount() }}</span>
+              {{ t('productsLabel') }}
+            </p>
+            @if (activeFilterChips().length > 0) {
+              <div class="shop-filter-chips" role="list">
+                @for (chip of activeFilterChips(); track chip.key) {
+                  <button
+                    type="button"
+                    class="shop-filter-chip"
+                    role="listitem"
+                    (click)="removeFilterChip(chip.key)"
+                    [attr.aria-label]="t('clearFilters') + ': ' + chip.label"
+                  >
+                    <span class="shop-filter-chip__label">{{ chip.label }}</span>
+                    <span class="material-icons !text-[14px]" aria-hidden="true">close</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          <div class="shop-results-toolbar__actions shrink-0">
+            @if (activeFilterChips().length > 0) {
+              <button type="button" class="ui-btn-ghost ui-btn-sm text-ink-600" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+            }
+          </div>
         </div>
         <div class="product-grid product-grid--sidebar shop-products-grid ui-stagger-children">
           @for (p of products(); track p.id) {
             @let pricing = cardPricing(p);
             <ui-product-card
               density="compact"
+              [alwaysShowActions]="true"
               [title]="productTitle(p)"
               [slug]="p.slug"
+              [brand]="p.brandName || null"
               [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
               [price]="pricing.price"
               [listPrice]="pricing.listPrice"
@@ -131,32 +148,15 @@
         <input class="ui-input" type="search" [placeholder]="t('searchProducts')" formControlName="search" name="search" autocomplete="off" />
       </ui-form-field>
       <ui-form-field [label]="t('allCategories')">
-        <select class="ui-select" formControlName="categoryId" name="categoryId">
-          <option value="">{{ t('allCategories') }}</option>
-          @for (c of categories(); track c.id) {
-            <option [value]="c.id">{{ categoryName(c) }}</option>
-          }
-        </select>
+        <ui-sheet-select formControlName="categoryId" [label]="t('allCategories')" [placeholder]="t('allCategories')" [closeLabel]="t('closeDialog')" [options]="categoryOptions()" />
       </ui-form-field>
       <ui-form-field [label]="t('allBrands')">
-        <select class="ui-select" formControlName="brandId" name="brandId">
-          <option value="">{{ t('allBrands') }}</option>
-          @for (b of brands(); track b.id) {
-            <option [value]="b.id">{{ brandName(b) }}</option>
-          }
-        </select>
+        <ui-sheet-select formControlName="brandId" [label]="t('allBrands')" [placeholder]="t('allBrands')" [closeLabel]="t('closeDialog')" [options]="brandOptions()" />
       </ui-form-field>
       <ui-form-field [label]="t('sortFeatured')">
-        <select class="ui-select" formControlName="sortBy" name="sortBy">
-          <option value="">{{ t('sortFeatured') }}</option>
-          <option value="trending">{{ t('bestSellers') }}</option>
-          <option value="new">{{ t('newArrivals') }}</option>
-          <option value="price_low">{{ t('sortPriceLow') }}</option>
-          <option value="price_high">{{ t('sortPriceHigh') }}</option>
-          <option value="newest">{{ t('sortNewest') }}</option>
-          <option value="name">{{ t('sortName') }}</option>
-        </select>
+        <ui-sheet-select formControlName="sortBy" [label]="t('sortFeatured')" [placeholder]="t('sortFeatured')" [closeLabel]="t('closeDialog')" [options]="sortOptions()" />
       </ui-form-field>
+      <button type="button" class="ui-btn-ghost min-h-11 w-full" (click)="clearMobileFilters()">{{ t('clearFilters') }}</button>
     </form>
   </ui-filter-drawer>
 
@@ -176,6 +176,7 @@
       [outOfStockLabel]="t('outOfStock')"
       [addToCartLabel]="t('addToCart')"
       [viewDetailsLabel]="t('viewDetails')"
+      [closeLabel]="t('closeDialog')"
       (closed)="closeQuickView()"
       (addToCart)="quickViewAdd()"
     />

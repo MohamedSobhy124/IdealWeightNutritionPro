@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guards';
+import { authGuard, staffEntryMatch } from './core/guards/auth.guards';
 import { UiKey } from './core/i18n/ui-text';
 import { LEGACY_REDIRECT_ROUTES } from './legacy/legacy-redirect.routes';
 export const routes: Routes = [
@@ -44,6 +44,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
+    canMatch: [staffEntryMatch],
     loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
   {

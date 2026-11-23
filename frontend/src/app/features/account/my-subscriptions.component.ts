@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { LocaleService } from '../../core/services/locale.service';
@@ -7,6 +7,7 @@ import { ServiceSubscriptionService } from '../../core/services/service-subscrip
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { ServicePurchaseSummary } from '../../core/models/service-purchase.models';
+import { serviceTypeLabel, statusLabel } from '../../core/utils/status-label';
 import {
   UiBadgeComponent,
   UiEmptyStateComponent,
@@ -16,6 +17,7 @@ import {
 } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -44,6 +46,14 @@ export class MySubscriptionsComponent implements OnInit {
 
   displayTitle(purchase: ServicePurchaseSummary): string {
     return this.locale.pick(purchase.serviceTitle, purchase.serviceTitleAr);
+  }
+
+  labelStatus(status: string | null | undefined): string {
+    return statusLabel(status, (key) => this.t(key));
+  }
+
+  typeLabel(type: string | null | undefined): string {
+    return serviceTypeLabel(type, (key) => this.t(key));
   }
 
   ngOnInit(): void {

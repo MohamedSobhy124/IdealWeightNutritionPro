@@ -6,7 +6,9 @@ export type UiBadgeVariant =
   | 'success'
   | 'warning'
   | 'danger'
-  | 'info';
+  | 'info'
+  | 'citrus'
+  | 'lime';
 
 @Component({
   selector: 'ui-badge',

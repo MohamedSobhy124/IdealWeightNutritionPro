@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { DecimalPipe, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, OnInit, PLATFORM_ID, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CatalogueService } from '../../core/services/catalogue.service';
@@ -12,11 +12,14 @@ import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
-import { Brand, ProductDetail, ProductOption, ProductVariant } from '../../core/models/catalogue.models';
+import { Brand, ProductDetail, ProductListItem, ProductOption, ProductVariant } from '../../core/models/catalogue.models';
+import { ProductReviewSummary } from '../../core/models/review.models';
+import { ReviewService } from '../../core/services/review.service';
 import { ProductReviewsComponent } from './product-reviews.component';
-import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiModalComponent, UiPageHeaderComponent, UiSkeletonComponent, type UiBreadcrumb } from '../../shared/ui';
+import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiModalComponent, UiPageHeaderComponent, UiProductCardComponent, UiSectionHeaderComponent, UiSkeletonComponent, type UiBreadcrumb } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -30,6 +33,8 @@ import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiModalCompon
     UiSkeletonComponent,
     UiPageHeaderComponent,
     UiEmptyStateComponent,
+    UiProductCardComponent,
+    UiSectionHeaderComponent,
   ],
   templateUrl: './product-detail.component.html',
   styleUrl: './product-detail.component.css',
@@ -45,6 +50,7 @@ export class ProductDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
+  private readonly reviews = inject(ReviewService);
 
   quantity = 1;
   readonly product = signal<ProductDetail | null>(null);
@@ -64,8 +70,14 @@ export class ProductDetailComponent implements OnInit {
   readonly selectedImage = signal<string | null>(null);
   readonly detailsExpanded = signal(true);
   readonly specificationExpanded = signal(false);
+  readonly suggestedUseExpanded = signal(false);
+  readonly healthNotesExpanded = signal(false);
   readonly deliveryExpanded = signal(false);
   readonly imageZoomOpen = signal(false);
+  readonly reviewSummary = signal<ProductReviewSummary | null>(null);
+  readonly relatedProducts = signal<ProductListItem[]>([]);
+  readonly relatedBusyId = signal<number | null>(null);
+  readonly relatedMessage = signal<string | null>(null);
 
   readonly selectedVariant = computed(() => this.resolveSelectedVariant());
   readonly displayPrice = computed(() => {
@@ -108,6 +120,16 @@ export class ProductDetailComponent implements OnInit {
     return uniqueImages;
   });
   readonly activeImage = computed(() => this.selectedImage() ?? this.displayImages()[0] ?? '');
+  private readonly gallery = viewChild<ElementRef<HTMLElement>>('gallery');
+  private readonly platformId = inject(PLATFORM_ID);
+  private syncingGallery = false;
+
+  /** A new image set (another product, or a variant photo) starts at the first slide. */
+  private readonly resetGallery = effect(() => {
+    const first = this.displayImages()[0];
+    if (!first) return;
+    untracked(() => queueMicrotask(() => this.scrollGalleryTo(first, 'auto')));
+  });
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
@@ -151,6 +173,22 @@ export class ProductDetailComponent implements OnInit {
     return spec || undefined;
   }
 
+  suggestedUse(p: ProductDetail): string | undefined {
+    const text = this.locale.pick(p.suggestedUse ?? '', p.suggestedUseAr ?? '');
+    return text || undefined;
+  }
+
+  healthNotes(p: ProductDetail): string | undefined {
+    const text = this.locale.pick(p.healthNotes ?? '', p.healthNotesAr ?? '');
+    return text || undefined;
+  }
+
+  /** Five star slots for the rating row; filled up to the rounded average. */
+  ratingStars(average: number): boolean[] {
+    const rounded = Math.round(average);
+    return Array.from({ length: 5 }, (_, i) => i < rounded);
+  }
+
   productWhatsAppUrl(p: ProductDetail): string | null {
     const settings = this.whatsappSettings();
     if (!settings?.enabled || !settings.phoneNumber) return null;
@@ -176,11 +214,27 @@ export class ProductDetailComponent implements OnInit {
         return;
       }
       this.loading.set(true);
+      this.error.set(null);
+      if (!isPlatformBrowser(this.platformId)) return;
       this.catalogue.getProductBySlug(slug).subscribe({
         next: (p) => {
           this.product.set(p);
           this.initializeVariantSelection(p);
           this.selectedImage.set(this.uniqueImageUrls(p.imageUrls)[0] ?? null);
+          this.reviewSummary.set(null);
+          this.relatedProducts.set([]);
+          this.relatedMessage.set(null);
+          this.reviews.getProductSummary(p.id).subscribe({
+            next: (summary) => this.reviewSummary.set(summary),
+            error: () => this.reviewSummary.set(null),
+          });
+          if (p.category) {
+            this.catalogue.listProducts({ categoryId: p.category.id, pageSize: 9 }).subscribe({
+              next: (result) =>
+                this.relatedProducts.set(result.items.filter((item) => item.id !== p.id).slice(0, 8)),
+              error: () => this.relatedProducts.set([]),
+            });
+          }
           if (p) {
             this.seo.applyPage({
               title: p.title,
@@ -215,6 +269,42 @@ export class ProductDetailComponent implements OnInit {
 
   chooseImage(url: string): void {
     this.selectedImage.set(url);
+    this.scrollGalleryTo(url);
+  }
+
+  /** Keeps the thumbnail highlight in step with a swipe. */
+  onGalleryScroll(event: Event): void {
+    if (this.syncingGallery) return;
+    const scroller = event.target as HTMLElement;
+    const slides = scroller.querySelectorAll<HTMLElement>('[data-gallery-index]');
+    if (!slides.length) return;
+    const center = scroller.getBoundingClientRect().left + scroller.clientWidth / 2;
+    let best = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    slides.forEach((slide, index) => {
+      const box = slide.getBoundingClientRect();
+      const distance = Math.abs(box.left + box.width / 2 - center);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = index;
+      }
+    });
+    const url = this.displayImages()[best];
+    if (url && url !== this.selectedImage()) this.selectedImage.set(url);
+  }
+
+  private scrollGalleryTo(url: string, behavior: ScrollBehavior = 'smooth'): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const scroller = this.gallery()?.nativeElement;
+    if (!scroller) return;
+    const index = this.displayImages().indexOf(url);
+    const slide = scroller.querySelectorAll<HTMLElement>('[data-gallery-index]')[index];
+    if (!slide) return;
+    this.syncingGallery = true;
+    slide.scrollIntoView({ behavior, block: 'nearest', inline: 'center' });
+    window.setTimeout(() => {
+      this.syncingGallery = false;
+    }, behavior === 'smooth' ? 450 : 0);
   }
 
   isOptionValueAvailable(optionId: number, valueId: number): boolean {
@@ -338,6 +428,48 @@ export class ProductDetailComponent implements OnInit {
           this.adding.set(false);
         },
       });
+  }
+
+  relatedQuickAdd(product: ProductListItem): void {
+    if (!product.inStock || this.relatedBusyId() !== null) return;
+    this.relatedBusyId.set(product.id);
+    this.relatedMessage.set(null);
+    this.cart
+      .addItem({
+        productId: product.id,
+        quantity: 1,
+        productVariantId: product.displayVariantId ?? undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.relatedMessage.set(this.t('addedToCart'));
+          this.relatedBusyId.set(null);
+        },
+        error: () => {
+          this.relatedMessage.set(this.t('addToCartFailed'));
+          this.relatedBusyId.set(null);
+        },
+      });
+  }
+
+  relatedToggleWishlist(product: ProductListItem): void {
+    if (!this.auth.isAuthenticated()) {
+      this.relatedMessage.set(this.t('loginForWishlist'));
+      return;
+    }
+    if (this.relatedBusyId() !== null) return;
+    this.relatedBusyId.set(product.id);
+    this.relatedMessage.set(null);
+    this.wishlist.toggle(product.id).subscribe({
+      next: (res) => {
+        this.relatedMessage.set(res.isInWishlist ? this.t('wishlistAdded') : this.t('wishlistRemoved'));
+        this.relatedBusyId.set(null);
+      },
+      error: () => {
+        this.relatedMessage.set(this.t('wishlistFailed'));
+        this.relatedBusyId.set(null);
+      },
+    });
   }
 
   openImageZoom(): void {

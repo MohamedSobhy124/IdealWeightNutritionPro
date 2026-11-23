@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
@@ -6,25 +6,27 @@ import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminCity, UpsertAdminCityRequest } from '../../../core/models/admin-delivery.models';
 import { AdminDeliveryService } from '../../../core/services/admin-delivery.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
-  UiCardComponent,
   UiCellDirective,
   UiDataTableComponent,
   UiFormFieldComponent,
+  UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     FormsModule,
     RouterLink,
     IwnCurrencyPipe,
     UiPageHeaderComponent,
-    UiCardComponent,
     UiFormFieldComponent,
+    UiModalComponent,
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
@@ -35,6 +37,7 @@ import {
 export class AdminCitiesComponent implements OnInit {
   private readonly deliveryApi = inject(AdminDeliveryService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminCity[]>([]);
   readonly loading = signal(true);
@@ -58,12 +61,44 @@ export class AdminCitiesComponent implements OnInit {
 
   get cols(): UiTableColumn[] {
     return [
-      { key: 'city', header: this.t('city'), sortable: true },
-      { key: 'emirate', header: this.t('emirate'), hideOnMobile: true },
+      {
+        key: 'city',
+        header: this.t('city'),
+        sortable: true,
+        mobile: 'primary',
+        value: (row) => this.cityName(row as unknown as AdminCity),
+        searchText: (row) => {
+          const item = row as unknown as AdminCity;
+          return `${item.name} ${item.nameAr ?? ''}`;
+        },
+      },
+      {
+        key: 'emirate',
+        header: this.t('emirate'),
+        hideOnMobile: true,
+        value: (row) => {
+          const item = row as unknown as AdminCity;
+          return this.locale.pick(item.emirate, item.emirateAr ?? item.emirate);
+        },
+        searchText: (row) => {
+          const item = row as unknown as AdminCity;
+          return `${item.emirate} ${item.emirateAr ?? ''}`;
+        },
+      },
       { key: 'deliveryCharge', header: this.t('deliveryCharge'), align: 'end' },
-      { key: 'remoteAreas', header: this.t('remoteAreas'), hideOnMobile: true },
-      { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      {
+        key: 'remoteAreas',
+        header: this.t('remoteAreas'),
+        hideOnMobile: true,
+        value: (row) => (row as unknown as AdminCity).remoteAreaCount ?? 0,
+      },
+      {
+        key: 'status',
+        header: this.t('productStatus'),
+        mobile: 'secondary',
+        value: (row) => ((row as unknown as AdminCity).isActive ? this.t('active') : this.t('inactive')),
+      },
+      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
     ];
   }
 
@@ -161,8 +196,8 @@ export class AdminCitiesComponent implements OnInit {
     });
   }
 
-  remove(item: AdminCity): void {
-    if (!confirm(this.t('confirmDeleteCity'))) return;
+  async remove(item: AdminCity): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteCity'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.deliveryApi.deleteCity(item.id).subscribe({

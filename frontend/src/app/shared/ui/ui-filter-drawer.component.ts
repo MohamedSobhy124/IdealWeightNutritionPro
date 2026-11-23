@@ -6,6 +6,37 @@ import { UiModalComponent } from './ui-modal.component';
   standalone: true,
   imports: [UiModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    .ui-filter-drawer__actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.55rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0.85rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom));
+    }
+
+    .ui-filter-drawer__apply {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 3rem;
+      padding: 0.55rem 1.05rem;
+      border-radius: var(--radius-full);
+      border: 1px solid rgb(var(--rgb-brand-700));
+      background: rgb(var(--rgb-brand-700));
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgb(var(--rgb-brand-700) / 0.24);
+    }
+
+    .ui-filter-drawer__apply:hover {
+      background: rgb(var(--rgb-brand-solid-hover));
+      color: #fff;
+    }
+  `,
   template: `
     @if (open()) {
       <ui-modal
@@ -13,13 +44,14 @@ import { UiModalComponent } from './ui-modal.component';
         [heading]="heading()"
         [closeLabel]="closeLabel()"
         [panelId]="panelId()"
+        [clearBottomNav]="true"
         size="md"
         (closed)="closed.emit()"
       >
         <ng-content />
-        <div class="mt-4 flex items-center justify-end gap-2 border-t border-ink-200 pt-3">
-          <button type="button" class="ui-btn-secondary min-h-11" (click)="closed.emit()">{{ cancelLabel() }}</button>
-          <button type="button" class="ui-btn-primary min-h-11" (click)="apply.emit()">{{ applyLabel() }}</button>
+        <div class="ui-filter-drawer__actions" modal-footer>
+          <button type="button" class="ui-btn-secondary min-h-12" (click)="closed.emit()">{{ cancelLabel() }}</button>
+          <button type="button" class="ui-filter-drawer__apply min-h-12" (click)="apply.emit()">{{ applyLabel() }}</button>
         </div>
       </ui-modal>
     }

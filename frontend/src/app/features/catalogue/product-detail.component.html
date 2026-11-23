@@ -1,10 +1,10 @@
 @if (loading()) {
   <div class="ui-fade-in grid gap-6 pb-24 sm:pb-6 lg:grid-cols-2">
     <div class="space-y-3">
-      <ui-skeleton height="20rem" class="rounded-2xl sm:h-[28rem]" />
+      <ui-skeleton height="20rem" class="rounded-3xl bg-stage sm:h-[28rem]" />
       <div class="flex gap-2">
         @for (i of [1, 2, 3, 4]; track i) {
-          <ui-skeleton height="5rem" width="5rem" class="rounded-xl" />
+          <ui-skeleton height="5rem" width="5rem" class="rounded-xl bg-stage" />
         }
       </div>
     </div>
@@ -25,44 +25,76 @@
 } @else {
   @if (product(); as p) {
     <article class="ui-fade-in product-detail-shell space-y-6 pb-28 sm:pb-6">
-      <ui-page-header [title]="productTitle(p)" [breadcrumbs]="productBreadcrumbs(p)" />
+      <ui-page-header [title]="productTitle(p)" [breadcrumbs]="productBreadcrumbs(p)" titleTag="p" />
 
       <div class="product-detail-layout grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div class="space-y-3">
-          <div class="product-media-frame group relative overflow-hidden rounded-2xl border border-ink-200 bg-gradient-to-b from-ink-100 to-white">
-            <img [src]="catalogue.resolveImageUrl(activeImage())" [alt]="productTitle(p)" class="h-full w-full object-cover transition-opacity duration-300" />
+          <div class="product-media-frame group relative overflow-hidden border border-ink-200 bg-stage">
+            <div #gallery class="product-gallery" (scroll)="onGalleryScroll($event)">
+              @for (img of displayImages(); track img; let i = $index) {
+                <div class="product-gallery__slide" [attr.data-gallery-index]="i">
+                  <img [src]="catalogue.resolveImageUrl(img)" [alt]="productTitle(p)" class="product-gallery__img h-full w-full object-contain" />
+                </div>
+              }
+            </div>
             <button
               type="button"
-              class="ui-btn-icon absolute end-3 top-3 bg-white/90 sm:inline-flex"
+              class="ui-btn-icon absolute end-4 top-4 z-10 bg-white/90 shadow-sm sm:inline-flex"
               (click)="openImageZoom()"
               [attr.aria-label]="t('zoomImage')"
             >
               <span class="material-icons">zoom_in</span>
             </button>
+            @if (displayImages().length > 1) {
+              <div class="product-thumbs no-scrollbar">
+                @for (img of displayImages(); track img) {
+                  <button
+                    type="button"
+                    class="product-thumb"
+                    [class.product-thumb--active]="activeImage() === img"
+                    [attr.aria-current]="activeImage() === img ? 'true' : null"
+                    (click)="chooseImage(img)"
+                  >
+                    <img [src]="catalogue.resolveImageUrl(img)" [alt]="productTitle(p)" class="product-thumb__img" />
+                  </button>
+                }
+              </div>
+            }
           </div>
-          @if (displayImages().length > 1) {
-            <div class="product-thumbs no-scrollbar flex snap-x gap-2 overflow-x-auto">
-              @for (img of displayImages(); track img) {
-                <button type="button" class="shrink-0 overflow-hidden rounded-xl border-2 bg-ink-100" [class.border-brand-600]="activeImage() === img" [class.border-transparent]="activeImage() !== img" (click)="chooseImage(img)">
-                  <img [src]="catalogue.resolveImageUrl(img)" [alt]="productTitle(p)" class="h-20 w-20 object-cover" />
-                </button>
-              }
-            </div>
-          }
         </div>
 
-        <ui-card class="product-buy-panel ui-card-pad block h-fit space-y-5">
-          @if (p.brand) {
-            <p class="text-sm font-medium text-brand-700">{{ brandName(p.brand) }}</p>
-          }
+        <ui-card class="product-buy-panel ui-card-pad block h-fit space-y-5 sm:space-y-6">
+          <header class="product-buy-header space-y-2.5">
+            @if (p.brand) {
+              <p class="product-buy-eyebrow">{{ brandName(p.brand) }}</p>
+            }
+            <h1 class="product-buy-title display-title">{{ productTitle(p) }}</h1>
+            @if (reviewSummary(); as summary) {
+              @if (summary.reviewCount > 0) {
+                <a href="#product-reviews" class="product-rating-row inline-flex items-center gap-1.5" [attr.aria-label]="summary.averageRating + ' / 5'">
+                  <span class="flex items-center" aria-hidden="true">
+                    @for (filled of ratingStars(summary.averageRating); track $index) {
+                      <span class="material-icons !text-[16px]" [class.text-warning-fg]="filled" [class.text-ink-300]="!filled">{{ filled ? 'star' : 'star_border' }}</span>
+                    }
+                  </span>
+                  <span class="text-sm font-semibold tabular-nums text-ink-800">{{ summary.averageRating | number: '1.1-1' }}</span>
+                  <span class="text-sm text-ink-600 tabular-nums">({{ summary.reviewCount }})</span>
+                </a>
+              }
+            }
+          </header>
 
-          <div class="product-price-box rounded-xl bg-ink-50 px-4 py-3 sm:px-4">
-            <div class="flex items-center gap-3">
-              <p class="text-2xl font-extrabold tracking-tight text-ink-900">{{ displayPrice() | iwnCurrency }}</p>
+          <div class="product-price-box px-4 py-3.5 sm:px-5 sm:py-4">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p
+                class="product-price-current tabular-nums"
+                [class.product-price-current--sale]="displayListPrice() > displayPrice()"
+                [class.text-ink-900]="displayListPrice() <= displayPrice()"
+              >{{ displayPrice() | iwnCurrency }}</p>
               @if (displayListPrice() > displayPrice()) {
-                <p class="text-base text-ink-400 line-through">{{ displayListPrice() | iwnCurrency }}</p>
-                <ui-badge variant="success">
-                  -{{ (((displayListPrice() - displayPrice()) / displayListPrice()) * 100) | number: '1.0-0' }}%
+                <p class="product-price-list text-ink-600 line-through">{{ displayListPrice() | iwnCurrency }}</p>
+                <ui-badge variant="citrus">
+                  <span dir="ltr">-{{ (((displayListPrice() - displayPrice()) / displayListPrice()) * 100) | number: '1.0-0' }}%</span>
                 </ui-badge>
               }
             </div>
@@ -79,15 +111,13 @@
             <div class="space-y-3">
               @for (option of p.options; track option.id) {
                 <div>
-                  <p class="mb-1 text-sm font-semibold text-ink-700">{{ optionName(option) }}</p>
+                  <p class="mb-1.5 text-sm font-semibold text-ink-700">{{ optionName(option) }}</p>
                   <div class="flex flex-wrap gap-2">
                     @for (value of option.values; track value.id) {
                       <button
                         type="button"
-                        class="ui-btn-secondary ui-btn-sm"
-                        [class.!bg-brand-600]="selectedOptionValues()[option.id] === value.id"
-                        [class.!text-white]="selectedOptionValues()[option.id] === value.id"
-                        [class.!border-brand-600]="selectedOptionValues()[option.id] === value.id"
+                        class="product-option-chip ui-btn-sm"
+                        [class.product-option-chip--selected]="selectedOptionValues()[option.id] === value.id"
                         [disabled]="!isOptionValueAvailable(option.id, value.id)"
                         (click)="selectOptionValue(option.id, value.id)"
                       >
@@ -100,17 +130,21 @@
             </div>
           }
 
-          <div class="product-qty-row flex items-center justify-between gap-3">
-            <span class="text-sm font-medium text-ink-600">{{ t('quantity') }}</span>
-            <div class="product-qty-control flex items-center rounded-xl border border-ink-200 bg-white">
-              <button type="button" class="ui-btn-icon !h-9 !w-9" (click)="changeQuantity(-1)">−</button>
-              <input type="number" min="1" [max]="displayStockQuantity() || 99" [(ngModel)]="quantity" class="ui-input-ltr w-14 border-0 text-center text-sm focus:outline-none" />
-              <button type="button" class="ui-btn-icon !h-9 !w-9" (click)="changeQuantity(1)">+</button>
+          <div class="product-qty-row">
+            <span class="product-qty-label">{{ t('quantity') }}</span>
+            <div class="product-qty-control" dir="ltr">
+              <button type="button" class="product-qty-btn" (click)="changeQuantity(-1)" [disabled]="quantity <= 1" [attr.aria-label]="t('decreaseQuantity')">
+                <span class="material-icons" aria-hidden="true">remove</span>
+              </button>
+              <input type="number" min="1" [max]="displayStockQuantity() || 99" [(ngModel)]="quantity" class="product-qty-input ui-input-ltr" [attr.aria-label]="t('quantity')" />
+              <button type="button" class="product-qty-btn" (click)="changeQuantity(1)" [disabled]="quantity >= (displayStockQuantity() || 99)" [attr.aria-label]="t('increaseQuantity')">
+                <span class="material-icons" aria-hidden="true">add</span>
+              </button>
             </div>
           </div>
 
-          <div class="product-action-row hidden flex-wrap gap-2 sm:flex sm:gap-3">
-            <button type="button" class="product-action-primary ui-btn-primary" (click)="addToCart(p)" [disabled]="adding() || !displayInStock()">
+          <div class="product-action-row flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+            <button type="button" class="product-action-primary ui-btn-primary hidden sm:inline-flex" (click)="addToCart(p)" [disabled]="adding() || !displayInStock()">
               {{ adding() ? t('adding') : t('addToCart') }}
             </button>
             <button type="button" class="product-action-secondary ui-btn-secondary" (click)="buyNow(p)" [disabled]="adding() || !displayInStock()">
@@ -132,14 +166,14 @@
           }
         </ui-card>
 
-        <div class="space-y-4">
+        <div class="product-detail-aside space-y-4">
           @if (!displayInStock()) {
             <ui-card class="product-stock-card" [heading]="t('stockNotifyTitle')">
               <p class="mb-3 text-sm text-ink-500">{{ t('stockNotifyLead') }}</p>
               <div class="space-y-3">
                 <label class="ui-label">{{ t('email') }}<input class="ui-input mt-1" type="email" [ngModel]="stockNotifyEmail()" (ngModelChange)="stockNotifyEmail.set($event)" name="stockNotifyEmail" /></label>
                 <label class="ui-label">{{ t('phoneNumber') }}<input class="ui-input ui-input-ltr mt-1" type="tel" [ngModel]="stockNotifyPhone()" (ngModelChange)="stockNotifyPhone.set($event)" name="stockNotifyPhone" /></label>
-                <button type="button" class="ui-btn-primary w-full" (click)="subscribeStockNotify(p)" [disabled]="stockNotifyBusy()">
+                <button type="button" class="ui-btn-primary product-action-primary w-full" (click)="subscribeStockNotify(p)" [disabled]="stockNotifyBusy()">
                   {{ stockNotifyBusy() ? t('submitting') : t('stockNotifySubscribe') }}
                 </button>
                 @if (stockNotifyMessage()) {
@@ -157,58 +191,141 @@
       </div>
 
       <ui-card class="product-info-card" [padded]="false">
-        <button type="button" class="product-info-toggle flex w-full items-center justify-between border-b border-ink-200 px-4 py-3 text-start font-semibold text-ink-800" (click)="detailsExpanded.set(!detailsExpanded())">
-          {{ t('productDescription') }}
-          <span class="material-icons !text-[18px]">{{ detailsExpanded() ? 'expand_less' : 'expand_more' }}</span>
-        </button>
-        @if (detailsExpanded()) {
-          <div class="product-info-content px-4 py-3 text-sm text-ink-700" [innerHTML]="productDescription(p)"></div>
-        }
+        <div class="product-info-list">
+          <section class="product-info-item" [class.product-info-item--open]="detailsExpanded()">
+            <button type="button" class="product-info-toggle" (click)="detailsExpanded.set(!detailsExpanded())" [attr.aria-expanded]="detailsExpanded()">
+              <span class="product-info-icon" aria-hidden="true"><span class="material-icons">article</span></span>
+              <span class="product-info-label">{{ t('productDescription') }}</span>
+              <span class="product-info-chevron material-icons" aria-hidden="true">expand_more</span>
+            </button>
+            @if (detailsExpanded()) {
+              <div class="product-info-content" [innerHTML]="productDescription(p)"></div>
+            }
+          </section>
 
-        @if (productSpecification(p)) {
-          <button type="button" class="product-info-toggle flex w-full items-center justify-between border-t border-ink-200 px-4 py-3 text-start font-semibold text-ink-800" (click)="specificationExpanded.set(!specificationExpanded())">
-            {{ t('specification') }}
-            <span class="material-icons !text-[18px]">{{ specificationExpanded() ? 'expand_less' : 'expand_more' }}</span>
-          </button>
-          @if (specificationExpanded()) {
-            <div class="product-info-content px-4 py-3 text-sm text-ink-700" [innerHTML]="productSpecification(p)"></div>
+          @if (productSpecification(p)) {
+            <section class="product-info-item" [class.product-info-item--open]="specificationExpanded()">
+              <button type="button" class="product-info-toggle" (click)="specificationExpanded.set(!specificationExpanded())" [attr.aria-expanded]="specificationExpanded()">
+                <span class="product-info-icon" aria-hidden="true"><span class="material-icons">list_alt</span></span>
+                <span class="product-info-label">{{ t('specification') }}</span>
+                <span class="product-info-chevron material-icons" aria-hidden="true">expand_more</span>
+              </button>
+              @if (specificationExpanded()) {
+                <div class="product-info-content" [innerHTML]="productSpecification(p)"></div>
+              }
+            </section>
           }
-        }
 
-        <button type="button" class="product-info-toggle flex w-full items-center justify-between border-t border-ink-200 px-4 py-3 text-start font-semibold text-ink-800" (click)="deliveryExpanded.set(!deliveryExpanded())">
-          {{ t('deliveryReturnsTitle') }}
-          <span class="material-icons !text-[18px]">{{ deliveryExpanded() ? 'expand_less' : 'expand_more' }}</span>
-        </button>
-        @if (deliveryExpanded()) {
-          <div class="product-info-content space-y-3 px-4 py-3 text-sm text-ink-700">
-            <p>{{ t('deliveryReturnsLead') }}</p>
-            <div class="flex flex-wrap gap-3">
-              <span class="ui-badge-brand"><span class="material-icons !text-[14px]">local_shipping</span>{{ t('sameDayDelivery') }}</span>
-              <span class="ui-badge-brand"><span class="material-icons !text-[14px]">assignment_return</span>{{ t('returnsPolicy') }}</span>
-              <span class="ui-badge-brand"><span class="material-icons !text-[14px]">lock</span>{{ t('securePayments') }}</span>
-            </div>
-          </div>
-        }
+          @if (suggestedUse(p)) {
+            <section class="product-info-item" [class.product-info-item--open]="suggestedUseExpanded()">
+              <button type="button" class="product-info-toggle" (click)="suggestedUseExpanded.set(!suggestedUseExpanded())" [attr.aria-expanded]="suggestedUseExpanded()">
+                <span class="product-info-icon" aria-hidden="true"><span class="material-icons">menu_book</span></span>
+                <span class="product-info-label">{{ t('suggestedUse') }}</span>
+                <span class="product-info-chevron material-icons" aria-hidden="true">expand_more</span>
+              </button>
+              @if (suggestedUseExpanded()) {
+                <div class="product-info-content" [innerHTML]="suggestedUse(p)"></div>
+              }
+            </section>
+          }
+
+          @if (healthNotes(p)) {
+            <section class="product-info-item" [class.product-info-item--open]="healthNotesExpanded()">
+              <button type="button" class="product-info-toggle" (click)="healthNotesExpanded.set(!healthNotesExpanded())" [attr.aria-expanded]="healthNotesExpanded()">
+                <span class="product-info-icon" aria-hidden="true"><span class="material-icons">health_and_safety</span></span>
+                <span class="product-info-label">{{ t('healthNotes') }}</span>
+                <span class="product-info-chevron material-icons" aria-hidden="true">expand_more</span>
+              </button>
+              @if (healthNotesExpanded()) {
+                <div class="product-info-content" [innerHTML]="healthNotes(p)"></div>
+              }
+            </section>
+          }
+
+          <section class="product-info-item" [class.product-info-item--open]="deliveryExpanded()">
+            <button type="button" class="product-info-toggle" (click)="deliveryExpanded.set(!deliveryExpanded())" [attr.aria-expanded]="deliveryExpanded()">
+              <span class="product-info-icon" aria-hidden="true"><span class="material-icons">local_shipping</span></span>
+              <span class="product-info-label">{{ t('deliveryReturnsTitle') }}</span>
+              <span class="product-info-chevron material-icons" aria-hidden="true">expand_more</span>
+            </button>
+            @if (deliveryExpanded()) {
+              <div class="product-info-content product-info-content--rich">
+                <p>{{ t('deliveryReturnsLead') }}</p>
+                <div class="product-info-pills">
+                  <span class="ui-badge-brand"><span class="material-icons !text-[14px]">local_shipping</span>{{ t('sameDayDelivery') }}</span>
+                  <span class="ui-badge-brand"><span class="material-icons !text-[14px]">assignment_return</span>{{ t('returnsPolicy') }}</span>
+                  <span class="ui-badge-brand"><span class="material-icons !text-[14px]">lock</span>{{ t('securePayments') }}</span>
+                </div>
+              </div>
+            }
+          </section>
+        </div>
       </ui-card>
 
-      <app-product-reviews [productId]="p.id" />
+      <app-product-reviews id="product-reviews" [productId]="p.id" />
+
+      @if (relatedProducts().length > 0) {
+        <section class="product-related space-y-4">
+          <ui-section-header
+            [title]="t('relatedProducts')"
+            [viewAllLink]="'/shop'"
+            [viewAllQueryParams]="p.category ? { categoryId: p.category.id.toString() } : null"
+            [viewAllLabel]="t('viewAll')"
+          />
+          <div class="product-carousel">
+            @for (item of relatedProducts(); track item.id) {
+              <ui-product-card
+                class="product-carousel__item"
+                density="compact"
+                [alwaysShowActions]="true"
+                [title]="locale.pick(item.title, item.titleAr)"
+                [slug]="item.slug"
+                [brand]="item.brandName || null"
+                [imageUrl]="catalogue.resolveImageUrl(item.imageUrl)"
+                [price]="item.price"
+                [listPrice]="item.listPrice"
+                [flashSale]="false"
+                [inStock]="item.inStock"
+                [outOfStockLabel]="t('outOfStock')"
+                [inWishlist]="isInWishlist(item.id)"
+                [busy]="relatedBusyId() === item.id"
+                [quickAddLabel]="t('addToCart')"
+                [flashLabel]="t('flashSaleBadge')"
+                [wishlistLabel]="isInWishlist(item.id) ? t('removeFromWishlist') : t('addToWishlist')"
+                (toggleWishlist)="relatedToggleWishlist(item)"
+                (quickAdd)="relatedQuickAdd(item)"
+              />
+            }
+          </div>
+          @if (relatedMessage()) {
+            <p class="text-sm text-ink-500">{{ relatedMessage() }}</p>
+          }
+        </section>
+      }
     </article>
 
-    <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset product-mobile-actions sm:hidden">
-      <div class="checkout-mobile-bar__meta">
-        <p class="text-xs text-ink-500">{{ displayInStock() ? t('inStock') : t('outOfStock') }}</p>
-        <p class="text-lg font-bold tabular-nums text-ink-900">{{ displayPrice() | iwnCurrency }}</p>
+    <div class="checkout-mobile-bar product-mobile-actions sm:hidden">
+      <div class="product-mobile-meta">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-600">{{ displayInStock() ? t('inStock') : t('outOfStock') }}</p>
+        <p class="product-mobile-price text-base font-extrabold tabular-nums leading-tight">
+          <span
+            [class.product-price-current--sale]="displayListPrice() > displayPrice()"
+            [class.text-ink-900]="displayListPrice() <= displayPrice()"
+          >{{ displayPrice() | iwnCurrency }}</span>
+          @if (displayListPrice() > displayPrice()) {
+            <span class="ms-2 text-xs font-medium text-ink-600 line-through">{{ displayListPrice() | iwnCurrency }}</span>
+          }
+        </p>
       </div>
-      <button type="button" class="ui-btn-secondary checkout-mobile-bar__btn" (click)="buyNow(p)" [disabled]="adding() || !displayInStock()">
-        {{ t('buyNow') }}
-      </button>
-      <button type="button" class="ui-btn-primary checkout-mobile-bar__btn" (click)="addToCart(p)" [disabled]="adding() || !displayInStock()" [attr.aria-busy]="adding()">
+      <button type="button" class="ui-btn-primary product-mobile-primary" (click)="addToCart(p)" [disabled]="adding() || !displayInStock()" [attr.aria-busy]="adding()">
         {{ adding() ? t('adding') : t('addToCart') }}
       </button>
     </div>
 
     <ui-modal [open]="imageZoomOpen()" [heading]="productTitle(p)" size="lg" (closed)="closeImageZoom()">
-      <img [src]="catalogue.resolveImageUrl(activeImage())" [alt]="productTitle(p)" class="max-h-[70vh] w-full object-contain" />
+      <div class="rounded-2xl bg-stage p-4">
+        <img [src]="catalogue.resolveImageUrl(activeImage())" [alt]="productTitle(p)" class="max-h-[70vh] w-full object-contain" />
+      </div>
     </ui-modal>
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import {
@@ -21,6 +21,7 @@ import { WishlistService } from '../../core/services/wishlist.service';
 import { UiEmptyStateComponent, UiPageHeaderComponent, UiProductCardComponent, UiSkeletonComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [RouterLink, UiPageHeaderComponent, UiEmptyStateComponent, UiSkeletonComponent, UiProductCardComponent],
   templateUrl: './wishlist-page.component.html',

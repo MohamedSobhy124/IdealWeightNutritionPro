@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 export interface UiTimelineItem {
@@ -15,6 +15,29 @@ export interface UiTimelineItem {
   imports: [DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (layout() === 'compact') {
+      <div>
+        <ol class="ui-timeline--compact" [attr.aria-label]="ariaLabel()">
+          @for (item of items(); track $index; let last = $last) {
+            <li class="ui-timeline--compact__step" [attr.aria-current]="item.active ? 'step' : null">
+              <span
+                class="ui-timeline--compact__dot"
+                [class.is-done]="item.completed && !item.active"
+                [class.is-active]="item.active"
+                aria-hidden="true"
+              ></span>
+              @if (!last) {
+                <span class="ui-timeline--compact__line" [class.is-done]="!!item.completed" aria-hidden="true"></span>
+              }
+              <span class="sr-only">{{ item.title }}</span>
+            </li>
+          }
+        </ol>
+        @if (focusItem(); as current) {
+          <p class="ui-timeline--compact__caption">{{ current.title }}</p>
+        }
+      </div>
+    } @else {
     <ol class="space-y-0" [attr.aria-label]="ariaLabel()">
       @for (item of items(); track $index; let last = $last) {
         <li class="relative flex gap-4 pb-6" [class.pb-0]="last">
@@ -41,15 +64,23 @@ export interface UiTimelineItem {
               <p class="mt-0.5 text-sm text-ink-500">{{ item.subtitle }}</p>
             }
             @if (item.date) {
-              <p class="mt-0.5 text-xs text-ink-400">{{ item.date | date: 'medium' }}</p>
+              <p class="mt-0.5 text-xs text-ink-600">{{ item.date | date: 'medium' }}</p>
             }
           </div>
         </li>
       }
     </ol>
+    }
   `,
 })
 export class UiTimelineComponent {
   readonly items = input.required<UiTimelineItem[]>();
   readonly ariaLabel = input('Timeline');
+  /** `compact` is a single row of dots plus the current step name, for list cards. */
+  readonly layout = input<'vertical' | 'compact'>('vertical');
+
+  protected readonly focusItem = computed(() => {
+    const items = this.items();
+    return items.find((item) => item.active) ?? [...items].reverse().find((item) => item.completed) ?? items[0] ?? null;
+  });
 }

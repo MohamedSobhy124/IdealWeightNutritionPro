@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { DecimalPipe, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -36,6 +36,7 @@ import {
 type OffersTab = 'discounted' | 'flash' | 'combo';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -53,6 +54,7 @@ type OffersTab = 'discounted' | 'flash' | 'combo';
   styleUrl: './offers-page.component.css',
 })
 export class OffersPageComponent implements OnInit {
+  private readonly platformId = inject(PLATFORM_ID);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
   readonly auth = inject(AuthService);
@@ -142,6 +144,7 @@ export class OffersPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (this.auth.isAuthenticated()) {
       this.wishlist.loadProductIds().subscribe();
     }

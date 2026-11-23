@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 import { UpsertAdminBlogPostRequest } from '../../../core/models/admin-blog.models';
 import { AdminBlogService } from '../../../core/services/admin-blog.service';
 import { AdminMediaService } from '../../../core/services/admin-service.service';
@@ -17,6 +18,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -35,7 +37,7 @@ import {
 
 })
 
-export class AdminBlogFormComponent implements OnInit {
+export class AdminBlogFormComponent extends UnsavedChangesForm implements OnInit {
   private readonly blogApi = inject(AdminBlogService);
   private readonly mediaApi = inject(AdminMediaService);
   readonly catalogue = inject(CatalogueService);
@@ -338,6 +340,7 @@ export class AdminBlogFormComponent implements OnInit {
       next: (post) => {
 
         this.submitting.set(false);
+        this.markSaved();
 
         if (!this.isEdit()) {
 

@@ -1,5 +1,5 @@
-import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BlogService } from '../../core/services/blog.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
@@ -10,6 +10,7 @@ import { BlogPostDetail, BlogPostSummary } from '../../core/models/blog.models';
 import { UiArticleCardComponent, UiBadgeComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiSkeletonComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [RouterLink, DatePipe, UiBadgeComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiSkeletonComponent, UiArticleCardComponent],
   templateUrl: './blog-detail.component.html',
@@ -21,6 +22,7 @@ export class BlogDetailComponent implements OnInit {
   private readonly seo = inject(SeoService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly post = signal<BlogPostDetail | null>(null);
   readonly loading = signal(true);
@@ -62,6 +64,7 @@ export class BlogDetailComponent implements OnInit {
         this.loading.set(false);
         return;
       }
+      if (!isPlatformBrowser(this.platformId)) return;
 
       this.loading.set(true);
       this.error.set(null);

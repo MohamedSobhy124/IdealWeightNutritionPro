@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
@@ -17,6 +18,7 @@ import {
 import { UiEmptyStateComponent, UiPageHeaderComponent, UiProductCardComponent, UiSkeletonComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -36,6 +38,7 @@ export class FlashSaleDetailComponent implements OnInit {
   private readonly cart = inject(CartService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly sale = signal<FlashSaleDetail | null>(null);
   readonly loading = signal(true);
@@ -63,6 +66,7 @@ export class FlashSaleDetailComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+    if (!isPlatformBrowser(this.platformId)) return;
 
     this.flashSales.getActive(id).subscribe({
       next: (sale) => {

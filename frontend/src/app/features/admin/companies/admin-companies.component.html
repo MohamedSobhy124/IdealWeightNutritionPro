@@ -10,48 +10,52 @@
 
 
 
-@if (message()) {
-
+@if (message() && !showForm()) {
   <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
-
 }
 
-
-
-@if (showForm()) {
-  <form class="mb-6" (ngSubmit)="submit()">
-    <ui-card [heading]="editingId() ? t('editCompany') : t('newCompany')" class="max-w-lg">
-      <div class="grid grid-cols-1 gap-4">
-        <ui-form-field [label]="t('companyName')" [required]="true">
-          <input class="ui-input" [(ngModel)]="name" name="name" required />
+<ui-modal
+  [open]="showForm()"
+  variant="drawer"
+  size="lg"
+  [heading]="editingId() ? t('editCompany') : t('newCompany')"
+  [closeLabel]="t('shellClose')"
+  (closed)="cancelForm()"
+>
+  <form id="company-form" (ngSubmit)="submit()">
+    @if (message()) {
+      <p class="mb-4 text-sm text-danger">{{ message() }}</p>
+    }
+    <div class="grid grid-cols-1 gap-4">
+      <ui-form-field [label]="t('companyName')" [required]="true">
+        <input class="ui-input" [(ngModel)]="name" name="name" required />
+      </ui-form-field>
+      <ui-form-field [label]="t('streetAddress')">
+        <input class="ui-input" [(ngModel)]="streetAddress" name="streetAddress" />
+      </ui-form-field>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('city')">
+          <input class="ui-input" [(ngModel)]="city" name="city" />
         </ui-form-field>
-        <ui-form-field [label]="t('streetAddress')">
-          <input class="ui-input" [(ngModel)]="streetAddress" name="streetAddress" />
+        <ui-form-field [label]="t('emirate')">
+          <input class="ui-input" [(ngModel)]="state" name="state" />
         </ui-form-field>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ui-form-field [label]="t('city')">
-            <input class="ui-input" [(ngModel)]="city" name="city" />
-          </ui-form-field>
-          <ui-form-field [label]="t('emirate')">
-            <input class="ui-input" [(ngModel)]="state" name="state" />
-          </ui-form-field>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ui-form-field [label]="t('postalCode')">
-            <input class="ui-input" [(ngModel)]="postalCode" name="postalCode" />
-          </ui-form-field>
-          <ui-form-field [label]="t('phone')">
-            <input class="ui-input" [(ngModel)]="phoneNumber" name="phoneNumber" />
-          </ui-form-field>
-        </div>
       </div>
-      <div class="mt-4 flex gap-2">
-        <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
-        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ui-form-field [label]="t('postalCode')">
+          <input class="ui-input" [(ngModel)]="postalCode" name="postalCode" />
+        </ui-form-field>
+        <ui-form-field [label]="t('phone')">
+          <input class="ui-input" [(ngModel)]="phoneNumber" name="phoneNumber" />
+        </ui-form-field>
       </div>
-    </ui-card>
+    </div>
   </form>
-}
+  <div modal-footer class="flex shrink-0 gap-2 border-t border-ink-200 px-5 py-4">
+    <button type="submit" form="company-form" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+  </div>
+</ui-modal>
 
 
 
@@ -71,8 +75,11 @@
 
   [loading]="loading()"
 
-  [searchable]="false"
-
+  [clickableRows]="true"
+  (rowClick)="openEdit($any($event))"
+  [exportable]="true"
+  exportFileName="companies.csv"
+  storageKey="admin-companies"
   [pageSize]="20"
 
   [emptyTitle]="t('noCompanies')"

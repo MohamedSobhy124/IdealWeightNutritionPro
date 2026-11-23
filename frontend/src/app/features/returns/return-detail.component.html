@@ -20,19 +20,13 @@
       />
 
       <ui-card class="ui-card-pad block">
-        <ui-timeline
-          [ariaLabel]="t('returnLabel')"
-          [items]="[
-            { title: t('returnSubmittedNotice'), completed: true },
-            { title: r.status, active: true }
-          ]"
-        />
+        <ui-timeline [ariaLabel]="t('returnLabel')" [items]="timelineItems(r.status, r.requestDate)" />
         <p class="mt-4 text-sm text-ink-500">{{ r.requestDate | date: 'medium' }}</p>
       </ui-card>
 
       <div class="flex flex-wrap items-center gap-2 text-sm">
         <span class="text-ink-500">{{ t('orderLabel') }} #{{ r.orderId }}</span>
-        <ui-badge [variant]="statusVariant(r.status)">{{ r.status }}</ui-badge>
+        <ui-badge [variant]="statusVariant(r.status)">{{ labelStatus(r.status) }}</ui-badge>
       </div>
 
       @if (r.refundAmount != null) {
@@ -42,7 +36,7 @@
         </div>
       }
       @if (r.refundStatus) {
-        <p class="text-sm text-ink-700">{{ t('refundStatus') }}: <strong>{{ r.refundStatus }}</strong></p>
+        <p class="text-sm text-ink-700">{{ t('refundStatus') }}: <strong>{{ labelStatus(r.refundStatus) }}</strong></p>
       }
 
       <ui-card class="ui-card-pad block">

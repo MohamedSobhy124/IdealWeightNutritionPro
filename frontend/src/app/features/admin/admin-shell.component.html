@@ -1,8 +1,8 @@
-<div class="min-h-screen bg-ink-50 text-ink-900">
+<div class="admin-shell min-h-screen" [class.admin-density-compact]="density() === 'compact'">
   <!-- Mobile backdrop -->
   @if (mobileOpen()) {
     <div
-      class="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm lg:hidden"
+      class="fixed inset-0 z-40 bg-scrim/40 backdrop-blur-sm lg:hidden"
       (click)="mobileOpen.set(false)"
       aria-hidden="true"
     ></div>
@@ -10,22 +10,21 @@
 
   <!-- Sidebar -->
   <aside
-    class="fixed inset-y-0 start-0 z-50 flex flex-col border-e border-ink-200 bg-[var(--surface)] transition-[width,transform] duration-200
-           lg:translate-x-0"
-    [class.w-64]="!collapsed()"
-    [class.w-[76px]]="collapsed()"
-    [class.translate-x-0]="mobileOpen()"
-    [class.-translate-x-full]="!mobileOpen()"
-    [class.rtl:translate-x-0]="mobileOpen()"
+    class="shell-drawer flex-col border-e transition-[width,transform] duration-200"
+    [class.shell-drawer--open]="mobileOpen()"
+    [class.shell-drawer--collapsed]="collapsed()"
+    [cdkTrapFocus]="mobileOpen()"
+    [cdkTrapFocusAutoCapture]="mobileOpen()"
+    [attr.aria-label]="t('shellMenu')"
   >
-    <div class="flex h-16 items-center gap-3 border-b border-ink-200 px-4">
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+    <div class="shell-drawer__brand flex h-16 items-center gap-3 px-4">
+      <div class="shell-drawer__mark flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
         <span class="material-icons !text-[20px]">eco</span>
       </div>
       @if (!collapsed()) {
         <div class="min-w-0">
-          <p class="truncate text-sm font-bold leading-tight">Ideal Weight</p>
-          <p class="truncate text-xs text-ink-400">{{ t('adminTitle') }}</p>
+          <p class="shell-drawer__title truncate text-sm font-bold leading-tight">Ideal Weight</p>
+          <p class="shell-drawer__subtitle truncate text-xs">{{ t('adminTitle') }}</p>
         </div>
       }
       <button
@@ -42,7 +41,7 @@
       @for (group of visibleGroups(); track group.labelKey) {
         <div>
           @if (!collapsed()) {
-            <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
+            <p class="shell-drawer__group px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider">
               {{ t(group.labelKey) }}
             </p>
           }
@@ -51,9 +50,9 @@
               <li>
                 <a
                   [routerLink]="item.link"
-                  routerLinkActive="bg-brand-50 text-brand-700 font-semibold"
+                  routerLinkActive="admin-nav-link--active"
                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                  class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-600 transition-colors hover:bg-ink-100"
+                  class="admin-nav-link group flex items-center gap-3 px-3 py-2.5 text-sm"
                   [class.justify-center]="collapsed()"
                   [attr.title]="collapsed() ? t(item.labelKey) : null"
                 >
@@ -69,10 +68,10 @@
       }
     </nav>
 
-    <div class="border-t border-ink-200 p-3">
+    <div class="shell-drawer__footer p-3">
       <a
         routerLink="/"
-        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-600 hover:bg-ink-100"
+        class="admin-nav-store flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm"
         [class.justify-center]="collapsed()"
         [attr.title]="collapsed() ? t('shellViewStore') : null"
       >
@@ -86,13 +85,13 @@
 
   <!-- Main column -->
   <div
-    class="flex min-h-screen flex-col transition-[padding] duration-200"
+    class="admin-shell__main flex min-h-screen flex-col transition-[padding] duration-200"
     [class.lg:ps-64]="!collapsed()"
     [class.lg:ps-[76px]]="collapsed()"
   >
     <!-- Topbar -->
     <header
-      class="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-ink-200 bg-[var(--surface-overlay)] px-4 backdrop-blur sm:px-6"
+      class="admin-shell__topbar sticky top-0 z-30 flex h-16 items-center gap-2 border-b px-4 sm:px-6"
     >
       <button
         type="button"
@@ -111,45 +110,49 @@
         <span class="material-icons rtl:rotate-180">{{ collapsed() ? 'menu_open' : 'menu' }}</span>
       </button>
 
-      <div class="hidden min-w-0 sm:block">
-        <nav class="flex items-center gap-1.5 text-xs text-ink-400" aria-label="Breadcrumb">
-          <span>{{ t('adminTitle') }}</span>
-          <span class="text-ink-300 rtl:rotate-180">›</span>
-          <span class="font-medium text-ink-700">{{ activeLabel() }}</span>
-        </nav>
-      </div>
+      <nav class="hidden min-w-0 sm:block" [attr.aria-label]="t('breadcrumbLabel')">
+        <ol class="m-0 flex list-none items-center gap-1 p-0 text-sm">
+          @for (crumb of breadcrumbs(); track $index; let last = $last) {
+            <li class="flex min-w-0 items-center gap-1">
+              @if (crumb.link) {
+                <a [routerLink]="crumb.link" class="truncate rounded px-1 text-ink-500 no-underline hover:text-ink-900">{{ crumb.label }}</a>
+                <span class="material-icons !text-[16px] text-ink-300 rtl:rotate-180" aria-hidden="true">chevron_right</span>
+              } @else {
+                <span class="truncate px-1 font-semibold text-ink-900" [attr.aria-current]="last ? 'page' : null">{{ crumb.label }}</span>
+              }
+            </li>
+          }
+        </ol>
+      </nav>
+      <p class="m-0 truncate text-sm font-semibold text-ink-900 sm:hidden">{{ activeLabel() }}</p>
 
-      <!-- Global search -->
-      <div class="shell-search relative ms-auto w-full max-w-xs">
-        <span
-          class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400"
-          >search</span
-        >
-        <input
-          type="search"
-          class="ui-input ps-10 !py-2"
-          [placeholder]="t('shellSearchPlaceholder')"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-        />
-        @if (searchResults().length > 0) {
-          <div
-            class="absolute inset-x-0 top-full mt-2 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-elevated animate-slide-up"
-          >
-            @for (item of searchResults(); track item.link) {
-              <a
-                [routerLink]="item.link"
-                (click)="onSearchSelect()"
-                class="flex items-center gap-3 px-3 py-2.5 text-sm text-ink-700 hover:bg-ink-50"
-              >
-                <span class="material-icons !text-[18px] text-ink-400">{{ item.icon }}</span>
-                {{ t(item.labelKey) }}
-              </a>
-            }
-          </div>
-        }
-      </div>
+      <button
+        type="button"
+        class="admin-shell__palette-trigger ms-auto hidden h-10 w-full max-w-xs items-center gap-2 rounded-xl border px-3 text-sm md:inline-flex"
+        (click)="openPalette()"
+      >
+        <span class="material-icons !text-[20px]" aria-hidden="true">search</span>
+        <span class="min-w-0 flex-1 truncate text-start">{{ t('commandPalettePlaceholder') }}</span>
+        <kbd class="rounded border border-ink-200 px-1.5 py-0.5 text-[10px] font-semibold">{{ t('commandPaletteHint') }}</kbd>
+      </button>
+      <button
+        type="button"
+        class="ui-btn-icon ms-auto md:hidden"
+        (click)="openPalette()"
+        [attr.aria-label]="t('commandPalette')"
+      >
+        <span class="material-icons">search</span>
+      </button>
 
+      <button
+        type="button"
+        class="ui-btn-icon"
+        (click)="toggleDensity()"
+        [attr.aria-pressed]="density() === 'compact'"
+        [attr.aria-label]="density() === 'compact' ? t('densityCompact') : t('densityComfortable')"
+      >
+        <span class="material-icons">{{ density() === 'compact' ? 'density_small' : 'density_medium' }}</span>
+      </button>
       <ui-theme-toggle />
       <button
         type="button"
@@ -170,14 +173,14 @@
           (click)="userMenuOpen.set(!userMenuOpen()); $event.stopPropagation()"
         >
           <span
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white"
+            class="admin-shell__avatar flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold"
             >{{ initials() }}</span
           >
           <span class="material-icons !text-[20px] text-ink-400 hidden sm:inline">expand_more</span>
         </button>
         @if (userMenuOpen()) {
           <div
-            class="absolute end-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-elevated animate-slide-up"
+            class="absolute end-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-surface shadow-elevated animate-slide-up"
           >
             <div class="border-b border-ink-200 px-4 py-3">
               <p class="truncate text-sm font-semibold text-ink-900">
@@ -208,8 +211,61 @@
     </header>
 
     <!-- Routed content -->
-    <main class="flex-1 p-4 sm:p-6">
+    <main class="mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-6">
       <router-outlet />
     </main>
   </div>
+
+  @if (paletteOpen()) {
+    <div class="fixed inset-0 z-[70] flex items-start justify-center bg-scrim/40 p-4 pt-[12vh]" (click)="closePalette()">
+      <div
+        class="w-full max-w-lg overflow-hidden rounded-2xl border border-ink-200 bg-surface shadow-elevated"
+        role="dialog"
+        aria-modal="true"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        [attr.aria-label]="t('commandPalette')"
+        (click)="$event.stopPropagation()"
+        (keydown)="onPaletteKey($event)"
+      >
+        <label class="flex items-center gap-2 border-b border-ink-200 px-4">
+          <span class="material-icons text-ink-400" aria-hidden="true">search</span>
+          <input
+            #paletteInput
+            type="text"
+            class="w-full border-0 bg-transparent py-3 text-sm text-ink-900 outline-none"
+            [placeholder]="t('commandPalettePlaceholder')"
+            [ngModel]="paletteQuery()"
+            (ngModelChange)="paletteQuery.set($event); paletteIndex.set(0)"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="admin-command-list"
+            [attr.aria-expanded]="true"
+            [attr.aria-activedescendant]="paletteResults().length ? 'admin-command-' + activePaletteIndex() : null"
+          />
+        </label>
+        <ul id="admin-command-list" role="listbox" class="m-0 max-h-80 list-none overflow-y-auto p-2">
+          @for (item of paletteResults(); track item.group + item.link; let i = $index) {
+            <li
+              [id]="'admin-command-' + i"
+              role="option"
+              [attr.aria-selected]="i === activePaletteIndex()"
+              class="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm"
+              [class.admin-shell__palette-active]="i === activePaletteIndex()"
+              [class.text-ink-900]="i === activePaletteIndex()"
+              [class.text-ink-700]="i !== activePaletteIndex()"
+              (mouseenter)="paletteIndex.set(i)"
+              (click)="openPaletteItem(item.link)"
+            >
+              <span class="material-icons !text-[18px] text-ink-400" aria-hidden="true">{{ item.icon }}</span>
+              <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+              <span class="shrink-0 text-xs text-ink-400">{{ item.group }}</span>
+            </li>
+          } @empty {
+            <li class="px-3 py-6 text-center text-sm text-ink-400">{{ t('commandPaletteEmpty') }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+  }
 </div>

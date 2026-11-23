@@ -1,35 +1,37 @@
+import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'ui-article-card',
   standalone: true,
-  imports: [RouterLink],
+  imports: [NgOptimizedImage, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <article class="ui-card ui-hover-lift group overflow-hidden">
+    <article class="ui-card ui-hover-lift group overflow-hidden border-ink-200 bg-white shadow-none">
       @if (imageUrl()) {
-        <a [routerLink]="link()" class="block aspect-[16/10] overflow-hidden bg-ink-100">
+        <a [routerLink]="link()" class="relative block aspect-[16/10] overflow-hidden bg-stage">
           <img
-            [src]="imageUrl()!"
+            [ngSrc]="imageUrl()!"
             [alt]="title()"
-            loading="lazy"
-            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            class="object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
           />
         </a>
       }
       <div class="p-3 sm:p-4">
         @if (category()) {
-          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-brand-600 sm:text-xs">{{ category() }}</p>
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-brand-700 sm:text-xs">{{ category() }}</p>
         }
         <h3 class="line-clamp-2 text-sm font-semibold text-ink-900 sm:text-base">
-          <a [routerLink]="link()" class="hover:text-brand-700">{{ title() }}</a>
+          <a [routerLink]="link()" class="transition-colors hover:text-brand-700">{{ title() }}</a>
         </h3>
         @if (excerpt()) {
           <p class="mt-1.5 line-clamp-2 text-xs text-ink-500 sm:text-sm">{{ excerpt() }}</p>
         }
         @if (date()) {
-          <p class="mt-2 text-[10px] text-ink-400 sm:text-xs">{{ date() }}</p>
+          <p class="mt-2 text-[10px] text-ink-600 sm:text-xs">{{ date() }}</p>
         }
       </div>
     </article>

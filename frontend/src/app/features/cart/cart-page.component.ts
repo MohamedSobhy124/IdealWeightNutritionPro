@@ -1,15 +1,19 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
-import { CartItem, CartPromo } from '../../core/models/cart.models';
-import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiPageHeaderComponent, UiSkeletonComponent } from '../../shared/ui';
+import { AddCartItemRequest, CartItem, CartPromo } from '../../core/models/cart.models';
+import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiPageHeaderComponent, UiSkeletonComponent, UiToastService } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [RouterLink, FormsModule, IwnCurrencyPipe, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiCardComponent, UiFormFieldComponent],
   templateUrl: './cart-page.component.html',
@@ -19,6 +23,8 @@ export class CartPageComponent implements OnInit {
   readonly cartService = inject(CartService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly items = signal<CartItem[]>([]);
   readonly subtotal = signal(0);
@@ -34,6 +40,10 @@ export class CartPageComponent implements OnInit {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  lineTitle(item: CartItem): string {
+    return this.locale.pick(item.title, item.titleAr);
   }
 
   ngOnInit(): void {
@@ -57,15 +67,43 @@ export class CartPageComponent implements OnInit {
   refresh(): void {
     this.error.set(null);
     this.loading.set(true);
+    if (!isPlatformBrowser(this.platformId)) return;
     this.cartService.load().subscribe({
       next: (cart) => {
         this.applyCart(cart);
-        this.loading.set(false);
+        this.fillMissingArabicTitles(cart.items);
       },
       error: () => {
         this.error.set(this.t('cartLoadError'));
         this.loading.set(false);
       },
+    });
+  }
+
+  private fillMissingArabicTitles(items: CartItem[]): void {
+    const missing = items.filter((item) => item.titleAr == null && !item.comboOfferId && item.slug);
+    if (missing.length === 0) {
+      this.loading.set(false);
+      return;
+    }
+
+    forkJoin(
+      missing.map((item) =>
+        this.catalogue.getProductBySlug(item.slug).pipe(
+          map((product) => ({ lineId: item.lineId, titleAr: product.titleAr })),
+          catchError(() => of(null)),
+        ),
+      ),
+    ).subscribe((rows) => {
+      const titles = new Map(
+        rows.flatMap((row) => (row?.titleAr ? [[row.lineId, row.titleAr] as const] : [])),
+      );
+      if (titles.size > 0) {
+        this.items.update((current) =>
+          current.map((item) => (titles.has(item.lineId) ? { ...item, titleAr: titles.get(item.lineId) } : item)),
+        );
+      }
+      this.loading.set(false);
     });
   }
 
@@ -111,13 +149,39 @@ export class CartPageComponent implements OnInit {
   }
 
   remove(item: CartItem): void {
+    const request: AddCartItemRequest = {
+      productId: item.productId,
+      quantity: item.quantity,
+      productVariantId: item.productVariantId,
+      flashSaleItemId: item.flashSaleItemId,
+      comboOfferId: item.comboOfferId,
+    };
     this.updating.set(true);
     this.cartService.removeItem(item.lineId).subscribe({
       next: (cart) => {
         this.applyCart(cart);
         this.updating.set(false);
+        this.toast.info(this.t('cartItemRemoved'), {
+          duration: 6000,
+          actionLabel: this.t('undo'),
+          action: () => this.restore(request),
+        });
       },
       error: () => this.updating.set(false),
+    });
+  }
+
+  private restore(request: AddCartItemRequest): void {
+    this.updating.set(true);
+    this.cartService.addItem(request).subscribe({
+      next: (cart) => {
+        this.applyCart(cart);
+        this.updating.set(false);
+      },
+      error: () => {
+        this.updating.set(false);
+        this.toast.error(this.t('cartRestoreFailed'));
+      },
     });
   }
 

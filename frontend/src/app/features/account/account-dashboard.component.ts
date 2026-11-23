@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -8,13 +8,25 @@ import { OrderService } from '../../core/services/order.service';
 import { ServiceSubscriptionService } from '../../core/services/service-subscription.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
+import { statusLabel } from '../../core/utils/status-label';
 import { OrderSummary } from '../../core/models/order.models';
 import { ServicePurchaseSummary } from '../../core/models/service-purchase.models';
-import { UiBadgeComponent, UiBadgeVariant, UiCardComponent, UiPageHeaderComponent, UiSkeletonComponent } from '../../shared/ui';
+import {
+  UiBadgeComponent,
+  UiBadgeVariant,
+  UiCardComponent,
+  UiConfirmService,
+  UiFormFieldComponent,
+  UiPageHeaderComponent,
+  UiPasswordFieldComponent,
+  UiSkeletonComponent,
+  UiToastService,
+} from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, IwnCurrencyPipe, UiCardComponent, UiBadgeComponent, UiPageHeaderComponent, UiSkeletonComponent],
+  imports: [RouterLink, DatePipe, FormsModule, IwnCurrencyPipe, UiCardComponent, UiBadgeComponent, UiFormFieldComponent, UiPageHeaderComponent, UiSkeletonComponent, UiPasswordFieldComponent],
   templateUrl: './account-dashboard.component.html',
   styleUrl: './account-dashboard.component.css',
 })
@@ -23,6 +35,8 @@ export class AccountDashboardComponent implements OnInit {
   readonly locale = inject(LocaleService);
   private readonly ordersApi = inject(OrderService);
   private readonly servicesApi = inject(ServiceSubscriptionService);
+  private readonly confirmDialog = inject(UiConfirmService);
+  private readonly toast = inject(UiToastService);
 
   readonly orders = signal<OrderSummary[]>([]);
   readonly ordersLoading = signal(true);
@@ -31,6 +45,8 @@ export class AccountDashboardComponent implements OnInit {
   readonly actionMessage = signal<string | null>(null);
   readonly actionError = signal(false);
   readonly busy = signal(false);
+  /** Set when Change password is pressed before both fields are filled. */
+  readonly passwordAttempted = signal(false);
   currentPassword = '';
   newPassword = '';
 
@@ -50,6 +66,18 @@ export class AccountDashboardComponent implements OnInit {
 
   displaySubscriptionTitle(sub: ServicePurchaseSummary): string {
     return this.locale.pick(sub.serviceTitle, sub.serviceTitleAr);
+  }
+
+  labelStatus(status: string | null | undefined): string {
+    return statusLabel(status, (key) => this.t(key));
+  }
+
+  currentPasswordError(): string | null {
+    return this.passwordAttempted() && !this.currentPassword ? this.t('fieldRequired') : null;
+  }
+
+  newPasswordError(): string | null {
+    return this.passwordAttempted() && !this.newPassword ? this.t('fieldRequired') : null;
   }
 
   ngOnInit(): void {
@@ -75,7 +103,11 @@ export class AccountDashboardComponent implements OnInit {
   }
 
   changePassword(): void {
-    if (!this.currentPassword || !this.newPassword) return;
+    if (!this.currentPassword || !this.newPassword) {
+      this.passwordAttempted.set(true);
+      return;
+    }
+    this.passwordAttempted.set(false);
     this.busy.set(true);
     this.auth.changePassword({ currentPassword: this.currentPassword, newPassword: this.newPassword }).subscribe({
       next: (res) => {
@@ -86,7 +118,7 @@ export class AccountDashboardComponent implements OnInit {
         this.busy.set(false);
       },
       error: (err) => {
-        this.actionMessage.set(err.error?.errors?.[0] ?? 'Action failed.');
+        this.actionMessage.set(err.error?.errors?.[0] ?? this.t('actionFailedGeneric'));
         this.actionError.set(true);
         this.busy.set(false);
       },
@@ -104,28 +136,33 @@ export class AccountDashboardComponent implements OnInit {
         a.download = 'personal-data.json';
         a.click();
         URL.revokeObjectURL(url);
-        this.actionMessage.set('Personal data exported.');
-        this.actionError.set(false);
+        this.toast.success(this.t('personalDataExported'));
         this.busy.set(false);
       },
       error: () => {
-        this.actionMessage.set('Export failed.');
-        this.actionError.set(true);
+        this.toast.error(this.t('personalDataExportFailed'));
         this.busy.set(false);
       },
     });
   }
 
-  deleteAccount(): void {
-    if (!confirm('Delete account and personal data? This cannot be undone.')) return;
+  async deleteAccount(): Promise<void> {
+    const confirmed = await this.confirmDialog.ask({
+      title: this.t('deleteAccountTitle'),
+      message: this.t('deleteAccountMessage'),
+      confirmLabel: this.t('deleteAccountAction'),
+      requireText: this.t('deleteAccountConfirmWord'),
+      danger: true,
+      icon: 'person_remove',
+    });
+    if (!confirmed) return;
     this.busy.set(true);
     this.auth.deletePersonalData().subscribe({
       next: () => {
         this.auth.logout();
       },
       error: () => {
-        this.actionMessage.set('Delete failed.');
-        this.actionError.set(true);
+        this.toast.error(this.t('deleteAccountFailed'));
         this.busy.set(false);
       },
     });

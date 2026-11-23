@@ -1,6 +1,7 @@
 using IdealWeightNutrition.Domain.Catalogue;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace IdealWeightNutrition.Infrastructure.Persistence.Configurations;
 
@@ -12,6 +13,15 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Title).IsRequired();
         builder.Property(p => p.ImageUrl).IsRequired();
+        // The legacy database stores StoreCost as decimal(18,2) while the domain
+        // property is double?; without a conversion EF reads it via GetDouble()
+        // and throws InvalidCastException for non-null values.
+        builder.Property(p => p.StoreCost)
+            .HasConversion(
+                new ValueConverter<double, decimal>(
+                    v => (decimal)v,
+                    v => (double)v))
+            .HasColumnType("decimal(18,2)");
         builder.HasOne(p => p.Category)
             .WithMany()
             .HasForeignKey(p => p.CategryId);

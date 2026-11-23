@@ -1,6 +1,5 @@
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
@@ -12,21 +11,24 @@ import {
   UiDataTableComponent,
   UiCellDirective,
   UiBadgeComponent,
+  UiSegmentedComponent,
   type UiBadgeVariant,
+  type UiSegmentedOption,
   type UiTableColumn,
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
     DatePipe,
     IwnCurrencyPipe,
-    FormsModule,
     UiPageHeaderComponent,
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
+    UiSegmentedComponent,
   ],
   templateUrl: './admin-returns.component.html',
   styleUrl: './admin-returns.component.css',
@@ -39,6 +41,15 @@ export class AdminReturnsComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   status = 'all';
+
+  readonly statusOptions = computed<UiSegmentedOption[]>(() => [
+    { value: 'all', label: this.t('filterAll') },
+    { value: 'Pending', label: this.t('filterPending') },
+    { value: 'Approved', label: this.t('filterApproved') },
+    { value: 'Processing', label: this.t('filterProcessing') },
+    { value: 'Completed', label: this.t('filterCompleted') },
+    { value: 'Rejected', label: this.t('filterRejected') },
+  ]);
 
   t(key: AdminUiKey): string {
     return this.locale.pick(ADMIN_UI[key].en, ADMIN_UI[key].ar);

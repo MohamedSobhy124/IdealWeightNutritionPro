@@ -1,5 +1,5 @@
-import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { BlogService } from '../../core/services/blog.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { LocaleService } from '../../core/services/locale.service';
@@ -13,6 +13,7 @@ import {
 } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     DatePipe,
@@ -28,6 +29,7 @@ export class BlogListComponent implements OnInit {
   private readonly blog = inject(BlogService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly posts = signal<BlogPostSummary[]>([]);
   readonly loading = signal(true);
@@ -54,6 +56,7 @@ export class BlogListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     this.blog.listPosts().subscribe({
       next: (posts) => {
         this.posts.set(posts);

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 
@@ -13,6 +13,7 @@ import {
 } from '../../../shared/ui';
 
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 
 import {
 
@@ -31,6 +32,7 @@ import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -45,7 +47,7 @@ import { LocaleService } from '../../../core/services/locale.service';
   templateUrl: './admin-flash-sale-form.component.html',
   styleUrl: './admin-flash-sale-form.component.css',
 })
-export class AdminFlashSaleFormComponent implements OnInit {
+export class AdminFlashSaleFormComponent extends UnsavedChangesForm implements OnInit {
 
   private readonly flashApi = inject(AdminFlashSaleService);
   private readonly mediaApi = inject(AdminMediaService);
@@ -392,6 +394,7 @@ export class AdminFlashSaleFormComponent implements OnInit {
       next: (sale) => {
 
         this.submitting.set(false);
+        this.markSaved();
 
         if (!this.isEdit()) {
 

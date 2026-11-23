@@ -10,48 +10,52 @@
 
 
 
-@if (message()) {
-
+@if (message() && !showForm()) {
   <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
-
 }
 
-
-
-@if (showForm()) {
-  <form class="mb-6" (ngSubmit)="submit()">
-    <ui-card [heading]="editingId() ? t('editCity') : t('newCity')" class="max-w-lg">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ui-form-field [label]="t('titleEn')" [required]="true">
-          <input class="ui-input" [(ngModel)]="name" name="name" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('titleAr')">
-          <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" />
-        </ui-form-field>
-        <ui-form-field [label]="t('emirate')" [required]="true">
-          <input class="ui-input" [(ngModel)]="emirate" name="emirate" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('emirateAr')">
-          <input class="ui-input" [(ngModel)]="emirateAr" name="emirateAr" />
-        </ui-form-field>
-        <ui-form-field [label]="t('deliveryCharge')">
-          <input type="number" min="0" step="0.01" class="ui-input" [(ngModel)]="deliveryCharge" name="deliveryCharge" />
-        </ui-form-field>
-        <ui-form-field [label]="t('displayOrder')">
-          <input type="number" min="0" class="ui-input" [(ngModel)]="displayOrder" name="displayOrder" />
-        </ui-form-field>
-      </div>
-      <label class="mt-4 flex items-center gap-2 text-sm text-ink-700">
-        <input type="checkbox" class="accent-brand-600" [(ngModel)]="isActive" name="isActive" />
-        {{ t('active') }}
-      </label>
-      <div class="mt-4 flex gap-2">
-        <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
-        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
-      </div>
-    </ui-card>
+<ui-modal
+  [open]="showForm()"
+  variant="drawer"
+  size="lg"
+  [heading]="editingId() ? t('editCity') : t('newCity')"
+  [closeLabel]="t('shellClose')"
+  (closed)="cancelForm()"
+>
+  <form id="city-form" (ngSubmit)="submit()">
+    @if (message()) {
+      <p class="mb-4 text-sm text-danger">{{ message() }}</p>
+    }
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <ui-form-field [label]="t('titleEn')" [required]="true">
+        <input class="ui-input" [(ngModel)]="name" name="name" required />
+      </ui-form-field>
+      <ui-form-field [label]="t('titleAr')">
+        <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" />
+      </ui-form-field>
+      <ui-form-field [label]="t('emirate')" [required]="true">
+        <input class="ui-input" [(ngModel)]="emirate" name="emirate" required />
+      </ui-form-field>
+      <ui-form-field [label]="t('emirateAr')">
+        <input class="ui-input" [(ngModel)]="emirateAr" name="emirateAr" />
+      </ui-form-field>
+      <ui-form-field [label]="t('deliveryCharge')">
+        <input type="number" min="0" step="0.01" class="ui-input" [(ngModel)]="deliveryCharge" name="deliveryCharge" />
+      </ui-form-field>
+      <ui-form-field [label]="t('displayOrder')">
+        <input type="number" min="0" class="ui-input" [(ngModel)]="displayOrder" name="displayOrder" />
+      </ui-form-field>
+    </div>
+    <label class="mt-4 flex items-center gap-2 text-sm text-ink-700">
+      <input type="checkbox" class="accent-brand-600" [(ngModel)]="isActive" name="isActive" />
+      {{ t('active') }}
+    </label>
   </form>
-}
+  <div modal-footer class="flex shrink-0 gap-2 border-t border-ink-200 px-5 py-4">
+    <button type="submit" form="city-form" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+  </div>
+</ui-modal>
 
 
 
@@ -71,8 +75,11 @@
 
   [loading]="loading()"
 
-  [searchable]="false"
-
+  [clickableRows]="true"
+  (rowClick)="openEdit($any($event))"
+  [exportable]="true"
+  exportFileName="cities.csv"
+  storageKey="admin-cities"
   [pageSize]="20"
 
   [emptyTitle]="t('noCities')"

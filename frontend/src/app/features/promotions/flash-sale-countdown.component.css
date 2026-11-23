@@ -1,3 +1,8 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+}
+
 .countdown {
   display: inline-flex;
   align-items: center;
@@ -13,8 +18,12 @@
   min-width: 2.25rem;
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgb(var(--rgb-ink-900) / 0.06);
   line-height: 1.1;
+}
+
+:host-context(.dark) .unit {
+  background: rgb(255 255 255 / 0.1);
 }
 
 .unit small {
@@ -28,6 +37,16 @@
 }
 
 .ended {
-  color: #b91c1c;
+  color: rgb(var(--rgb-danger-fg));
   font-weight: 600;
+}
+
+:host.is-inverse .countdown,
+:host.is-inverse .ended {
+  color: white;
+}
+
+:host.is-inverse .unit {
+  background: rgb(255 255 255 / 0.18);
+  color: white;
 }

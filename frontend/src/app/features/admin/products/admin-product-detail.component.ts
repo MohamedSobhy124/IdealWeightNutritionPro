@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 
@@ -23,6 +23,7 @@ import { AdminProductService } from '../../../core/services/admin-product.servic
 import { CatalogueService } from '../../../core/services/catalogue.service';
 
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiCardComponent,
   UiEmptyStateComponent,
@@ -34,6 +35,8 @@ import {
 
 
 @Component({
+
+  changeDetection: ChangeDetectionStrategy.OnPush,
 
   standalone: true,
 
@@ -62,6 +65,7 @@ export class AdminProductDetailComponent implements OnInit {
   readonly catalogue = inject(CatalogueService);
 
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
 
 
@@ -368,11 +372,11 @@ export class AdminProductDetailComponent implements OnInit {
 
 
 
-  removeOption(optionId: number): void {
+  async removeOption(optionId: number): Promise<void> {
 
     const p = this.product();
 
-    if (!p || !confirm(this.t('confirmDeleteOption'))) return;
+    if (!p || !(await this.confirmDialog.danger(this.t('confirmDeleteOption')))) return;
 
 
 
@@ -464,11 +468,11 @@ export class AdminProductDetailComponent implements OnInit {
 
 
 
-  removeOptionValue(valueId: number): void {
+  async removeOptionValue(valueId: number): Promise<void> {
 
     const p = this.product();
 
-    if (!p || !confirm(this.t('confirmDeleteOptionValue'))) return;
+    if (!p || !(await this.confirmDialog.danger(this.t('confirmDeleteOptionValue')))) return;
 
 
 

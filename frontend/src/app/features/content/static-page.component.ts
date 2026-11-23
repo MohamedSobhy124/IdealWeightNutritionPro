@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -10,6 +10,7 @@ import { UI, UiKey } from '../../core/i18n/ui-text';
 import { UiCardComponent, UiEmptyStateComponent, UiPageHeaderComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [RouterLink, UiCardComponent, UiPageHeaderComponent, UiEmptyStateComponent],
   templateUrl: './static-page.component.html',

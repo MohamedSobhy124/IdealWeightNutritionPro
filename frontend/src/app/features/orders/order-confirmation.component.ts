@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Order } from '../../core/models/order.models';
 import { OrderService } from '../../core/services/order.service';
@@ -7,12 +7,15 @@ import { LocaleService } from '../../core/services/locale.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { canRequestReturn } from '../../core/utils/return-eligibility';
+import { buildOrderTimeline } from '../../core/utils/order-timeline';
+import { statusLabel } from '../../core/utils/status-label';
 
-import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiSkeletonComponent, statusVariant } from '../../shared/ui';
+import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiSkeletonComponent, UiTimelineComponent, statusVariant } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, DatePipe, IwnCurrencyPipe, UiPageHeaderComponent, UiCardComponent, UiSkeletonComponent, UiEmptyStateComponent, UiBadgeComponent],
+  imports: [RouterLink, DatePipe, IwnCurrencyPipe, UiPageHeaderComponent, UiCardComponent, UiSkeletonComponent, UiEmptyStateComponent, UiBadgeComponent, UiTimelineComponent],
   templateUrl: './order-confirmation.component.html',
   styleUrl: './order-confirmation.component.css',
 })
@@ -33,6 +36,14 @@ export class OrderConfirmationComponent implements OnInit {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  labelStatus(status: string | null | undefined): string {
+    return statusLabel(status, (key) => this.t(key));
+  }
+
+  timelineItems(order: Order) {
+    return buildOrderTimeline(order, (key) => this.t(key));
   }
 
   ngOnInit(): void {

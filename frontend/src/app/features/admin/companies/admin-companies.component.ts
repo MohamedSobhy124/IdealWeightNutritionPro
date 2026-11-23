@@ -1,25 +1,27 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminCompany, UpsertAdminCompanyRequest } from '../../../core/models/admin-company.models';
 import { AdminCompanyService } from '../../../core/services/admin-company.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
-  UiCardComponent,
   UiCellDirective,
   UiDataTableComponent,
   UiFormFieldComponent,
+  UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     FormsModule,
     UiPageHeaderComponent,
-    UiCardComponent,
     UiFormFieldComponent,
+    UiModalComponent,
     UiDataTableComponent,
     UiCellDirective,
   ],
@@ -29,6 +31,7 @@ import {
 export class AdminCompaniesComponent implements OnInit {
   private readonly companiesApi = inject(AdminCompanyService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminCompany[]>([]);
   readonly loading = signal(true);
@@ -51,10 +54,27 @@ export class AdminCompaniesComponent implements OnInit {
 
   get cols(): UiTableColumn[] {
     return [
-      { key: 'name', header: this.t('companyName'), sortable: true },
-      { key: 'city', header: this.t('city'), hideOnMobile: true },
-      { key: 'phoneNumber', header: this.t('phone') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      {
+        key: 'name',
+        header: this.t('companyName'),
+        sortable: true,
+        mobile: 'primary',
+        searchText: (row) => {
+          const item = row as unknown as AdminCompany;
+          return `${item.name} ${item.streetAddress} ${item.postalCode}`;
+        },
+      },
+      {
+        key: 'city',
+        header: this.t('city'),
+        hideOnMobile: true,
+        searchText: (row) => {
+          const item = row as unknown as AdminCompany;
+          return `${item.city} ${item.state}`;
+        },
+      },
+      { key: 'phoneNumber', header: this.t('phone'), mobile: 'secondary' },
+      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
     ];
   }
 
@@ -147,8 +167,8 @@ export class AdminCompaniesComponent implements OnInit {
     });
   }
 
-  remove(item: AdminCompany): void {
-    if (!confirm(this.t('confirmDeleteCompany'))) return;
+  async remove(item: AdminCompany): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteCompany'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.companiesApi.delete(item.id).subscribe({

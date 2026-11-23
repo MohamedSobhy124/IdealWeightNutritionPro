@@ -4,7 +4,7 @@
   @if (loading()) {
     <div class="content-grid-2">
       @for (i of [1, 2, 3, 4]; track i) {
-        <ui-skeleton height="200px" class="rounded-2xl" />
+        <ui-skeleton height="200px" class="rounded-2xl bg-stage" />
       }
     </div>
   } @else if (error()) {
@@ -18,8 +18,8 @@
       @for (sale of sales(); track sale.id) {
         <article class="promo-card ui-card ui-hover-lift group overflow-hidden">
           @if (sale.imageUrl) {
-            <a [routerLink]="['/flash-sales', sale.id]" class="promo-card__media block">
-              <span class="absolute start-2 top-2 z-10"><ui-badge variant="danger">{{ t('flashSaleBadge') }}</ui-badge></span>
+            <a [routerLink]="['/flash-sales', sale.id]" class="promo-card__media block bg-stage">
+              <span class="absolute start-2 top-2 z-10"><ui-badge variant="citrus">{{ t('flashSaleBadge') }}</ui-badge></span>
               <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" [alt]="saleName(sale)" loading="lazy" />
             </a>
           }
@@ -30,13 +30,13 @@
             @if (sale.description) {
               <p class="mt-1 line-clamp-2 text-xs text-ink-500 sm:text-sm">{{ sale.description }}</p>
             }
-            <p class="mt-2 flex flex-wrap items-center gap-1 text-xs text-ink-600 sm:text-sm">
+            <div class="mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-citrus/20 bg-citrus-soft px-2.5 py-1.5 text-xs text-citrus-fg sm:text-sm">
               {{ t('saleEndsIn') }}
               <app-flash-sale-countdown [endDate]="sale.endDate" />
-              <span class="text-ink-300">·</span>
+              <span class="text-citrus/40">·</span>
               {{ sale.productCount }} {{ t('productsLabel') }}
-            </p>
-            <a class="ui-btn-primary ui-btn-sm mt-3 w-full justify-center sm:w-auto" [routerLink]="['/flash-sales', sale.id]">{{ t('shopNow') }}</a>
+            </div>
+            <a class="ui-btn-primary mt-3 w-full justify-center sm:w-auto" [routerLink]="['/flash-sales', sale.id]">{{ t('shopNow') }}</a>
           </div>
         </article>
       }

@@ -1,11 +1,11 @@
 export const environment = {
   production: false,
-  apiBaseUrl: '/api',
+  apiBaseUrl: 'https://idealweight-001-site1.ftempurl.com/api',
   signalRHubUrl: '/hubs/notifications',
   legacyAssetsBaseUrl: 'https://idealweightnutrition.ae',
   siteName: 'Ideal Weight Nutrition',
   siteNameAr: 'ايديال ويت للتغذية',
-  siteUrl: 'http://localhost:4200',
+  siteUrl: 'https://idealweight-001-site1.ftempurl.com',
   siteDescription:
     'Shop premium supplements, nutrition products, flash sales, and wellness services in the UAE.',
   siteDescriptionAr:

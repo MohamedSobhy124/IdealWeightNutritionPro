@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 
 /**
  * Forward API, SignalR, static media, SEO, and OAuth paths to the .NET backend.
- * Set BACKEND_URL when the API is not on http://localhost:5228.
+ * Set BACKEND_URL when the API is not on https://localhost:7128.
  */
 app.use(backendProxy);
 

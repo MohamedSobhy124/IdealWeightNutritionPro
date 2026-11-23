@@ -6,9 +6,10 @@
 @layer components {
   /* ---- Surfaces ---------------------------------------------------------- */
   .ui-card {
-    @apply rounded-2xl border shadow-card;
-    background: var(--surface);
-    border-color: var(--border);
+    @apply rounded-2xl border;
+    background: var(--surface-raised);
+    border-color: rgb(var(--rgb-ink-200) / 0.9);
+    box-shadow: var(--shadow-card);
   }
   .ui-card-pad {
     @apply p-5 sm:p-6;
@@ -21,50 +22,56 @@
 
   /* ---- Buttons ----------------------------------------------------------- */
   .ui-btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
            leading-none select-none
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35
            disabled:cursor-not-allowed disabled:opacity-50;
     transition:
-      transform 0.15s ease,
-      box-shadow 0.2s ease,
       background-color 0.15s ease,
       border-color 0.15s ease,
-      color 0.15s ease;
-  }
-  .ui-btn:hover:not(:disabled) {
-    @apply -translate-y-px;
+      color 0.15s ease,
+      box-shadow 0.15s ease;
   }
   .ui-btn:active:not(:disabled) {
-    transform: scale(0.98) translateY(0);
+    transform: scale(0.99);
   }
   .ui-btn-sm {
-    @apply min-h-10 px-3 py-2 text-xs rounded-lg;
+    @apply min-h-11 px-3 py-2 text-xs rounded-lg;
   }
   .ui-btn-lg {
     @apply min-h-12 px-5 py-3 text-base;
   }
   .ui-btn-primary {
     @apply ui-btn border border-transparent text-white;
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    box-shadow:
-      0 1px 2px rgb(15 23 42 / 0.08),
-      0 4px 12px rgb(5 150 105 / 0.22);
+    background: rgb(var(--rgb-brand-solid));
   }
   .ui-btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow:
-      0 2px 4px rgb(15 23 42 / 0.1),
-      0 8px 20px rgb(5 150 105 / 0.28);
+    background: rgb(var(--rgb-brand-solid-hover));
   }
   .ui-btn-primary:active:not(:disabled) {
-    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+    background: rgb(var(--rgb-forest-deep));
   }
   .ui-btn-secondary {
-    @apply ui-btn border text-ink-700 shadow-xs hover:border-ink-300 hover:bg-ink-50;
-    background: var(--surface);
+    @apply ui-btn shadow-none;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: rgb(var(--rgb-ink-800));
+  }
+  .ui-btn-secondary:hover:not(:disabled) {
+    background: var(--surface-muted);
+    border-color: rgb(var(--rgb-ink-300));
+  }
+  :is(.dark) .ui-btn-secondary {
+    color: rgb(var(--rgb-ink-800));
     border-color: var(--border);
+  }
+  /* Promo CTA uses forest — sale color is reserved for prices/badges only. */
+  .ui-btn-promo {
+    @apply ui-btn border border-transparent text-white;
+    background: rgb(var(--rgb-brand-solid));
+  }
+  .ui-btn-promo:hover:not(:disabled) {
+    background: rgb(var(--rgb-brand-solid-hover));
   }
   .ui-btn-ghost {
     @apply ui-btn bg-transparent text-ink-600 shadow-none hover:bg-ink-100;
@@ -72,12 +79,32 @@
   .ui-btn-danger {
     @apply ui-btn border border-transparent bg-danger text-white shadow-sm hover:brightness-105;
   }
+  .ui-btn-danger-soft {
+    @apply ui-btn border border-danger/20 bg-danger-soft text-danger-fg shadow-none hover:border-danger/40;
+  }
+
+  .ui-segmented {
+    @apply inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-ink-200 bg-surface-muted p-1;
+    scrollbar-width: none;
+  }
+  .ui-segmented::-webkit-scrollbar {
+    display: none;
+  }
+  .ui-segmented__option {
+    @apply min-h-10 shrink-0 whitespace-nowrap rounded-lg px-3 text-sm font-medium text-ink-600 transition-colors
+      hover:text-ink-900;
+  }
+  .ui-segmented__option--active {
+    @apply bg-surface text-ink-900 shadow-sm;
+  }
   .ui-btn-icon {
-    @apply inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl text-ink-500 shadow-none
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-ink-500 shadow-none
            transition-[transform,background-color,color] duration-150
            hover:bg-ink-100 hover:text-ink-800
            focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40
            active:scale-95;
+    background: transparent;
+    border: 0;
     touch-action: manipulation;
   }
 
@@ -103,13 +130,23 @@
   .ui-badge-brand {
     @apply ui-badge bg-brand-50 text-brand-700;
   }
+  .ui-badge-citrus {
+    @apply ui-badge font-semibold;
+    background: rgb(var(--rgb-citrus-soft));
+    color: rgb(var(--rgb-citrus-fg));
+  }
+  .ui-badge-lime {
+    @apply ui-badge font-semibold;
+    background: rgb(var(--rgb-brand-50));
+    color: rgb(var(--rgb-brand-800));
+  }
 
   /* ---- Form controls ----------------------------------------------------- */
   .ui-label {
     @apply mb-1.5 block text-sm font-medium text-ink-700;
   }
   .ui-input {
-    @apply block w-full rounded-xl border px-3.5 py-2.5 text-sm text-ink-900
+    @apply block w-full min-h-12 rounded-xl border px-3.5 py-2.5 text-base text-ink-900
            placeholder:text-ink-400 shadow-xs transition-colors
            focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30
            disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400;
@@ -122,11 +159,58 @@
   .ui-select {
     @apply ui-input pe-9 appearance-none bg-no-repeat;
   }
+
+  .ui-password {
+    @apply relative;
+  }
+
+  .ui-password .ui-input {
+    padding-inline-end: 2.75rem;
+  }
+
+  .ui-password__toggle {
+    @apply absolute inset-y-0 end-0 flex w-11 items-center justify-center text-ink-500 hover:text-ink-800;
+  }
+
+  .ui-otp {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .ui-otp__cell {
+    @apply h-12 w-10 shrink-0 px-0 text-center text-lg font-semibold tabular-nums sm:w-11;
+  }
   .ui-help {
     @apply mt-1.5 text-xs text-ink-500;
   }
   .ui-error {
     @apply mt-1.5 text-xs font-medium text-danger;
+  }
+
+  /* ---- Overlays ---------------------------------------------------------- */
+  .ui-drawer-panel {
+    --ui-drawer-from: 100%;
+    animation: ui-drawer-in var(--duration-slow) var(--ease-out) both;
+  }
+  html[dir='rtl'] .ui-drawer-panel {
+    --ui-drawer-from: -100%;
+  }
+  @keyframes ui-drawer-in {
+    from {
+      transform: translateX(var(--ui-drawer-from));
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  /* Bounded scroll area so the data-table header can stay sticky on large screens. */
+  .ui-table-scroll {
+    @apply lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto;
+    overscroll-behavior: contain;
+  }
+  .ui-toast {
+    @apply pointer-events-auto flex w-full items-start gap-3 rounded-xl border bg-surface px-4 py-3 text-sm text-ink-800 shadow-elevated;
+    border-color: var(--border);
+    animation: ui-fade-in var(--duration-base) var(--ease-out) both;
   }
 
   /* ---- Misc -------------------------------------------------------------- */
@@ -139,7 +223,7 @@
   .ui-skeleton::after {
     @apply absolute inset-0 -translate-x-full;
     content: '';
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--rgb-surface) / 0.6), transparent);
     animation: shimmer 1.6s infinite;
   }
   html[dir='rtl'] .ui-skeleton::after {
@@ -167,17 +251,11 @@
     @apply ui-motion hover:-translate-y-0.5 hover:shadow-elevated;
   }
   .ui-fade-in {
-    animation: ui-fade-in 0.25s ease-out both;
+    animation: ui-fade-in 0.25s ease-out;
   }
   @keyframes ui-fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   /* ---- Product grids --------------------------------------------------- */
@@ -185,17 +263,54 @@
     @apply grid grid-cols-2 items-stretch gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4;
   }
   .product-grid--sidebar {
-    @apply grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-2 xl:grid-cols-3;
+    @apply grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5;
   }
   .product-carousel {
-    @apply flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 no-scrollbar sm:grid sm:grid-cols-3 sm:gap-3 sm:overflow-visible lg:grid-cols-4;
+    @apply flex snap-x snap-mandatory gap-3.5 overflow-x-auto overscroll-x-contain pb-2 no-scrollbar lg:grid lg:grid-cols-4 lg:gap-5 lg:overflow-visible;
   }
   .product-carousel__item {
-    @apply min-w-[48%] flex-none snap-start sm:min-w-0;
+    @apply w-[52%] shrink-0 snap-start xs:w-[46%] sm:w-[31%] lg:w-auto lg:min-w-0;
+  }
+
+  /* ---- Pill tabs (segmented filter row; scrolls on narrow screens) ------ */
+  .ui-pill-tabs {
+    @apply flex gap-2 overflow-x-auto overscroll-x-contain pb-1 no-scrollbar;
+  }
+  .ui-pill-tab {
+    @apply inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold;
+    border: 1px solid rgb(var(--rgb-ink-200));
+    background: rgb(var(--rgb-surface-raised));
+    color: rgb(var(--rgb-ink-700));
+    transition: background var(--duration-fast, 150ms) ease, color var(--duration-fast, 150ms) ease,
+      border-color var(--duration-fast, 150ms) ease;
+  }
+  .ui-pill-tab:hover {
+    border-color: rgb(var(--rgb-brand-300));
+    color: rgb(var(--rgb-brand-700));
+  }
+  .ui-pill-tab[aria-selected='true'] {
+    border-color: rgb(var(--rgb-brand-solid));
+    background: rgb(var(--rgb-brand-solid));
+    color: rgb(255 255 255);
+  }
+  /* On dark forest bands: translucent pills, lime when selected. */
+  .ui-pill-tabs--inverse .ui-pill-tab {
+    border-color: rgb(255 255 255 / 0.18);
+    background: rgb(255 255 255 / 0.06);
+    color: inherit;
+  }
+  .ui-pill-tabs--inverse .ui-pill-tab:hover {
+    background: rgb(255 255 255 / 0.12);
+    color: inherit;
+  }
+  .ui-pill-tabs--inverse .ui-pill-tab[aria-selected='true'] {
+    border-color: rgb(var(--rgb-lime));
+    background: rgb(var(--rgb-lime));
+    color: rgb(var(--rgb-lime-fg));
   }
 
   .ui-stagger-children > * {
-    animation: ui-fade-in 0.35s ease-out both;
+    animation: ui-fade-in 0.35s ease-out;
   }
   .ui-stagger-children > *:nth-child(1) { animation-delay: 0ms; }
   .ui-stagger-children > *:nth-child(2) { animation-delay: 40ms; }
@@ -241,7 +356,7 @@
   }
 
   .product-grid .ui-product-card--compact .ui-product-card__wishlist {
-    @apply end-1 top-1 min-h-7 min-w-7 bg-white/90 shadow-sm;
+    @apply end-1 top-1 min-h-7 min-w-7 rounded-full bg-white shadow-sm;
   }
 
   .product-grid .ui-product-card--compact .ui-product-card__wishlist .material-icons {
@@ -294,7 +409,7 @@
   }
 
   .checkout-stepper__list {
-    @apply relative grid grid-cols-4 gap-1 sm:gap-2;
+    @apply relative grid gap-1 sm:gap-2;
   }
 
   .checkout-stepper__item {
@@ -310,8 +425,8 @@
   }
 
   .checkout-stepper__dot--current {
-    @apply border-brand-600 bg-white text-brand-700 shadow-sm;
-    box-shadow: 0 0 0 3px rgb(5 150 105 / 0.15);
+    @apply border-brand-600 bg-surface text-brand-700 shadow-sm;
+    box-shadow: 0 0 0 3px rgb(var(--rgb-brand-600) / 0.15);
   }
 
   .checkout-stepper__dot--upcoming {
@@ -393,7 +508,7 @@
   }
 
   .checkout-summary-total {
-    @apply -mx-1 mt-3 rounded-xl bg-ink-900 px-4 py-3 text-white;
+    @apply -mx-1 mt-3 rounded-xl bg-scrim px-4 py-3 text-white;
   }
 
   .checkout-trust {
@@ -405,21 +520,19 @@
   }
 
   .checkout-mobile-bar {
-    @apply fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-elevated backdrop-blur-md lg:hidden;
+    @apply fixed inset-x-0 z-40 flex flex-col items-stretch gap-2 border-t px-3 py-3 shadow-elevated backdrop-blur-md lg:hidden;
+    /* Clears the bottom nav, including its 1px top border. */
+    bottom: calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px));
     background: var(--surface-overlay);
     border-color: var(--border);
   }
 
   .checkout-mobile-bar__meta {
-    @apply min-w-0 flex-1;
+    @apply flex min-w-0 items-baseline justify-between gap-3;
   }
 
   .checkout-mobile-bar__btn {
-    @apply min-h-11 shrink-0 px-5;
-  }
-
-  .checkout-mobile-bar--fab-offset {
-    bottom: 4.25rem;
+    @apply min-h-12 w-full min-w-0 px-4 text-sm;
   }
 
   /* ---- Auth layout ----------------------------------------------------- */
@@ -437,11 +550,17 @@
 
   .auth-brand-panel {
     @apply relative hidden overflow-hidden rounded-3xl p-8 text-white lg:flex lg:flex-col lg:justify-center;
-    background: linear-gradient(145deg, #047857 0%, #059669 45%, #10b981 100%);
+    /* Fixed hexes (mode-independent): photo + forest scrim + lime glow.
+       A missing image file falls through to the base forest gradient. */
+    background:
+      radial-gradient(ellipse at 85% -10%, rgb(214 232 216 / 0.16), transparent 55%),
+      linear-gradient(to top, rgb(10 32 25 / 0.9), rgb(10 32 25 / 0.5) 55%, rgb(10 32 25 / 0.2)),
+      url('/images/auth-brand.jpg') center / cover no-repeat,
+      linear-gradient(150deg, rgb(var(--rgb-brand-solid)), rgb(var(--rgb-forest-deep)));
   }
 
   .auth-brand-panel__logo {
-    @apply mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm;
+    @apply mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm;
   }
 
   .auth-brand-panel__title {
@@ -460,6 +579,10 @@
     @apply flex items-center gap-2;
   }
 
+  .auth-brand-panel__trust li .material-icons {
+    color: rgb(var(--rgb-lime));
+  }
+
   .auth-form-wrap {
     @apply mx-auto w-full max-w-md space-y-4 lg:max-w-none lg:py-4;
   }
@@ -473,7 +596,7 @@
   }
 
   .auth-divider {
-    @apply my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-400;
+    @apply my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-600;
   }
 
   .auth-divider::before,
@@ -512,6 +635,43 @@
     }
   }
 
+  .ui-timeline--compact {
+    @apply m-0 flex list-none items-center p-0;
+  }
+
+  .ui-timeline--compact__step {
+    @apply flex min-w-0 flex-1 items-center;
+  }
+
+  .ui-timeline--compact__step:last-child {
+    flex: 0 0 auto;
+  }
+
+  .ui-timeline--compact__dot {
+    @apply h-2.5 w-2.5 shrink-0 rounded-full bg-ink-200;
+  }
+
+  .ui-timeline--compact__dot.is-done,
+  .ui-timeline--compact__dot.is-active {
+    @apply bg-brand-600;
+  }
+
+  .ui-timeline--compact__dot.is-active {
+    @apply ring-4 ring-brand-100;
+  }
+
+  .ui-timeline--compact__line {
+    @apply mx-1 h-0.5 flex-1 bg-ink-200;
+  }
+
+  .ui-timeline--compact__line.is-done {
+    @apply bg-brand-600;
+  }
+
+  .ui-timeline--compact__caption {
+    @apply mt-1.5 text-xs font-semibold text-ink-700;
+  }
+
   .ui-timeline-pulse {
     animation: ui-timeline-pulse 2s ease-in-out infinite;
   }
@@ -519,10 +679,10 @@
   @keyframes ui-timeline-pulse {
     0%,
     100% {
-      box-shadow: 0 0 0 0 rgb(5 150 105 / 0.35);
+      box-shadow: 0 0 0 0 rgb(var(--rgb-brand-600) / 0.35);
     }
     50% {
-      box-shadow: 0 0 0 8px rgb(5 150 105 / 0);
+      box-shadow: 0 0 0 8px rgb(var(--rgb-brand-600) / 0);
     }
   }
 
@@ -531,7 +691,7 @@
   }
 
   .promo-card__media {
-    @apply relative aspect-[16/10] overflow-hidden bg-ink-100;
+    @apply relative aspect-[16/10] overflow-hidden bg-stage;
   }
 
   .promo-card__media img {
@@ -551,7 +711,7 @@
   }
 
   .ui-prose h3 {
-    @apply mb-2 mt-6 text-lg font-semibold text-ink-900;
+    @apply mb-2 mt-6 border-s-4 border-brand-600 ps-3 text-lg font-semibold text-ink-900;
   }
 
   .ui-prose p {
@@ -625,14 +785,14 @@
     clip: auto;
     white-space: normal;
     border-radius: 0.75rem;
-    background: var(--brand-600, #059669);
+    background: var(--brand-600);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
     color: #fff;
     box-shadow: var(--shadow-elevated);
     outline: none;
-    box-shadow: 0 0 0 2px rgb(5 150 105 / 0.4);
+    box-shadow: 0 0 0 2px rgb(var(--rgb-brand-600) / 0.4);
   }
 
   /* ---- RTL polish ------------------------------------------------------ */

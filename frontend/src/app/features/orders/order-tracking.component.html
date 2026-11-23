@@ -3,16 +3,16 @@
 
   <ui-card class="ui-card-pad block">
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-      <ui-form-field [label]="t('orderId')">
-        <input class="ui-input ui-input-ltr" type="number" formControlName="orderId" min="1" inputmode="numeric" />
+      <ui-form-field [label]="t('orderId')" [required]="true" [error]="orderIdError()">
+        <input class="ui-input ui-input-ltr" type="number" formControlName="orderId" min="1" inputmode="numeric" autocomplete="off" />
       </ui-form-field>
-      <ui-form-field [label]="t('email')">
-        <input class="ui-input" type="email" formControlName="email" autocomplete="email" spellcheck="false" />
+      <ui-form-field [label]="t('email')" [required]="true" [error]="emailError()">
+        <input class="ui-input" type="email" formControlName="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" />
       </ui-form-field>
       @if (error()) {
         <p class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger-fg" role="alert">{{ error() }}</p>
       }
-      <button type="submit" class="ui-btn-primary w-full" [disabled]="form.invalid || loading()" [attr.aria-busy]="loading()">
+      <button type="submit" class="ui-btn-primary w-full" [disabled]="loading()" [attr.aria-busy]="loading()">
         {{ loading() ? t('processing') : t('track') }}
       </button>
     </form>
@@ -25,15 +25,15 @@
           <h2 class="text-lg font-bold text-ink-900">{{ t('orderLabel') }} #{{ o.id }}</h2>
           <p class="mt-0.5 text-sm text-ink-500">{{ o.orderDate | date: 'medium' }}</p>
         </div>
-        <ui-badge [variant]="statusVariant(o.orderStatus)">{{ o.orderStatus }}</ui-badge>
+        <ui-badge [variant]="statusVariant(o.orderStatus)">{{ labelStatus(o.orderStatus) }}</ui-badge>
       </div>
 
       <ui-timeline [ariaLabel]="t('trackOrderTitle')" [items]="timelineItems(o)" />
 
-      <dl class="space-y-2 rounded-xl bg-ink-50/80 p-4 text-sm">
+      <dl class="order-meta-panel space-y-2 rounded-xl p-4 text-sm">
         <div class="flex justify-between gap-4">
           <dt class="text-ink-500">{{ t('payment') }}</dt>
-          <dd class="font-medium text-ink-900">{{ o.paymentStatus }}</dd>
+          <dd class="font-medium text-ink-900">{{ labelStatus(o.paymentStatus) }}</dd>
         </div>
         <div class="flex justify-between gap-4">
           <dt class="text-ink-500">{{ t('total') }}</dt>

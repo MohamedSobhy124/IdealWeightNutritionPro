@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -18,11 +19,14 @@ import {
 import { startGeideaPayment } from '../../core/utils/geidea-checkout';
 import { apiErrorMessage } from '../../core/utils/api-error';
 
-import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiPageHeaderComponent, UiSkeletonComponent } from '../../shared/ui';
+import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiOtpInputComponent, UiPageHeaderComponent, UiSheetSelectComponent, UiSkeletonComponent, UiStepperComponent } from '../../shared/ui';
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, FormsModule, IwnCurrencyPipe, UiCardComponent, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiFormFieldComponent],
+  imports: [RouterLink, FormsModule, IwnCurrencyPipe, UiCardComponent, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiFormFieldComponent, UiStepperComponent, UiOtpInputComponent, UiSheetSelectComponent],
   templateUrl: './checkout-page.component.html',
   styleUrl: './checkout-page.component.css',
 })
@@ -32,6 +36,7 @@ export class CheckoutPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly locale = inject(LocaleService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly loading = signal(true);
   readonly submitting = signal(false);
@@ -58,6 +63,8 @@ export class CheckoutPageComponent implements OnInit {
   paymentMethod = 'COD';
   createAccountForGuest = false;
   readonly checkoutStep = signal(0);
+  /** Set when Continue is pressed on a step that is still incomplete. */
+  private readonly attemptedStep = signal<number | null>(null);
 
   readonly checkoutSteps: { icon: string; labelKey: UiKey }[] = [
     { icon: 'person', labelKey: 'checkoutStepContact' },
@@ -66,11 +73,32 @@ export class CheckoutPageComponent implements OnInit {
     { icon: 'fact_check', labelKey: 'checkoutStepReview' },
   ];
 
+  readonly stepperSteps = computed(() => {
+    this.locale.locale();
+    return this.checkoutSteps.map((step) => ({ label: this.t(step.labelKey) }));
+  });
+
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
   }
+
+  readonly cityOptions = computed(() => {
+    this.locale.locale();
+    return [
+      { value: null, label: this.t('selectCity') },
+      ...this.cities().map((city) => ({ value: city.id, label: this.cityLabel(city) })),
+    ];
+  });
+
+  readonly areaOptions = computed(() => {
+    this.locale.locale();
+    return [
+      { value: null, label: this.t('selectArea') },
+      ...this.remoteAreas().map((area) => ({ value: area.id, label: this.areaLabel(area) })),
+    ];
+  });
 
   cityLabel(city: City): string {
     const name = this.locale.pick(city.name, city.nameAr);
@@ -99,10 +127,6 @@ export class CheckoutPageComponent implements OnInit {
       }
     }
     return method.unavailableReason ?? '';
-  }
-
-  stepProgress(): number {
-    return Math.round((this.checkoutStep() / 3) * 100);
   }
 
   orderTotal(): number {
@@ -144,6 +168,7 @@ export class CheckoutPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (this.auth.isAuthenticated()) {
       this.auth.loadProfile().subscribe({
         next: (profile) => {
@@ -253,31 +278,64 @@ export class CheckoutPageComponent implements OnInit {
   }
 
   canPlaceOrder(): boolean {
-    if (!this.name || !this.email || !this.phone || !this.street || !this.cityId) return false;
-    if (this.remoteAreas().length > 0 && !this.remoteAreaId) return false;
-    if (!this.isAuthenticated() && !this.emailVerified() && !this.otp) return false;
-    return true;
+    return this.canProceedFromStep(0) && this.canProceedFromStep(1) && this.canProceedFromStep(2);
   }
 
   canProceedFromStep(step: number): boolean {
     switch (step) {
       case 0:
-        if (!this.name || !this.email || !this.phone) return false;
-        if (!this.isAuthenticated() && !this.emailVerified() && !this.otp) return false;
+        if (!this.name.trim() || !this.emailValid() || !this.phone.trim()) return false;
+        if (!this.isAuthenticated() && !this.emailVerified() && !this.otp.trim()) return false;
         return true;
       case 1:
-        if (!this.street || !this.cityId) return false;
+        if (!this.street.trim() || !this.cityId) return false;
         if (this.remoteAreas().length > 0 && !this.remoteAreaId) return false;
         return true;
       case 2:
         return !!this.paymentMethod;
       default:
-        return this.canPlaceOrder();
+        return true;
     }
   }
 
+  nameError(): string | null {
+    return this.attemptedStep() === 0 && !this.name.trim() ? this.t('fieldRequired') : null;
+  }
+
+  emailError(): string | null {
+    if (this.attemptedStep() !== 0) return null;
+    if (!this.email.trim()) return this.t('fieldRequired');
+    return this.emailValid() ? null : this.t('invalidEmail');
+  }
+
+  phoneError(): string | null {
+    return this.attemptedStep() === 0 && !this.phone.trim() ? this.t('fieldRequired') : null;
+  }
+
+  otpError(): string | null {
+    if (this.attemptedStep() !== 0 || this.isAuthenticated() || this.emailVerified() || this.otp.trim()) return null;
+    return this.t('verifyEmailFirst');
+  }
+
+  streetError(): string | null {
+    return this.attemptedStep() === 1 && !this.street.trim() ? this.t('fieldRequired') : null;
+  }
+
+  cityError(): string | null {
+    return this.attemptedStep() === 1 && !this.cityId ? this.t('fieldRequired') : null;
+  }
+
+  areaError(): string | null {
+    if (this.attemptedStep() !== 1 || this.remoteAreas().length === 0 || this.remoteAreaId) return null;
+    return this.t('fieldRequired');
+  }
+
   nextStep(): void {
-    if (!this.canProceedFromStep(this.checkoutStep())) return;
+    if (!this.canProceedFromStep(this.checkoutStep())) {
+      this.attemptedStep.set(this.checkoutStep());
+      return;
+    }
+    this.attemptedStep.set(null);
     if (this.checkoutStep() === 1) {
       this.refreshQuote();
     }
@@ -285,11 +343,21 @@ export class CheckoutPageComponent implements OnInit {
   }
 
   prevStep(): void {
+    this.attemptedStep.set(null);
     this.checkoutStep.update((s) => Math.max(s - 1, 0));
   }
 
+  private emailValid(): boolean {
+    return EMAIL_PATTERN.test(this.email.trim());
+  }
+
   submit(): void {
-    if (!this.canPlaceOrder() || !this.cityId) return;
+    if (!this.canPlaceOrder() || !this.cityId) {
+      const step = !this.canProceedFromStep(0) ? 0 : !this.canProceedFromStep(1) ? 1 : 2;
+      this.checkoutStep.set(step);
+      this.attemptedStep.set(step);
+      return;
+    }
 
     this.submitting.set(true);
     this.error.set(null);
@@ -304,14 +372,14 @@ export class CheckoutPageComponent implements OnInit {
 
         this.checkout
           .placeOrder({
-            name: this.name,
-            email: this.email,
-            phoneNumber: this.phone,
-            streetAddress: this.street,
+            name: this.name.trim(),
+            email: this.email.trim(),
+            phoneNumber: this.phone.trim(),
+            streetAddress: this.street.trim(),
             cityId: this.cityId!,
             remoteAreaId: this.remoteAreaId ?? undefined,
             paymentMethod: this.paymentMethod,
-            otp: this.isAuthenticated() ? undefined : this.otp || undefined,
+            otp: this.isAuthenticated() ? undefined : this.otp.trim() || undefined,
             createAccountForGuest: !this.isAuthenticated() && this.createAccountForGuest,
           })
           .subscribe({

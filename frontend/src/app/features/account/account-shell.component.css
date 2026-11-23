@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep .ui-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.account-avatar {
+  background: rgb(var(--rgb-brand-700));
+  color: #fff;
+}
+
+.account-nav-mobile {
+  background: transparent;
+}
+
+.account-nav__link {
+  color: var(--ink-700);
+}
+
+.account-nav__link:hover {
+  background: rgb(var(--rgb-ink-100));
+}
+
+.account-nav__link--active {
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-700));
+  box-shadow: inset 3px 0 0 0 rgb(var(--rgb-lime));
+}
+
+:host-context([dir='rtl']) .account-nav__link--active {
+  box-shadow: inset -3px 0 0 0 rgb(var(--rgb-lime));
+}
+
+.account-shortcut-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+:host ::ng-deep .ui-segmented__option--active {
+  background: rgb(var(--rgb-brand-700));
+  color: #fff;
+  box-shadow: none;
+}

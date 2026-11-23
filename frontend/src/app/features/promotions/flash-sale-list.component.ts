@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { FlashSaleService } from '../../core/services/flash-sale.service';
@@ -10,6 +11,7 @@ import { FlashSaleSummary } from '../../core/models/flash-sale.models';
 import { UiBadgeComponent, UiEmptyStateComponent, UiPageHeaderComponent, UiSkeletonComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [RouterLink, FlashSaleCountdownComponent, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiBadgeComponent],
   templateUrl: './flash-sale-list.component.html',
@@ -19,6 +21,7 @@ export class FlashSaleListComponent implements OnInit {
   readonly catalogue = inject(CatalogueService);
   private readonly flashSales = inject(FlashSaleService);
   readonly locale = inject(LocaleService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly sales = signal<FlashSaleSummary[]>([]);
   readonly loading = signal(true);
@@ -33,6 +36,7 @@ export class FlashSaleListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     this.flashSales.listActive().subscribe({
       next: (sales) => {
         this.sales.set(sales);

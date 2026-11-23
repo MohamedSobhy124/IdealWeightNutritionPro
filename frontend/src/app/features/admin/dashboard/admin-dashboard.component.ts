@@ -1,12 +1,15 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ChartData } from 'chart.js';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UI, UiKey } from '../../../core/i18n/ui-text';
 import { AdminDashboard } from '../../../core/models/admin-dashboard.models';
 import { AdminDashboardService } from '../../../core/services/admin-dashboard.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { statusLabel } from '../../../core/utils/status-label';
 import {
   UiBadgeComponent,
   UiBadgeVariant,
@@ -21,6 +24,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -36,23 +40,29 @@ import {
     UiCellDirective,
   ],
   templateUrl: './admin-dashboard.component.html',
+  styleUrl: './admin-dashboard.component.css',
 })
 export class AdminDashboardComponent implements OnInit {
   private readonly dashboardApi = inject(AdminDashboardService);
+  private readonly auth = inject(AuthService);
   readonly locale = inject(LocaleService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly data = signal<AdminDashboard | null>(null);
+  readonly isAdmin = computed(() => this.auth.profile()?.roles.includes('Admin') ?? false);
 
-  readonly quickActions = [
-    { labelKey: 'newProduct' as AdminUiKey, link: '/admin/products/new', icon: 'add_box' },
-    { labelKey: 'navOrders' as AdminUiKey, link: '/admin/orders', icon: 'receipt_long' },
-    { labelKey: 'navFlashSales' as AdminUiKey, link: '/admin/flash-sales/new', icon: 'bolt' },
-    { labelKey: 'navPromoCodes' as AdminUiKey, link: '/admin/promo-codes/new', icon: 'confirmation_number' },
-    { labelKey: 'navBlog' as AdminUiKey, link: '/admin/blog/new', icon: 'article' },
-    { labelKey: 'navReturns' as AdminUiKey, link: '/admin/returns', icon: 'assignment_return' },
-  ];
+  readonly quickActions = computed(() => {
+    const actions: { labelKey: AdminUiKey; link: string; icon: string; adminOnly?: boolean }[] = [
+      { labelKey: 'navOrders', link: '/admin/orders', icon: 'receipt_long' },
+      { labelKey: 'navReturns', link: '/admin/returns', icon: 'assignment_return' },
+      { labelKey: 'newProduct', link: '/admin/products/new', icon: 'add_box', adminOnly: true },
+      { labelKey: 'navFlashSales', link: '/admin/flash-sales/new', icon: 'bolt', adminOnly: true },
+      { labelKey: 'navPromoCodes', link: '/admin/promo-codes/new', icon: 'confirmation_number', adminOnly: true },
+      { labelKey: 'navBlog', link: '/admin/blog/new', icon: 'article', adminOnly: true },
+    ];
+    return actions.filter((action) => this.isAdmin() || !action.adminOnly);
+  });
 
   readonly orderStatusChart = computed<ChartData<'doughnut'>>(() => {
     const d = this.data();
@@ -69,7 +79,8 @@ export class AdminDashboardComponent implements OnInit {
           data: d
             ? [d.ordersPending, d.ordersProcessing, d.ordersShipped, d.ordersDelivered, d.ordersCancelled]
             : [],
-          backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6', '#059669', '#ef4444'],
+          // Chart.js needs HEX (not CSS vars). Nutrition brand chart palette.
+          backgroundColor: ['#B45309', '#175CD3', '#C8F04E', '#0B6A56', '#B42318'],
           borderWidth: 0,
         },
       ],
@@ -91,7 +102,7 @@ export class AdminDashboardComponent implements OnInit {
           data: d
             ? [d.pendingReturns, d.lowStockProducts, d.pendingStockNotifications, d.servicePurchasesPending]
             : [],
-          backgroundColor: '#059669',
+          backgroundColor: '#0B6A56',
           borderRadius: 8,
           maxBarThickness: 48,
         },
@@ -111,6 +122,10 @@ export class AdminDashboardComponent implements OnInit {
 
   t(key: AdminUiKey): string {
     return this.locale.pick(ADMIN_UI[key].en, ADMIN_UI[key].ar);
+  }
+
+  labelStatus(status: string): string {
+    return statusLabel(status, (key: UiKey) => this.locale.pick(UI[key].en, UI[key].ar));
   }
 
   get recentOrderCols(): UiTableColumn[] {

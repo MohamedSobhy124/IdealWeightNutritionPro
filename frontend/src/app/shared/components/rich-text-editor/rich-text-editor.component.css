@@ -1,5 +1,5 @@
 .rich-text-host {
-  background: #fff;
+  background: var(--surface);
   border-radius: 6px;
 }
 

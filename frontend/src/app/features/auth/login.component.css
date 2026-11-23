@@ -1,3 +1,14 @@
 :host {
   display: block;
 }
+
+.auth-form-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.auth-form-icon {
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-700));
+}

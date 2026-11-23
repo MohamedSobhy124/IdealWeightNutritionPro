@@ -1,59 +1,6 @@
-<section class="ui-fade-in py-6 sm:py-8">
+<section class="ui-fade-in">
   <ui-page-header [title]="t('myAccount')" />
-  <div class="grid gap-6 lg:grid-cols-3">
-    <div class="lg:col-span-1">
-      <ui-card [padded]="true">
-        @if (auth.profile(); as profile) {
-          <div class="flex items-center gap-4">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xl font-semibold text-brand-700">
-              {{ (profile.fullName || profile.email).charAt(0).toUpperCase() }}
-            </div>
-            <div class="min-w-0">
-              <p class="truncate text-base font-semibold text-ink-900">{{ profile.fullName ?? profile.email }}</p>
-              <p class="truncate text-sm text-ink-500">{{ profile.email }}</p>
-            </div>
-          </div>
-        } @else {
-          <div class="flex items-center gap-4">
-            <ui-skeleton height="3.5rem" width="3.5rem" class="rounded-full" />
-            <div class="flex-1 space-y-2">
-              <ui-skeleton height="1rem" width="66%" />
-              <ui-skeleton height="0.75rem" width="50%" />
-            </div>
-          </div>
-        }
-
-        <button type="button" class="ui-btn-secondary mt-5 w-full" (click)="auth.logout()">
-          <span class="material-icons !text-[18px]">logout</span>
-          {{ t('logout') }}
-        </button>
-      </ui-card>
-
-      <nav class="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
-        <a routerLink="/account/orders" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
-          <span class="material-icons text-brand-600">receipt_long</span>
-          <span class="text-sm font-medium text-ink-800">{{ t('myOrders') }}</span>
-        </a>
-        <a routerLink="/account/returns" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
-          <span class="material-icons text-brand-600">assignment_return</span>
-          <span class="text-sm font-medium text-ink-800">{{ t('myReturns') }}</span>
-        </a>
-        <a routerLink="/account/subscriptions" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
-          <span class="material-icons text-brand-600">workspace_premium</span>
-          <span class="text-sm font-medium text-ink-800">{{ t('mySubscriptions') }}</span>
-        </a>
-        <a routerLink="/wishlist" class="ui-card ui-card-pad ui-hover-lift flex flex-col items-start gap-2">
-          <span class="material-icons text-brand-600">favorite_border</span>
-          <span class="text-sm font-medium text-ink-800">{{ t('wishlistTitle') }}</span>
-        </a>
-        <a routerLink="/track" class="ui-card ui-card-pad ui-hover-lift col-span-2 flex items-center gap-2">
-          <span class="material-icons text-brand-600">local_shipping</span>
-          <span class="text-sm font-medium text-ink-800">{{ t('trackOrder') }}</span>
-        </a>
-      </nav>
-    </div>
-
-    <div class="space-y-6 lg:col-span-2">
+  <div class="space-y-6">
       <ui-card [heading]="t('recentOrders')">
         <a card-actions routerLink="/account/orders" class="ui-btn-ghost ui-btn-sm">{{ t('viewAllOrders') }}</a>
         @if (ordersLoading()) {
@@ -75,7 +22,7 @@
                   <p class="text-xs text-ink-500">{{ order.orderDate | date: 'mediumDate' }}</p>
                 </a>
                 <div class="flex shrink-0 flex-col items-end gap-1">
-                  <ui-badge [variant]="statusVariant(order.orderStatus)">{{ order.orderStatus }}</ui-badge>
+                  <ui-badge [variant]="statusVariant(order.orderStatus)">{{ labelStatus(order.orderStatus) }}</ui-badge>
                   <span class="text-sm font-semibold text-ink-900">{{ order.orderTotal | iwnCurrency }}</span>
                 </div>
               </li>
@@ -105,7 +52,7 @@
                   <p class="text-xs text-ink-500">{{ sub.purchaseDate | date: 'mediumDate' }}</p>
                 </a>
                 <div class="flex shrink-0 flex-col items-end gap-1">
-                  <ui-badge [variant]="statusVariant(sub.status)">{{ sub.status }}</ui-badge>
+                  <ui-badge [variant]="statusVariant(sub.status)">{{ labelStatus(sub.status) }}</ui-badge>
                   <span class="text-sm font-semibold text-ink-900">{{ sub.amountPaid | iwnCurrency }}</span>
                 </div>
               </li>
@@ -114,22 +61,36 @@
         }
       </ui-card>
 
-      <ui-card heading="Security & Data">
+      <ui-card [heading]="t('securityTitle')">
         @if (actionMessage()) {
-          <p class="mb-3 text-sm" [class.text-danger]="actionError()" [class.text-success-fg]="!actionError()">
+          <p class="mb-3 text-sm" role="status" [class.text-danger]="actionError()" [class.text-success-fg]="!actionError()">
             {{ actionMessage() }}
           </p>
         }
-        <div class="grid gap-3 sm:grid-cols-2">
-          <input class="ui-input" type="password" [(ngModel)]="currentPassword" placeholder="Current password" />
-          <input class="ui-input" type="password" [(ngModel)]="newPassword" placeholder="New password" />
+        <div class="max-w-md space-y-3">
+          <ui-form-field [label]="t('currentPassword')" [required]="true" [error]="currentPasswordError()">
+            <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
+              <input class="ui-input" type="password" [(ngModel)]="currentPassword" name="currentPassword" autocomplete="current-password" />
+            </ui-password-field>
+          </ui-form-field>
+          <ui-form-field [label]="t('newPassword')" [required]="true" [error]="newPasswordError()">
+            <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
+              <input class="ui-input" type="password" [(ngModel)]="newPassword" name="newPassword" autocomplete="new-password" />
+            </ui-password-field>
+          </ui-form-field>
         </div>
         <div class="mt-3 flex flex-wrap gap-2">
-          <button type="button" class="ui-btn-primary ui-btn-sm" (click)="changePassword()" [disabled]="busy()">Change password</button>
-          <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="exportPersonalData()" [disabled]="busy()">Export personal data</button>
-          <button type="button" class="ui-btn-danger ui-btn-sm" (click)="deleteAccount()" [disabled]="busy()">Delete account</button>
+          <button type="button" class="ui-btn-primary ui-btn-sm" (click)="changePassword()" [disabled]="busy()">{{ t('changePassword') }}</button>
+          <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="exportPersonalData()" [disabled]="busy()">{{ t('exportPersonalData') }}</button>
+        </div>
+
+        <div class="mt-6 rounded-xl border border-danger/30 bg-danger-soft p-4">
+          <h3 class="text-sm font-semibold text-danger-fg">{{ t('deleteAccountTitle') }}</h3>
+          <p class="mt-1 text-sm text-ink-700">{{ t('deleteAccountMessage') }}</p>
+          <button type="button" class="ui-btn-danger ui-btn-sm mt-3" (click)="deleteAccount()" [disabled]="busy()">
+            {{ t('deleteAccountAction') }}
+          </button>
         </div>
       </ui-card>
-    </div>
   </div>
 </section>

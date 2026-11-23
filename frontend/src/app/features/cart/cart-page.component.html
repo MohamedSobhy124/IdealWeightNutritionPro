@@ -1,12 +1,12 @@
-<section class="checkout-shell ui-fade-in">
+<section class="checkout-shell ui-fade-in pb-20 lg:pb-0">
   <ui-page-header [title]="t('shoppingCart')" />
 
   @if (loading()) {
-    <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
-      <div class="space-y-3">
+    <div class="grid gap-6 lg:grid-cols-[1fr_360px] lg:gap-8">
+      <div class="space-y-4">
         @for (i of [1, 2, 3]; track i) {
-          <div class="ui-card flex gap-4 p-4">
-            <ui-skeleton height="6rem" width="6rem" class="shrink-0 rounded-xl" />
+          <div class="ui-card flex gap-4 rounded-2xl p-4 sm:p-5">
+            <ui-skeleton height="7rem" width="7rem" class="shrink-0 rounded-2xl" />
             <div class="flex-1 space-y-2">
               <ui-skeleton height="1rem" width="70%" />
               <ui-skeleton height="0.875rem" width="40%" />
@@ -25,33 +25,35 @@
       <a routerLink="/shop" class="ui-btn-primary">{{ t('continueShopping') }}</a>
     </ui-empty-state>
   } @else {
-    <div class="cart-context mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 px-3 py-2.5 text-sm text-ink-700 sm:px-4">
+    <div class="cart-context mb-5 rounded-2xl px-3.5 py-3 text-sm text-ink-700 sm:px-4 sm:py-3.5">
       <p class="font-medium text-ink-900">{{ t('proceedCheckout') }}</p>
       <p class="mt-0.5 text-xs text-ink-600">{{ t('securePayments') }} · {{ t('sameDayDelivery') }}</p>
     </div>
     <div class="grid gap-6 lg:grid-cols-[1fr_360px] lg:gap-8">
-      <div class="space-y-3 ui-stagger-children">
+      <div class="space-y-4 ui-stagger-children">
         @for (item of items(); track item.lineId) {
-          <article class="ui-card ui-hover-lift cart-item-card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-            <img
-              [src]="catalogue.resolveImageUrl(item.imageUrl)"
-              [alt]="item.title"
-              class="h-20 w-20 shrink-0 rounded-xl bg-ink-100 object-cover sm:h-24 sm:w-24"
-            />
+          <article class="ui-card ui-hover-lift cart-item-card flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+            <div class="cart-item-media shrink-0 overflow-hidden rounded-2xl bg-stage">
+              <img
+                [src]="catalogue.resolveImageUrl(item.imageUrl)"
+                [alt]="lineTitle(item)"
+                class="cart-item-media__img h-full w-full object-contain"
+              />
+            </div>
             <div class="min-w-0 flex-1">
               @if (item.comboOfferId) {
-                <a [routerLink]="['/combos', item.comboOfferId]" class="font-semibold text-ink-900 hover:text-brand-600">{{ item.title }}</a>
-                <p class="mt-0.5 text-xs text-brand-600">{{ t('comboOffer') }}</p>
+                <a [routerLink]="['/combos', item.comboOfferId]" class="cart-item-title font-semibold text-ink-900 hover:text-brand-600">{{ lineTitle(item) }}</a>
+                <p class="mt-0.5 text-xs font-medium text-brand-600">{{ t('comboOffer') }}</p>
               } @else {
-                <a [routerLink]="['/product', item.slug]" class="line-clamp-2 font-semibold text-ink-900 hover:text-brand-600">{{ item.title }}</a>
+                <a [routerLink]="['/product', item.slug]" class="cart-item-title line-clamp-2 font-semibold text-ink-900 hover:text-brand-600">{{ lineTitle(item) }}</a>
               }
-              <p class="mt-1 text-sm text-ink-500 tabular-nums">{{ item.unitPrice | iwnCurrency }} {{ t('priceEach') }}</p>
+              <p class="mt-1.5 text-sm text-ink-600 tabular-nums">{{ item.unitPrice | iwnCurrency }} {{ t('priceEach') }}</p>
               @if (!item.inStock) {
                 <p class="mt-1 text-xs font-medium text-warning-fg">{{ t('limitedStock') }}</p>
               }
             </div>
             <div class="flex items-center justify-between gap-3 sm:justify-end">
-              <div class="flex items-center rounded-xl border border-ink-200 bg-ink-50">
+              <div class="flex items-center rounded-2xl border border-ink-200 bg-ink-50">
                 <button type="button" class="ui-btn-icon !h-11 !w-11" (click)="changeQty(item, item.quantity - 1)" [disabled]="updating()" [attr.aria-label]="t('quantity')">−</button>
                 <span class="min-w-[2rem] text-center text-sm font-semibold tabular-nums">{{ item.quantity }}</span>
                 <button
@@ -62,7 +64,7 @@
                   [attr.aria-label]="t('quantity')"
                 >+</button>
               </div>
-              <p class="min-w-[5rem] text-end text-sm font-bold text-ink-900 tabular-nums">{{ item.lineTotal | iwnCurrency }}</p>
+              <p class="min-w-[5.25rem] text-end text-sm font-bold text-ink-900 tabular-nums">{{ item.lineTotal | iwnCurrency }}</p>
               <button type="button" class="ui-btn-icon text-danger" (click)="remove(item)" [disabled]="updating()" [attr.aria-label]="t('remove')">
                 <span class="material-icons text-[20px]">delete_outline</span>
               </button>
@@ -72,9 +74,9 @@
       </div>
 
       <aside class="ui-sticky-summary h-fit">
-        <ui-card class="ui-card-pad">
-          <h2 class="mb-1 text-lg font-bold text-ink-900">{{ t('orderSummary') }}</h2>
-          <p class="mb-4 text-xs text-ink-500">{{ t('securePayments') }}</p>
+        <ui-card class="ui-card-pad cart-summary-card">
+          <h2 class="cart-summary-title display-title mb-1 text-lg text-ink-900 sm:text-xl">{{ t('orderSummary') }}</h2>
+          <p class="mb-4 text-xs leading-relaxed text-ink-600">{{ t('securePayments') }}</p>
           <div class="cart-summary-chips mb-4">
             <span class="cart-summary-chip">{{ t('trustedOriginals') }}</span>
             <span class="cart-summary-chip">{{ t('sameDayDelivery') }}</span>
@@ -82,7 +84,7 @@
 
           <div class="promo mb-4">
             @if (appliedPromo()) {
-              <p class="rounded-xl bg-success-soft px-3 py-2 text-sm text-success-fg">
+              <p class="cart-promo-applied rounded-2xl px-3.5 py-2.5 text-sm">
                 {{ t('promoApplied') }} <strong>{{ appliedPromo()!.code }}</strong>
                 (− {{ discount() | iwnCurrency }})
                 <button type="button" class="ms-2 text-danger underline" (click)="removePromo()" [disabled]="updating()">
@@ -104,22 +106,22 @@
             }
           </div>
 
-          <dl class="space-y-2.5 text-sm tabular-nums">
+          <dl class="space-y-3 text-sm tabular-nums">
             <div class="flex justify-between gap-3">
-              <dt class="text-ink-500">{{ t('subtotal') }}</dt>
+              <dt class="text-ink-600">{{ t('subtotal') }}</dt>
               <dd class="font-medium text-ink-900">{{ subtotal() | iwnCurrency }}</dd>
             </div>
             @if (discount() > 0) {
-              <div class="flex justify-between gap-3 text-success-fg">
+              <div class="cart-discount flex justify-between gap-3 rounded-2xl px-3 py-2.5">
                 <dt>{{ t('discount') }}</dt>
-                <dd>− {{ discount() | iwnCurrency }}</dd>
+                <dd class="font-semibold">− {{ discount() | iwnCurrency }}</dd>
               </div>
             }
           </dl>
 
           <div class="checkout-summary-total flex items-center justify-between gap-3">
             <span class="text-sm font-medium text-white/80">{{ t('total') }}</span>
-            <span class="text-xl font-bold tabular-nums">{{ (discount() > 0 ? total() : subtotal()) | iwnCurrency }}</span>
+            <span class="text-xl font-bold tabular-nums tracking-tight">{{ (discount() > 0 ? total() : subtotal()) | iwnCurrency }}</span>
           </div>
 
           <p class="checkout-trust">
@@ -127,7 +129,7 @@
             {{ t('trustedOriginals') }} · {{ t('sameDayDelivery') }}
           </p>
 
-          <a routerLink="/checkout" class="ui-btn-primary mt-5 hidden w-full lg:inline-flex">{{ t('proceedCheckout') }}</a>
+          <a routerLink="/checkout" class="cart-checkout-cta mt-5 hidden w-full lg:inline-flex">{{ t('proceedCheckout') }}</a>
           <button type="button" class="ui-btn-ghost mt-2 hidden w-full text-danger lg:inline-flex" (click)="clearCart()" [disabled]="updating()">
             {{ t('clearCart') }}
           </button>
@@ -135,12 +137,12 @@
       </aside>
     </div>
 
-    <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset lg:hidden">
+    <div class="checkout-mobile-bar checkout-mobile-bar--fab-offset cart-mobile-bar lg:hidden">
       <div class="checkout-mobile-bar__meta">
-        <p class="text-xs text-ink-500">{{ t('total') }}</p>
-        <p class="text-lg font-bold tabular-nums text-ink-900">{{ (discount() > 0 ? total() : subtotal()) | iwnCurrency }}</p>
+        <p class="text-xs text-white/75">{{ t('total') }}</p>
+        <p class="text-lg font-bold tabular-nums text-white">{{ (discount() > 0 ? total() : subtotal()) | iwnCurrency }}</p>
       </div>
-      <a routerLink="/checkout" class="ui-btn-primary checkout-mobile-bar__btn flex-1 text-center">{{ t('proceedCheckout') }}</a>
+      <a routerLink="/checkout" class="cart-checkout-cta checkout-mobile-bar__btn flex-1 text-center">{{ t('proceedCheckout') }}</a>
     </div>
   }
 </section>

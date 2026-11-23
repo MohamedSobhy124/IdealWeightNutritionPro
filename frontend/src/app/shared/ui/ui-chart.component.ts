@@ -38,7 +38,7 @@ export class UiChartComponent {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Inter' } },
+          labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Manrope' } },
         },
       },
       ...this.options(),

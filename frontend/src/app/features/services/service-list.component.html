@@ -4,7 +4,7 @@
   @if (loading()) {
     <div class="content-grid-2">
       @for (_ of [1, 2, 3, 4]; track $index) {
-        <ui-skeleton height="220px" class="rounded-2xl" />
+        <ui-skeleton height="220px" class="rounded-2xl bg-stage" />
       }
     </div>
   } @else if (error()) {
@@ -20,6 +20,9 @@
           [price]="service.salePrice != null && service.hasActiveOffer ? service.salePrice : service.price"
           [imageUrl]="service.imageUrl ? catalogue.resolveImageUrl(service.imageUrl) : null"
           [subtitle]="displayDescription(service) || null"
+          [meta]="typeLabel(service.serviceType)"
+          [comparePrice]="service.salePrice != null && service.hasActiveOffer ? service.price : null"
+          [badge]="service.hasActiveOffer ? t('limitedOffer') : null"
           [ctaLabel]="t('viewDetails')"
         />
       }

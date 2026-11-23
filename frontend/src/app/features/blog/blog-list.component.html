@@ -4,7 +4,7 @@
   @if (loading()) {
     <div class="content-grid-2">
       @for (i of [1, 2, 3, 4]; track i) {
-        <ui-skeleton height="220px" class="rounded-2xl" />
+        <ui-skeleton height="220px" class="rounded-2xl bg-stage" />
       }
     </div>
   } @else if (error()) {

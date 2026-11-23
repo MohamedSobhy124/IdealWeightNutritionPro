@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
@@ -8,6 +8,7 @@ import {
   AdminStockNotificationService,
 } from '../../../core/services/admin-stock-notification.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
   UiCellDirective,
@@ -18,6 +19,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -35,6 +37,7 @@ import {
 export class AdminStockNotificationsComponent implements OnInit {
   private readonly api = inject(AdminStockNotificationService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminStockNotificationListItem[]>([]);
   readonly totalCount = signal(0);
@@ -107,25 +110,25 @@ export class AdminStockNotificationsComponent implements OnInit {
     this.load();
   }
 
-  prevPage(): void {
-    if (this.page() <= 1) return;
-    this.page.update((p) => p - 1);
+  goToPage(page: number): void {
+    this.page.set(page);
     this.load();
   }
 
-  nextPage(): void {
-    const maxPage = Math.ceil(this.totalCount() / this.pageSize());
-    if (this.page() >= maxPage) return;
-    this.page.update((p) => p + 1);
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.page.set(1);
     this.load();
   }
 
-  totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalCount() / this.pageSize()));
-  }
-
-  deactivate(item: AdminStockNotificationListItem): void {
-    if (!confirm(this.t('confirmDeactivateStockNotification'))) return;
+  async deactivate(item: AdminStockNotificationListItem): Promise<void> {
+    const confirmed = await this.confirmDialog.ask({
+      title: this.t('confirmDeactivateStockNotification'),
+      confirmLabel: this.t('confirmAction'),
+      danger: true,
+      icon: 'notifications_off',
+    });
+    if (!confirmed) return;
 
     this.deactivatingId.set(item.id);
     this.message.set(null);

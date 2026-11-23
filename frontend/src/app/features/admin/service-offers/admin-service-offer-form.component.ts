@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 import { AdminPromoCodeListItem } from '../../../core/models/admin-promo.models';
 import { AdminServiceListItem } from '../../../core/models/admin-service.models';
 import { UpsertAdminServiceOfferRequest } from '../../../core/models/admin-service-offer.models';
@@ -18,6 +19,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -31,7 +33,7 @@ import {
   templateUrl: './admin-service-offer-form.component.html',
   styleUrl: './admin-service-offer-form.component.css',
 })
-export class AdminServiceOfferFormComponent implements OnInit {
+export class AdminServiceOfferFormComponent extends UnsavedChangesForm implements OnInit {
   private readonly offersApi = inject(AdminServiceOfferService);
   private readonly servicesApi = inject(AdminServiceService);
   private readonly promoApi = inject(AdminPromoService);
@@ -156,6 +158,7 @@ export class AdminServiceOfferFormComponent implements OnInit {
     op.subscribe({
       next: (offer) => {
         this.submitting.set(false);
+        this.markSaved();
         if (!this.isEdit()) {
           void this.router.navigate(['/admin/service-offers', offer.id]);
         }

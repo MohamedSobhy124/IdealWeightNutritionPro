@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminBlogPostListItem } from '../../../core/models/admin-blog.models';
 import { AdminBlogService } from '../../../core/services/admin-blog.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
   UiCellDirective,
@@ -14,6 +15,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -29,6 +31,7 @@ import {
 export class AdminBlogPostsComponent implements OnInit {
   private readonly blogApi = inject(AdminBlogService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminBlogPostListItem[]>([]);
   readonly loading = signal(true);
@@ -74,8 +77,14 @@ export class AdminBlogPostsComponent implements OnInit {
     });
   }
 
-  remove(item: AdminBlogPostListItem): void {
-    if (!confirm(this.t('confirmDeleteBlogPost'))) return;
+  async remove(item: AdminBlogPostListItem): Promise<void> {
+    const confirmed = await this.confirmDialog.ask({
+      title: this.t('confirmDeleteBlogPost'),
+      confirmLabel: this.t('confirmAction'),
+      danger: true,
+      icon: 'visibility_off',
+    });
+    if (!confirmed) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.blogApi.delete(item.id).subscribe({

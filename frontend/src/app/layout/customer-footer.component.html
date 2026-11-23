@@ -1,0 +1,99 @@
+<footer class="app-footer mt-auto">
+  <div class="app-footer-payments">
+    <div class="container py-3.5">
+      <div class="app-footer-payments__row">
+        <span class="app-payment-badge app-payment-badge--visa"><span class="material-icons !text-[16px]">credit_card</span>Visa</span>
+        <span class="app-payment-badge app-payment-badge--master"><span class="material-icons !text-[16px]">credit_card</span>Mastercard</span>
+        <span class="app-payment-badge app-payment-badge--apple"><span class="material-icons !text-[16px]">phone_iphone</span>Apple Pay</span>
+        <span class="app-payment-badge app-payment-badge--google"><span class="material-icons !text-[16px]">smartphone</span>Google Pay</span>
+        <span class="app-payment-badge app-payment-badge--samsung"><span class="material-icons !text-[16px]">smartphone</span>Samsung Pay</span>
+        <span class="app-payment-badge app-payment-badge--tabby"><span class="material-icons !text-[16px]">calendar_view_week</span>Tabby</span>
+        <span class="app-payment-badge app-payment-badge--tamara"><span class="material-icons !text-[16px]">account_balance_wallet</span>Tamara</span>
+      </div>
+    </div>
+  </div>
+  <div class="container grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <div class="app-footer__brand flex items-center gap-2">
+        <img src="/images/logo.png" [alt]="t('brandName')" width="36" height="36" class="h-9 w-9 rounded-xl object-contain" />
+        <span class="text-base font-bold">{{ t('brandName') }}</span>
+      </div>
+      <p class="app-footer__muted mt-3 text-sm">{{ t('newsletterLead') }}</p>
+    </div>
+
+    <nav class="text-sm" [attr.aria-label]="t('legalAndHelp')">
+      <h2 class="app-footer__heading mb-3 text-xs font-semibold uppercase tracking-wider">{{ t('helpCenter') }}</h2>
+      <ul class="space-y-2">
+        <li><a routerLink="/page/about">{{ t('aboutUs') }}</a></li>
+        <li><a routerLink="/page/privacy">{{ t('privacyPolicy') }}</a></li>
+        <li><a routerLink="/page/terms">{{ t('termsConditions') }}</a></li>
+      </ul>
+    </nav>
+
+    <nav class="text-sm" [attr.aria-label]="t('customerService')">
+      <h2 class="app-footer__heading mb-3 text-xs font-semibold uppercase tracking-wider">{{ t('shippingInfo') }}</h2>
+      <ul class="space-y-2">
+        <li><a routerLink="/page/shipping">{{ t('shippingInfo') }}</a></li>
+        <li><a routerLink="/page/return-policy">{{ t('returnsPolicy') }}</a></li>
+        <li><a routerLink="/track">{{ t('trackOrderTitle') }}</a></li>
+      </ul>
+    </nav>
+
+    <div id="newsletter">
+      <h2 class="app-footer__heading mb-3 text-xs font-semibold uppercase tracking-wider">{{ t('newsletterTitle') }}</h2>
+      @if (auth.isAuthenticated()) {
+        @if (auth.profile(); as profile) {
+          <p class="app-footer__muted mb-2 text-sm">{{ profile.email }}</p>
+        }
+        @if (newsletterStatusLoaded()) {
+          @if (newsletterSubscribed()) {
+            <p class="app-footer__accent mb-2 text-sm font-medium">{{ t('newsletterSubscribed') }}</p>
+            <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="unsubscribeNewsletter()" [disabled]="newsletterBusy()">
+              {{ newsletterBusy() ? t('newsletterUnsubscribing') : t('newsletterUnsubscribe') }}
+            </button>
+          } @else {
+            <button type="button" class="ui-btn-primary" (click)="subscribeNewsletter()" [disabled]="newsletterBusy()">
+              {{ newsletterBusy() ? t('processing') : t('subscribeNewsletter') }}
+            </button>
+          }
+        } @else {
+          <p class="app-footer__muted text-sm">{{ t('loading') }}</p>
+        }
+      } @else {
+        @if (!newsletterStatusLoaded()) {
+          <p class="app-footer__muted text-sm">{{ t('loading') }}</p>
+        } @else if (newsletterSubscribed()) {
+          <p class="app-footer__accent mb-2 text-sm font-medium">{{ t('newsletterSubscribed') }}</p>
+          <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="unsubscribeNewsletter()" [disabled]="newsletterBusy()">
+            {{ newsletterBusy() ? t('newsletterUnsubscribing') : t('newsletterUnsubscribe') }}
+          </button>
+        } @else {
+          <form class="flex flex-col gap-2 sm:flex-row" (submit)="$event.preventDefault(); subscribeGuestNewsletter()">
+            <input
+              type="email"
+              name="email"
+              autocomplete="email"
+              class="ui-input"
+              [placeholder]="t('newsletterEmailPlaceholder')"
+              [value]="guestNewsletterEmail()"
+              (input)="guestNewsletterEmail.set($any($event.target).value)"
+              [disabled]="newsletterBusy()"
+            />
+            <button type="submit" class="ui-btn-primary shrink-0" [disabled]="newsletterBusy()">
+              {{ newsletterBusy() ? t('processing') : t('subscribeNewsletter') }}
+            </button>
+          </form>
+          <p class="mt-2 text-xs">
+            <a routerLink="/newsletter/unsubscribe" class="underline">{{ t('newsletterUnsubscribeLink') }}</a>
+          </p>
+        }
+      }
+      @if (newsletterMessage()) {
+        <p class="mt-2 text-sm" role="status" aria-live="polite" [class.text-danger]="newsletterError()" [class.app-footer__accent]="!newsletterError()">{{ newsletterMessage() }}</p>
+      }
+    </div>
+  </div>
+  <div class="app-footer__copy border-t py-4">
+    <p class="container text-center text-xs">© {{ year }} Ideal Weight Nutrition</p>
+  </div>
+</footer>

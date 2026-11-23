@@ -25,6 +25,7 @@ export type UiTrendDirection = 'up' | 'down' | 'flat';
         @if (icon()) {
           <div
             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"
+            aria-hidden="true"
           >
             <span class="material-icons !text-[22px]">{{ icon() }}</span>
           </div>
@@ -68,7 +69,7 @@ export class UiStatCardComponent {
       case 'up':
         return 'text-success-fg';
       case 'down':
-        return 'text-danger';
+        return 'text-danger-fg';
       default:
         return 'text-ink-500';
     }

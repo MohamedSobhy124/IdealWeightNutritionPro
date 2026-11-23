@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 import { Brand, Category } from '../../../core/models/catalogue.models';
 import { AdminProductService } from '../../../core/services/admin-product.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
@@ -15,6 +16,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -28,7 +30,7 @@ import {
   templateUrl: './admin-product-create.component.html',
   styleUrl: './admin-product-create.component.css',
 })
-export class AdminProductCreateComponent implements OnInit {
+export class AdminProductCreateComponent extends UnsavedChangesForm implements OnInit {
   private readonly productsApi = inject(AdminProductService);
   private readonly catalogue = inject(CatalogueService);
   private readonly router = inject(Router);
@@ -113,6 +115,7 @@ export class AdminProductCreateComponent implements OnInit {
       .subscribe({
         next: (product) => {
           this.submitting.set(false);
+          this.markSaved();
           void this.router.navigate(['/admin/products', product.id]);
         },
         error: (err) => {

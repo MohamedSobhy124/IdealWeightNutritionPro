@@ -1,100 +1,240 @@
+/*
+ * Design tokens — premium nutrition store.
+ *
+ * Cool mist paper, jewel emerald for action, lime only as a small spark,
+ * citrus for sale prices and badges. Channels are space-separated RGB
+ * (`--rgb-*`) so Tailwind opacity keeps working.
+ */
 :root {
-  /* Brand accent (emerald) — keep in sync with tailwind.config.js `brand`. */
-  --brand-50: #ecfdf5;
-  --brand-100: #d1fae5;
-  --brand-500: #10b981;
-  --brand-600: #059669;
-  --brand-700: #047857;
+  /* ---- Brand (jewel emerald) -------------------------------------------- */
+  --rgb-brand-50: 227 246 237;
+  --rgb-brand-100: 205 236 222;
+  --rgb-brand-200: 163 214 192;
+  --rgb-brand-300: 107 186 152;
+  --rgb-brand-400: 36 154 114;
+  --rgb-brand-500: 16 138 104;
+  --rgb-brand-600: 11 106 86;
+  --rgb-brand-700: 11 106 86;
+  --rgb-brand-800: 8 82 67;
+  --rgb-brand-900: 12 61 50;
+  /* Solid emerald for primary buttons — same in dark mode, white label. */
+  --rgb-brand-solid: 11 106 86;
+  --rgb-brand-solid-hover: 8 82 67;
+  /* Deep forest fills (footer, scrims). Does not invert in dark mode. */
+  --rgb-forest-deep: 8 56 46;
 
-  /* Ink / neutral scale (slate). */
-  --ink-50: #f8fafc;
-  --ink-100: #f1f5f9;
-  --ink-200: #e2e8f0;
-  --ink-300: #cbd5e1;
-  --ink-400: #94a3b8;
-  --ink-500: #64748b;
-  --ink-600: #475569;
-  --ink-700: #334155;
-  --ink-800: #1e293b;
-  --ink-900: #0f172a;
+  /* ---- Lime spark (marks and rules — never a page fill) ---------------- */
+  --rgb-lime: 200 240 78;
+  --rgb-lime-soft: 244 249 216;
+  --rgb-lime-deep: 74 106 20;
+  --rgb-lime-fg: 20 28 24;
 
-  /* Semantic surface tokens (light). */
-  --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --surface-raised: #ffffff;
-  --surface-overlay: rgb(255 255 255 / 0.95);
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  /* ---- Sale accent (prices / badges only — not large fills) ------------- */
+  --rgb-citrus: 194 65 12;
+  --rgb-citrus-soft: 255 244 236;
+  --rgb-citrus-fg: 154 52 18;
 
-  /* Legacy semantic tokens consumed by global styles + Material theme. */
+  /* ---- Product image stage ---------------------------------------------- */
+  --rgb-stage: 246 248 246;
+
+  /* ---- Contact channel colors ------------------------------------------- */
+  --rgb-contact-phone: 23 92 211;
+  --rgb-contact-whatsapp: 31 175 91;
+  --rgb-contact-panel: 8 56 46;
+
+  /* ---- Ink (cool stone, green-cast charcoal) ---------------------------- */
+  --rgb-ink-50: 242 246 243;
+  --rgb-ink-100: 232 238 234;
+  --rgb-ink-200: 215 226 219;
+  --rgb-ink-300: 192 205 197;
+  --rgb-ink-400: 154 165 159;
+  --rgb-ink-500: 94 105 98;
+  --rgb-ink-600: 74 88 82;
+  --rgb-ink-700: 44 56 51;
+  --rgb-ink-800: 28 40 35;
+  --rgb-ink-900: 20 28 24;
+
+  /* ---- Semantic --------------------------------------------------------- */
+  --rgb-success: 11 106 86;
+  --rgb-success-soft: 227 246 237;
+  --rgb-success-fg: 11 106 86;
+  --rgb-warning: 180 83 9;
+  --rgb-warning-soft: 254 246 232;
+  --rgb-warning-fg: 146 64 14;
+  --rgb-danger: 180 35 24;
+  --rgb-danger-soft: 254 243 242;
+  --rgb-danger-fg: 145 28 19;
+  --rgb-info: 23 92 211;
+  --rgb-info-soft: 239 244 255;
+  --rgb-info-fg: 21 74 166;
+
+  /* ---- Surfaces --------------------------------------------------------- */
+  --rgb-surface: 255 255 255;
+  --rgb-surface-muted: 230 238 233;
+  --rgb-surface-raised: 255 255 255;
+  --rgb-scrim: 8 56 46;
+
+  /* ---- Hex-style aliases (plain CSS consumers) -------------------------- */
+  --brand-50: rgb(var(--rgb-brand-50));
+  --brand-100: rgb(var(--rgb-brand-100));
+  --brand-500: rgb(var(--rgb-brand-500));
+  --brand-600: rgb(var(--rgb-brand-600));
+  --brand-700: rgb(var(--rgb-brand-700));
+  --brand-900: rgb(var(--rgb-brand-900));
+
+  --lime: rgb(var(--rgb-lime));
+  --lime-soft: rgb(var(--rgb-lime-soft));
+  --lime-deep: rgb(var(--rgb-lime-deep));
+  --lime-fg: rgb(var(--rgb-lime-fg));
+
+  --citrus: rgb(var(--rgb-citrus));
+  --citrus-soft: rgb(var(--rgb-citrus-soft));
+  --citrus-fg: rgb(var(--rgb-citrus-fg));
+
+  --stage: rgb(var(--rgb-stage));
+
+  --contact-phone: rgb(var(--rgb-contact-phone));
+  --contact-whatsapp: rgb(var(--rgb-contact-whatsapp));
+  --contact-panel: rgb(var(--rgb-contact-panel));
+
+  --ink-50: rgb(var(--rgb-ink-50));
+  --ink-100: rgb(var(--rgb-ink-100));
+  --ink-200: rgb(var(--rgb-ink-200));
+  --ink-300: rgb(var(--rgb-ink-300));
+  --ink-400: rgb(var(--rgb-ink-400));
+  --ink-500: rgb(var(--rgb-ink-500));
+  --ink-600: rgb(var(--rgb-ink-600));
+  --ink-700: rgb(var(--rgb-ink-700));
+  --ink-800: rgb(var(--rgb-ink-800));
+  --ink-900: rgb(var(--rgb-ink-900));
+
+  --surface: rgb(var(--rgb-surface));
+  --surface-muted: rgb(var(--rgb-surface-muted));
+  --surface-raised: rgb(var(--rgb-surface-raised));
+  --surface-overlay: rgb(var(--rgb-surface) / 0.94);
+  --text: rgb(var(--rgb-ink-900));
+  --text-muted: rgb(var(--rgb-ink-500));
+  --border: rgb(var(--rgb-ink-200));
+  --border-strong: rgb(var(--rgb-ink-300));
+
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
-  --color-primary: #059669;
-  --color-primary-hover: #047857;
-  --color-success: #047857;
-  --color-success-bg: #ecfdf5;
-  --color-error: #b91c1c;
-  --color-error-bg: #fef2f2;
+  --color-primary: rgb(var(--rgb-brand-solid));
+  --color-primary-hover: rgb(var(--rgb-brand-solid-hover));
+  --color-success: rgb(var(--rgb-success-fg));
+  --color-success-bg: rgb(var(--rgb-success-soft));
+  --color-error: rgb(var(--rgb-danger-fg));
+  --color-error-bg: rgb(var(--rgb-danger-soft));
 
+  /* ---- Shape ------------------------------------------------------------ */
   --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
+  /* ---- Spacing (4px base) ----------------------------------------------- */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 0.75rem;
   --space-lg: 1rem;
   --space-xl: 1.5rem;
   --space-2xl: 2rem;
+  --space-3xl: 3rem;
 
-  --font-size-sm: 0.85rem;
+  /* ---- Typography ------------------------------------------------------- */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
-  --font-size-lg: 1.1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
 
   --input-padding: 0.625rem 0.75rem;
   --btn-padding-y: 0.625rem;
   --btn-padding-x: 1.1rem;
 
-  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.06);
-  --shadow-elevated: 0 4px 6px -2px rgb(15 23 42 / 0.06), 0 12px 28px -8px rgb(15 23 42 / 0.12);
+  /* ---- Elevation -------------------------------------------------------- */
+  --shadow-card: 0 1px 2px rgb(10 28 22 / 0.05), 0 10px 24px -8px rgb(10 28 22 / 0.08);
+  --shadow-elevated: 0 8px 16px -8px rgb(10 28 22 / 0.08), 0 18px 40px -14px rgb(10 28 22 / 0.14);
+  --shadow-overlay: 0 24px 48px -12px rgb(10 28 22 / 0.28);
+  --focus-ring: 0 0 0 3px rgb(var(--rgb-brand-500) / 0.35);
+
+  /* ---- Layers ----------------------------------------------------------- */
+  --z-header: 30;
+  --z-drawer: 50;
+  --z-modal: 100;
+  --z-toast: 110;
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+
+  color-scheme: light;
 }
 
 .dark {
-  --ink-50: #0f172a;
-  --ink-100: #1e293b;
-  --ink-200: #334155;
-  --ink-300: #475569;
-  --ink-400: #64748b;
-  --ink-500: #94a3b8;
-  --ink-600: #cbd5e1;
-  --ink-700: #e2e8f0;
-  --ink-800: #f1f5f9;
-  --ink-900: #f8fafc;
+  --rgb-brand-50: 16 40 32;
+  --rgb-brand-100: 20 52 40;
+  --rgb-brand-200: 26 70 54;
+  --rgb-brand-300: 34 96 74;
+  --rgb-brand-400: 52 140 108;
+  --rgb-brand-500: 142 222 192;
+  --rgb-brand-600: 168 230 204;
+  --rgb-brand-700: 186 236 214;
+  --rgb-brand-800: 210 242 226;
+  --rgb-brand-900: 224 246 234;
+  --rgb-brand-solid: 11 106 86;
+  --rgb-brand-solid-hover: 8 82 67;
 
-  --surface: #1e293b;
-  --surface-muted: #0f172a;
-  --surface-raised: #334155;
-  --surface-overlay: rgb(30 41 59 / 0.95);
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
-  --border: #334155;
-  --border-strong: #475569;
+  --rgb-lime: 200 240 78;
+  --rgb-lime-soft: 32 48 28;
+  --rgb-lime-deep: 200 240 78;
+  --rgb-lime-fg: 20 28 24;
 
-  --color-text: var(--text);
-  --color-text-muted: var(--text-muted);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-success-bg: rgb(5 150 105 / 0.15);
-  --color-error-bg: rgb(220 38 38 / 0.15);
+  --rgb-citrus: 253 186 116;
+  --rgb-citrus-soft: 58 38 18;
+  --rgb-citrus-fg: 253 186 116;
+
+  --rgb-stage: 22 30 26;
+
+  --rgb-ink-50: 16 24 22;
+  --rgb-ink-100: 22 32 28;
+  --rgb-ink-200: 40 56 48;
+  --rgb-ink-300: 82 98 90;
+  --rgb-ink-400: 118 132 124;
+  --rgb-ink-500: 168 180 172;
+  --rgb-ink-600: 204 214 208;
+  --rgb-ink-700: 224 232 226;
+  --rgb-ink-800: 238 244 240;
+  --rgb-ink-900: 243 247 244;
+
+  --rgb-success: 142 222 192;
+  --rgb-success-soft: 16 40 32;
+  --rgb-success-fg: 142 222 192;
+  --rgb-warning-soft: 58 38 10;
+  --rgb-warning-fg: 251 191 36;
+  --rgb-danger-soft: 69 20 20;
+  --rgb-danger-fg: 252 165 165;
+  --rgb-info-soft: 23 37 84;
+  --rgb-info-fg: 147 197 253;
+
+  --rgb-surface: 16 24 22;
+  --rgb-surface-muted: 12 18 16;
+  --rgb-surface-raised: 24 36 32;
+  --rgb-scrim: 6 12 10;
+  --rgb-contact-panel: 8 56 46;
 
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.2), 0 4px 16px -4px rgb(0 0 0 / 0.3);
   --shadow-elevated: 0 4px 6px -2px rgb(0 0 0 / 0.25), 0 12px 28px -8px rgb(0 0 0 / 0.35);
+  --shadow-overlay: 0 24px 48px -12px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
 }

@@ -1,13 +1,40 @@
+/* Active flash sale — deep forest fill with cream text */
+.flash-sale-banner {
+  border-bottom: 1px solid rgb(var(--rgb-lime) / 0.35);
+  background: rgb(var(--rgb-forest-deep));
+  color: rgb(244 247 245);
+}
+
+.flash-sale-banner__bolt {
+  color: rgb(244 247 245 / 0.9);
+}
+
+.flash-sale-banner__muted {
+  color: rgb(244 247 245 / 0.8);
+}
+
+.flash-sale-banner__link {
+  color: rgb(244 247 245);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+.flash-sale-banner__link:hover {
+  text-decoration: underline;
+  color: rgb(244 247 245 / 0.92);
+}
+
+/* Promo ticker fallback — quiet brand soft, not citrus wash */
 .promo-ticker {
-  border-bottom: 1px solid rgb(236 72 153 / 0.2);
-  background: linear-gradient(90deg, rgb(253 242 248), rgb(245 243 255), rgb(236 253 245));
-  color: rgb(30 41 59);
+  border-bottom: 1px solid rgb(var(--rgb-brand-solid) / 0.12);
+  background: rgb(var(--rgb-brand-50));
+  color: rgb(var(--rgb-brand-solid));
 }
 
 :host-context(.dark) .promo-ticker {
-  border-bottom-color: rgb(236 72 153 / 0.25);
-  background: linear-gradient(90deg, rgb(131 24 67 / 0.35), rgb(76 29 149 / 0.3), rgb(6 78 59 / 0.25));
-  color: rgb(241 245 249);
+  border-bottom-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
 }
 
 .promo-ticker__viewport {
@@ -43,8 +70,14 @@
 }
 
 .promo-ticker__link {
+  color: rgb(var(--rgb-brand-solid));
   text-decoration: underline;
   text-underline-offset: 2px;
+  font-weight: 700;
+}
+
+:host-context(.dark) .promo-ticker__link {
+  color: var(--text);
 }
 
 .promo-ticker__link:hover {

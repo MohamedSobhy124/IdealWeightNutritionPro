@@ -1,12 +1,17 @@
+import { A11yModule } from '@angular/cdk/a11y';
 import { isPlatformBrowser } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
+  ElementRef,
   HostListener,
   inject,
   OnInit,
   PLATFORM_ID,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -36,7 +41,20 @@ interface NavGroup {
   items: NavItem[];
 }
 
+interface Breadcrumb {
+  label: string;
+  link: string | null;
+}
+
+interface PaletteItem {
+  label: string;
+  link: string;
+  icon: string;
+  group: string;
+}
+
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterOutlet,
@@ -45,6 +63,7 @@ interface NavGroup {
     FormsModule,
     NotificationBellComponent,
     UiThemeToggleComponent,
+    A11yModule,
   ],
   templateUrl: './admin-shell.component.html',
   styleUrl: './admin-shell.component.css',
@@ -63,8 +82,21 @@ export class AdminShellComponent implements OnInit {
   readonly collapsed = signal(false);
   readonly mobileOpen = signal(false);
   readonly userMenuOpen = signal(false);
-  readonly searchQuery = signal('');
   readonly currentUrl = signal('/admin/dashboard');
+  readonly paletteOpen = signal(false);
+  readonly paletteQuery = signal('');
+  readonly paletteIndex = signal(0);
+  readonly density = signal<'comfortable' | 'compact'>('comfortable');
+  private readonly paletteInput = viewChild<ElementRef<HTMLInputElement>>('paletteInput');
+
+  constructor() {
+    effect(() => {
+      if (!this.paletteOpen()) return;
+      const input = this.paletteInput();
+      if (!input) return;
+      queueMicrotask(() => input.nativeElement.focus());
+    });
+  }
 
   private readonly groups: NavGroup[] = [
     {
@@ -134,16 +166,49 @@ export class AdminShellComponent implements OnInit {
       .filter((group) => group.items.length > 0);
   });
 
-  readonly searchResults = computed(() => {
-    const q = this.searchQuery().trim().toLowerCase();
-    if (!q) return [];
-    const results: NavItem[] = [];
+  readonly paletteItems = computed<PaletteItem[]>(() => {
+    this.locale.locale();
+    const items: PaletteItem[] = [];
     for (const group of this.visibleGroups()) {
       for (const item of group.items) {
-        if (this.t(item.labelKey).toLowerCase().includes(q)) results.push(item);
+        items.push({
+          label: this.t(item.labelKey),
+          link: item.link,
+          icon: item.icon,
+          group: this.t(group.labelKey),
+        });
       }
     }
-    return results.slice(0, 8);
+    if (this.isAdmin()) {
+      const create = this.t('newBadge');
+      const extras: { labelKey: AdminUiKey; link: string; icon: string }[] = [
+        { labelKey: 'newProduct', link: '/admin/products/new', icon: 'add_box' },
+        { labelKey: 'navPromoCodes', link: '/admin/promo-codes/new', icon: 'confirmation_number' },
+        { labelKey: 'navFlashSales', link: '/admin/flash-sales/new', icon: 'bolt' },
+        { labelKey: 'navComboOffers', link: '/admin/combo-offers/new', icon: 'redeem' },
+        { labelKey: 'navBlog', link: '/admin/blog/new', icon: 'article' },
+        { labelKey: 'navServices', link: '/admin/services/new', icon: 'medical_services' },
+      ];
+      for (const extra of extras) {
+        items.push({ label: this.t(extra.labelKey), link: extra.link, icon: extra.icon, group: create });
+      }
+    }
+    return items;
+  });
+
+  readonly paletteResults = computed(() => {
+    const query = this.paletteQuery().trim().toLowerCase();
+    const items = this.paletteItems();
+    const matched = query
+      ? items.filter((item) => item.label.toLowerCase().includes(query) || item.group.toLowerCase().includes(query))
+      : items;
+    return matched.slice(0, 12);
+  });
+
+  readonly activePaletteIndex = computed(() => {
+    const length = this.paletteResults().length;
+    if (length === 0) return 0;
+    return Math.min(this.paletteIndex(), length - 1);
   });
 
   readonly activeLabel = computed(() => {
@@ -159,6 +224,38 @@ export class AdminShellComponent implements OnInit {
     return match ? this.t(match.labelKey) : this.t('navDashboard');
   });
 
+  readonly breadcrumbs = computed<Breadcrumb[]>(() => {
+    const segments = this.currentUrl().split(/[?#]/)[0].split('/').filter(Boolean).slice(1);
+    const crumbs: Breadcrumb[] = [{ label: this.t('adminTitle'), link: '/admin/dashboard' }];
+    if (segments.length === 0 || segments[0] === 'dashboard') {
+      crumbs.push({ label: this.t('navDashboard'), link: null });
+      return crumbs;
+    }
+    let link = '/admin';
+    segments.forEach((segment, index) => {
+      link += `/${segment}`;
+      crumbs.push({
+        label: index === 0 ? this.navLabel(link) ?? segment : this.segmentLabel(segment),
+        link: index === segments.length - 1 ? null : link,
+      });
+    });
+    return crumbs;
+  });
+
+  private navLabel(link: string): string | null {
+    for (const group of this.groups) {
+      const item = group.items.find((i) => i.link === link);
+      if (item) return this.t(item.labelKey);
+    }
+    return null;
+  }
+
+  private segmentLabel(segment: string): string {
+    if (segment === 'new') return this.t('newBadge');
+    if (segment === 'areas') return this.t('remoteAreas');
+    return /^\d+$/.test(segment) ? `#${segment}` : decodeURIComponent(segment);
+  }
+
   t(key: AdminUiKey): string {
     return this.locale.pick(ADMIN_UI[key].en, ADMIN_UI[key].ar);
   }
@@ -171,23 +268,16 @@ export class AdminShellComponent implements OnInit {
         this.currentUrl.set((e as NavigationEnd).urlAfterRedirects);
         this.mobileOpen.set(false);
         this.userMenuOpen.set(false);
+        this.paletteOpen.set(false);
       });
 
-    const check = (profile: { roles: string[] } | null) => {
-      const allowed =
-        profile &&
-        (profile.roles.includes('Admin') || profile.roles.includes('Employee'));
-      if (!allowed) this.router.navigate(['/account']);
-    };
-
     if (!this.auth.profile()) {
-      this.auth.loadProfile().subscribe({ next: check });
-    } else {
-      check(this.auth.profile());
+      this.auth.loadProfile().subscribe();
     }
 
     if (isPlatformBrowser(this.platformId)) {
       this.collapsed.set(localStorage.getItem('iwn-admin-collapsed') === '1');
+      this.density.set(localStorage.getItem('iwn-admin-density') === 'compact' ? 'compact' : 'comfortable');
     }
   }
 
@@ -209,18 +299,69 @@ export class AdminShellComponent implements OnInit {
       .join('');
   }
 
-  onSearchSelect(): void {
-    this.searchQuery.set('');
+  openPalette(): void {
+    this.paletteQuery.set('');
+    this.paletteIndex.set(0);
+    this.paletteOpen.set(true);
+    this.userMenuOpen.set(false);
+  }
+
+  closePalette(): void {
+    this.paletteOpen.set(false);
+  }
+
+  openPaletteItem(link: string): void {
+    this.closePalette();
+    void this.router.navigateByUrl(link);
+  }
+
+  toggleDensity(): void {
+    const next = this.density() === 'compact' ? 'comfortable' : 'compact';
+    this.density.set(next);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('iwn-admin-density', next);
+    }
+  }
+
+  onPaletteKey(event: KeyboardEvent): void {
+    const results = this.paletteResults();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.paletteIndex.set(Math.min(this.activePaletteIndex() + 1, Math.max(results.length - 1, 0)));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.paletteIndex.set(Math.max(this.activePaletteIndex() - 1, 0));
+    } else if (event.key === 'Enter') {
+      const item = results[this.activePaletteIndex()];
+      if (!item) return;
+      event.preventDefault();
+      this.openPaletteItem(item.link);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closePalette();
+    }
   }
 
   logout(): void {
     this.auth.logout();
   }
 
+  @HostListener('document:keydown', ['$event'])
+  onDocKey(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      if (this.paletteOpen()) this.closePalette();
+      else this.openPalette();
+      return;
+    }
+    if (event.key === 'Escape' && this.paletteOpen()) {
+      this.closePalette();
+    }
+  }
+
   @HostListener('document:click', ['$event'])
   onDocClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
     if (!target.closest('.user-menu')) this.userMenuOpen.set(false);
-    if (!target.closest('.shell-search')) this.searchQuery.set('');
   }
 }

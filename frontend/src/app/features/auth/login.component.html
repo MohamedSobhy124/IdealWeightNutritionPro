@@ -23,11 +23,13 @@
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
           <ui-form-field [label]="t('email')">
-            <input type="email" formControlName="email" name="email" autocomplete="email" spellcheck="false" class="ui-input" />
+            <input type="email" formControlName="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" class="ui-input" />
           </ui-form-field>
 
           <ui-form-field [label]="t('password')">
-            <input type="password" formControlName="password" name="password" autocomplete="current-password" class="ui-input" />
+            <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
+              <input type="password" formControlName="password" name="password" autocomplete="current-password" class="ui-input" />
+            </ui-password-field>
           </ui-form-field>
 
           @if (error()) {

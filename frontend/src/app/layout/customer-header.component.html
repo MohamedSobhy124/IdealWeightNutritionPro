@@ -1,0 +1,160 @@
+<header class="app-header sticky top-0 z-40 border-b border-ink-200 bg-[var(--surface-overlay)] backdrop-blur-md" [class.app-header--scrolled]="headerScrolled()">
+  <div class="container flex h-12 items-center gap-1.5 sm:h-16 sm:gap-3">
+    <button
+      type="button"
+      class="ui-btn-icon lg:hidden"
+      (click)="shell.mobileMenuOpen.set(true)"
+      [attr.aria-label]="t('menu')"
+      [attr.aria-expanded]="shell.mobileMenuOpen()"
+      aria-controls="mobile-nav-drawer"
+    >
+      <span class="material-icons" aria-hidden="true">menu</span>
+    </button>
+
+    @if (shell.showBack()) {
+      <button type="button" class="ui-btn-icon sm:hidden" (click)="shell.goBack()" [attr.aria-label]="t('goBack')">
+        <span class="material-icons rtl:-scale-x-100" aria-hidden="true">arrow_back</span>
+      </button>
+    }
+
+    <a routerLink="/" class="app-brand flex shrink-0 items-center gap-2 no-underline">
+      <img
+        src="/images/logo.png"
+        [alt]="t('brandName')"
+        width="36"
+        height="36"
+        class="h-9 w-9 rounded-xl object-contain"
+      />
+      <span class="hidden text-base font-bold tracking-tight text-brand-800 sm:block">{{ t('brandName') }}</span>
+    </a>
+
+    <form
+      class="relative mx-auto hidden w-full max-w-md md:block"
+      (submit)="$event.preventDefault(); shell.submitSearch()"
+    >
+      <span class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400" aria-hidden="true">search</span>
+      <input
+        type="search"
+        class="ui-input ps-10 !py-2.5"
+        [placeholder]="t('searchProductsNav')"
+        [ngModel]="shell.headerSearch()"
+        (ngModelChange)="shell.headerSearch.set($event)"
+        name="q"
+        [attr.aria-label]="t('searchProductsNav')"
+        autocomplete="off"
+      />
+    </form>
+
+    <div class="ms-auto flex items-center gap-1 sm:gap-1.5">
+      <button
+        type="button"
+        class="ui-btn-icon md:hidden"
+        (click)="shell.openSearch()"
+        [attr.aria-label]="t('searchAction')"
+        [attr.aria-expanded]="shell.searchOpen()"
+        aria-controls="mobile-search-panel"
+      >
+        <span class="material-icons !text-[22px]" aria-hidden="true">search</span>
+      </button>
+
+      <ui-theme-toggle class="max-[359px]:hidden" [ariaLabel]="t('themeToggle')" />
+      <button
+        type="button"
+        class="ui-btn-icon"
+        (click)="locale.toggle()"
+        [attr.aria-label]="t('language')"
+      >
+        <span class="text-sm font-semibold">{{ locale.isArabic() ? 'EN' : 'ع' }}</span>
+      </button>
+
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/wishlist" class="ui-btn-icon relative hidden lg:inline-flex" [attr.aria-label]="wishlistAriaLabel()">
+          <span class="material-icons !text-[22px]" aria-hidden="true">favorite_border</span>
+          @if (wishlist.count() > 0) {
+            <span class="absolute -top-0.5 -end-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[rgb(var(--rgb-brand-solid))] px-1 text-[10px] font-bold leading-[18px] text-white">{{ wishlist.count() }}</span>
+          }
+        </a>
+        <app-notification-bell />
+      }
+
+      <a routerLink="/cart" class="ui-btn-icon relative hidden lg:inline-flex" [attr.aria-label]="cartAriaLabel()">
+        <span class="material-icons !text-[22px]" aria-hidden="true">shopping_cart</span>
+        @if (cart.itemCount() > 0) {
+          <span class="absolute -top-0.5 -end-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[rgb(var(--rgb-brand-solid))] px-1 text-[10px] font-bold leading-[18px] text-white">{{ cart.itemCount() }}</span>
+        }
+      </a>
+
+      @if (auth.isAuthenticated()) {
+        <div class="user-menu relative hidden lg:block">
+          <button
+            type="button"
+            class="ui-btn-icon"
+            (click)="shell.userMenuOpen.set(!shell.userMenuOpen()); $event.stopPropagation()"
+            [attr.aria-label]="t('account')"
+            [attr.aria-expanded]="shell.userMenuOpen()"
+            aria-controls="user-account-menu"
+          >
+            <span class="material-icons !text-[22px]" aria-hidden="true">person</span>
+          </button>
+          @if (shell.userMenuOpen()) {
+            <div id="user-account-menu" class="absolute end-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-ink-200 bg-[var(--surface)] shadow-elevated animate-slide-up">
+              <a routerLink="/account" class="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50">
+                <span class="material-icons !text-[18px] text-ink-400">account_circle</span>{{ t('account') }}
+              </a>
+              @if (shell.isStaff()) {
+                <a routerLink="/admin" class="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50">
+                  <span class="material-icons !text-[18px] text-ink-400">admin_panel_settings</span>{{ t('admin') }}
+                </a>
+              }
+              <button type="button" (click)="auth.logout()" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger-soft">
+                <span class="material-icons ui-icon-mirror !text-[18px]">logout</span>{{ t('logout') }}
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <a routerLink="/auth/login" class="ui-btn-primary ms-1 hidden lg:inline-flex">{{ t('login') }}</a>
+      }
+    </div>
+  </div>
+
+  @if (shell.searchOpen()) {
+    <div id="mobile-search-panel" class="border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+      <form class="flex items-center gap-2" (submit)="$event.preventDefault(); shell.submitSearch()">
+        <div class="relative min-w-0 flex-1">
+          <span class="material-icons pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400">search</span>
+          <input
+            #searchInput
+            type="search"
+            class="ui-input ps-10"
+            [placeholder]="t('searchProductsNav')"
+            [ngModel]="shell.headerSearch()"
+            (ngModelChange)="shell.headerSearch.set($event)"
+            name="sq"
+          />
+        </div>
+        <button type="button" class="ui-btn-icon shrink-0" (click)="shell.searchOpen.set(false)" [attr.aria-label]="t('closeMenu')">
+          <span class="material-icons">close</span>
+        </button>
+      </form>
+    </div>
+  }
+
+  <nav class="app-desktop-nav container hidden h-12 items-center gap-1 lg:flex">
+    <a
+      routerLink="/"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="app-desktop-nav__link rounded-lg px-3 py-2 text-sm font-medium text-ink-600"
+      >{{ t('navHome') }}</a
+    >
+    @for (item of primaryNav; track item.link) {
+      <a
+        [routerLink]="item.link"
+        routerLinkActive="active"
+        class="app-desktop-nav__link rounded-lg px-3 py-2 text-sm font-medium text-ink-600"
+        >{{ t(item.labelKey) }}</a
+      >
+    }
+  </nav>
+</header>

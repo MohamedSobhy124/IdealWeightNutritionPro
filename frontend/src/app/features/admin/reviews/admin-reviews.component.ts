@@ -1,10 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminReviewListItem } from '../../../core/models/review.models';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import { ReviewService } from '../../../core/services/review.service';
 import {
   UiBadgeComponent,
@@ -12,20 +12,23 @@ import {
   UiDataTableComponent,
   UiFilterBarComponent,
   UiPageHeaderComponent,
+  UiSegmentedComponent,
+  type UiSegmentedOption,
   type UiTableColumn,
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
     DatePipe,
-    FormsModule,
     UiPageHeaderComponent,
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
     UiFilterBarComponent,
+    UiSegmentedComponent,
   ],
   templateUrl: './admin-reviews.component.html',
   styleUrl: './admin-reviews.component.css',
@@ -33,6 +36,7 @@ import {
 export class AdminReviewsComponent implements OnInit {
   private readonly reviewsApi = inject(ReviewService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminReviewListItem[]>([]);
   readonly loading = signal(true);
@@ -40,6 +44,12 @@ export class AdminReviewsComponent implements OnInit {
   readonly message = signal<string | null>(null);
   readonly busyId = signal<number | null>(null);
   status = 'all';
+
+  readonly statusOptions = computed<UiSegmentedOption[]>(() => [
+    { value: 'all', label: this.t('filterAll') },
+    { value: 'pending', label: this.t('filterPending') },
+    { value: 'approved', label: this.t('filterApproved') },
+  ]);
 
   t(key: AdminUiKey): string {
     return this.locale.pick(ADMIN_UI[key].en, ADMIN_UI[key].ar);
@@ -94,8 +104,8 @@ export class AdminReviewsComponent implements OnInit {
     });
   }
 
-  deleteReview(item: AdminReviewListItem): void {
-    if (!confirm('Delete this review?')) return;
+  async deleteReview(item: AdminReviewListItem): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteReview'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.reviewsApi.deleteReview(item.id).subscribe({

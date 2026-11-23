@@ -36,6 +36,8 @@
 }
 
 <ui-data-table
+  rowLinkBase="/admin/service-purchases"
+  storageKey="admin-service-purchases"
   [columns]="cols"
   [rows]="$any(items())"
   [loading]="loading()"

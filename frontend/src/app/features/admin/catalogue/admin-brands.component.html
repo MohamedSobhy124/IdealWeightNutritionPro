@@ -10,41 +10,45 @@
 
 
 
-@if (message()) {
-
+@if (message() && !showForm()) {
   <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
-
 }
 
-
-
-@if (showForm()) {
-  <form class="mb-6" (ngSubmit)="submit()">
-    <ui-card [heading]="editingId() ? t('editBrand') : t('newBrand')" class="max-w-lg">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ui-form-field [label]="t('titleEn')" [required]="true">
-          <input class="ui-input" [(ngModel)]="name" name="name" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('titleAr')" [required]="true">
-          <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('description')">
-          <input class="ui-input" [(ngModel)]="description" name="description" />
-        </ui-form-field>
-        <ui-form-field [label]="t('descriptionAr')">
-          <input class="ui-input" [(ngModel)]="descriptionAr" name="descriptionAr" />
-        </ui-form-field>
-        <ui-form-field [label]="t('imageUrl')" class="sm:col-span-2">
-          <input class="ui-input" [(ngModel)]="imageUrl" name="imageUrl" />
-        </ui-form-field>
-      </div>
-      <div class="mt-4 flex gap-2">
-        <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
-        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
-      </div>
-    </ui-card>
+<ui-modal
+  [open]="showForm()"
+  variant="drawer"
+  size="lg"
+  [heading]="editingId() ? t('editBrand') : t('newBrand')"
+  [closeLabel]="t('shellClose')"
+  (closed)="cancelForm()"
+>
+  <form id="brand-form" (ngSubmit)="submit()">
+    @if (message()) {
+      <p class="mb-4 text-sm text-danger">{{ message() }}</p>
+    }
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <ui-form-field [label]="t('titleEn')" [required]="true">
+        <input class="ui-input" [(ngModel)]="name" name="name" required />
+      </ui-form-field>
+      <ui-form-field [label]="t('titleAr')" [required]="true">
+        <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" required />
+      </ui-form-field>
+      <ui-form-field [label]="t('description')">
+        <input class="ui-input" [(ngModel)]="description" name="description" />
+      </ui-form-field>
+      <ui-form-field [label]="t('descriptionAr')">
+        <input class="ui-input" [(ngModel)]="descriptionAr" name="descriptionAr" />
+      </ui-form-field>
+      <ui-form-field [label]="t('imageUrl')" class="sm:col-span-2">
+        <input class="ui-input" [(ngModel)]="imageUrl" name="imageUrl" />
+      </ui-form-field>
+    </div>
   </form>
-}
+  <div modal-footer class="flex shrink-0 gap-2 border-t border-ink-200 px-5 py-4">
+    <button type="submit" form="brand-form" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+  </div>
+</ui-modal>
 
 
 
@@ -64,8 +68,11 @@
 
   [loading]="loading()"
 
-  [searchable]="false"
-
+  [clickableRows]="true"
+  (rowClick)="openEdit($any($event))"
+  [exportable]="true"
+  exportFileName="brands.csv"
+  storageKey="admin-brands"
   [pageSize]="20"
 
   [emptyTitle]="t('noBrands')"

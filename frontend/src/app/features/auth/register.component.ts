@@ -1,15 +1,16 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { CartService } from '../../core/services/cart.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { UI, UiKey } from '../../core/i18n/ui-text';
-import { UiFormFieldComponent, UiPageHeaderComponent } from '../../shared/ui';
+import { UiFormFieldComponent, UiOtpInputComponent, UiPageHeaderComponent, UiPasswordFieldComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, RouterLink, UiFormFieldComponent, UiPageHeaderComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, UiFormFieldComponent, UiPageHeaderComponent, UiPasswordFieldComponent, UiOtpInputComponent],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
 })

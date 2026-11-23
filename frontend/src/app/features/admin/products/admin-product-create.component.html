@@ -13,7 +13,7 @@
 } @else if (error()) {
   <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
 } @else {
-  <form class="space-y-6" (ngSubmit)="submit()">
+  <form class="admin-form" (ngSubmit)="submit()">
     <ui-card>
       <h3 class="mb-4 text-base font-semibold text-ink-900">{{ t('sectionBasicInfo') }}</h3>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -98,10 +98,10 @@
     </ui-card>
 
     @if (saveError()) {
-      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
     }
 
-    <div class="flex justify-end gap-2">
+    <div class="admin-form-bar">
       <a routerLink="/admin/products" class="ui-btn-secondary">{{ t('cancel') }}</a>
       <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
         {{ submitting() ? t('creating') : t('createProduct') }}

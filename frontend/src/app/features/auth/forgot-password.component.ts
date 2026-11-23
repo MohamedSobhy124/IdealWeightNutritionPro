@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -7,6 +7,7 @@ import { UI, UiKey } from '../../core/i18n/ui-text';
 import { UiFormFieldComponent, UiPageHeaderComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, UiFormFieldComponent, UiPageHeaderComponent],
   templateUrl: './forgot-password.component.html',

@@ -1,31 +1,33 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminCategory, UpsertAdminCategoryRequest } from '../../../core/models/admin-catalogue.models';
 import { AdminCatalogueService } from '../../../core/services/admin-catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
-  UiCardComponent,
   UiCellDirective,
   UiDataTableComponent,
   UiFilterBarComponent,
   UiFormFieldComponent,
+  UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     FormsModule,
     UiPageHeaderComponent,
-    UiCardComponent,
     UiFormFieldComponent,
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
     UiFilterBarComponent,
+    UiModalComponent,
   ],
   templateUrl: './admin-categories.component.html',
   styleUrl: './admin-categories.component.css',
@@ -33,6 +35,7 @@ import {
 export class AdminCategoriesComponent implements OnInit {
   private readonly catalogueApi = inject(AdminCatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminCategory[]>([]);
   readonly loading = signal(true);
@@ -55,9 +58,24 @@ export class AdminCategoriesComponent implements OnInit {
 
   get cols(): UiTableColumn[] {
     return [
-      { key: 'title', header: this.t('title'), sortable: true },
-      { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      {
+        key: 'title',
+        header: this.t('title'),
+        sortable: true,
+        mobile: 'primary',
+        value: (row) => this.categoryName(row as unknown as AdminCategory),
+        searchText: (row) => {
+          const item = row as unknown as AdminCategory;
+          return `${item.name} ${item.nameAr}`;
+        },
+      },
+      {
+        key: 'status',
+        header: this.t('productStatus'),
+        mobile: 'secondary',
+        value: (row) => ((row as unknown as AdminCategory).isDeleted ? this.t('deleted') : this.t('active')),
+      },
+      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
     ];
   }
 
@@ -149,8 +167,8 @@ export class AdminCategoriesComponent implements OnInit {
     });
   }
 
-  remove(item: AdminCategory): void {
-    if (!confirm(this.t('confirmDeleteCategory'))) return;
+  async remove(item: AdminCategory): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteCategory'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.catalogueApi.deleteCategory(item.id).subscribe({

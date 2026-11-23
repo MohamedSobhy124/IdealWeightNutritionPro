@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
@@ -29,9 +30,12 @@ import {
   UiQuickViewComponent,
   UiSkeletonComponent,
   UiFormFieldComponent,
+  UiSegmentedComponent,
+  UiSheetSelectComponent,
 } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -43,11 +47,14 @@ import {
     UiPageHeaderComponent,
     UiEmptyStateComponent,
     UiFormFieldComponent,
+    UiSegmentedComponent,
+    UiSheetSelectComponent,
   ],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.css',
 })
 export class ShopPageComponent implements OnInit {
+  private readonly platformId = inject(PLATFORM_ID);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
   readonly auth = inject(AuthService);
@@ -72,6 +79,7 @@ export class ShopPageComponent implements OnInit {
   readonly flashPrices = signal<FlashSaleProductPrice[]>([]);
   readonly mobileFiltersOpen = signal(false);
   readonly quickViewProduct = signal<ProductListItem | null>(null);
+  readonly appliedFilters = signal({ search: '', categoryId: '', brandId: '', sortBy: '' });
 
   readonly filters = this.fb.nonNullable.group({
     search: [''],
@@ -127,12 +135,14 @@ export class ShopPageComponent implements OnInit {
     this.route.queryParamMap.subscribe((params) => {
       const pageParam = Number(params.get('page') ?? '1');
       this.page.set(Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1);
-      this.filters.patchValue({
+      const next = {
         search: params.get('search') ?? '',
         categoryId: params.get('categoryId') ?? '',
         brandId: params.get('brandId') ?? '',
         sortBy: params.get('sortBy') ?? '',
-      });
+      };
+      this.filters.patchValue(next);
+      this.appliedFilters.set(next);
       this.load();
     });
   }
@@ -181,6 +191,71 @@ export class ShopPageComponent implements OnInit {
     this.closeQuickView();
   }
 
+  readonly categoryOptions = computed(() => {
+    this.locale.locale();
+    return [
+      { value: '', label: this.t('allCategories') },
+      ...this.categories().map((category) => ({ value: String(category.id), label: this.categoryName(category) })),
+    ];
+  });
+
+  readonly brandOptions = computed(() => {
+    this.locale.locale();
+    return [
+      { value: '', label: this.t('allBrands') },
+      ...this.brands().map((brand) => ({ value: String(brand.id), label: this.brandName(brand) })),
+    ];
+  });
+
+  readonly sortOptions = computed(() => {
+    this.locale.locale();
+    return [
+      { value: '', label: this.t('sortFeatured') },
+      { value: 'trending', label: this.t('bestSellers') },
+      { value: 'new', label: this.t('newArrivals') },
+      { value: 'price_low', label: this.t('sortPriceLow') },
+      { value: 'price_high', label: this.t('sortPriceHigh') },
+      { value: 'newest', label: this.t('sortNewest') },
+      { value: 'name', label: this.t('sortName') },
+    ];
+  });
+
+  readonly activeFilterChips = computed(() => {
+    this.locale.locale();
+    const applied = this.appliedFilters();
+    const chips: { key: 'search' | 'categoryId' | 'brandId' | 'sortBy'; label: string }[] = [];
+    if (applied.search) {
+      chips.push({ key: 'search', label: applied.search });
+    }
+    if (applied.categoryId) {
+      const category = this.categories().find((c) => String(c.id) === applied.categoryId);
+      chips.push({
+        key: 'categoryId',
+        label: category ? this.categoryName(category) : applied.categoryId,
+      });
+    }
+    if (applied.brandId) {
+      const brand = this.brands().find((b) => String(b.id) === applied.brandId);
+      chips.push({
+        key: 'brandId',
+        label: brand ? this.brandName(brand) : applied.brandId,
+      });
+    }
+    if (applied.sortBy) {
+      const sort = this.sortOptions().find((option) => option.value === applied.sortBy);
+      chips.push({
+        key: 'sortBy',
+        label: sort?.label ?? applied.sortBy,
+      });
+    }
+    return chips;
+  });
+
+  setSort(value: string): void {
+    this.filters.patchValue({ sortBy: value });
+    this.syncUrl(1);
+  }
+
   applyFilters(): void {
     this.syncUrl(1);
   }
@@ -190,9 +265,19 @@ export class ShopPageComponent implements OnInit {
     this.syncUrl(1);
   }
 
+  removeFilterChip(key: 'search' | 'categoryId' | 'brandId' | 'sortBy'): void {
+    this.filters.patchValue({ [key]: '' });
+    this.syncUrl(1);
+  }
+
   applyMobileFilters(): void {
     this.mobileFiltersOpen.set(false);
     this.syncUrl(1);
+  }
+
+  clearMobileFilters(): void {
+    this.mobileFiltersOpen.set(false);
+    this.clearFilters();
   }
 
   goToPage(nextPage: number): void {
@@ -220,6 +305,7 @@ export class ShopPageComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set(null);
+    if (!isPlatformBrowser(this.platformId)) return;
 
     const { search, categoryId, brandId, sortBy } = this.filters.getRawValue();
     const catId = categoryId ? Number(categoryId) : undefined;

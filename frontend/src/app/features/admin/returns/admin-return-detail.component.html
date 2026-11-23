@@ -10,74 +10,91 @@
   </div>
 } @else if (item()) {
   @if (item(); as r) {
-  <div class="mb-4 flex flex-wrap items-center gap-2">
-    <ui-badge [variant]="statusVariant(r.status)" [dot]="true">{{ r.status }}</ui-badge>
-    <span class="text-sm text-ink-500">{{ t('orderNumber') }} #{{ r.orderId }}</span>
-    <span class="text-sm text-ink-400">{{ r.requestDate | date: 'medium' }}</span>
-  </div>
-
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-    <ui-card [heading]="t('reason')">
-      <p class="text-sm text-ink-700">{{ r.reason }}</p>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <ui-badge [variant]="statusVariant(r.status)" [dot]="true">{{ labelStatus(r.status) }}</ui-badge>
+      <a [routerLink]="['/admin/orders', r.orderId]" class="text-sm text-brand-700 hover:underline">{{ t('orderNumber') }} #{{ r.orderId }}</a>
+      <span class="text-sm text-ink-400">{{ r.requestDate | date: 'medium' }}</span>
       @if (r.refundAmount != null) {
-        <p class="mt-3 text-sm">
-          <span class="text-ink-500">{{ t('refundCol') }}:</span>
-          <span class="ms-1 font-semibold text-ink-900">{{ r.refundAmount | iwnCurrency }}</span>
-        </p>
-      }
-    </ui-card>
-
-    <ui-card [heading]="t('items')">
-      <ul class="divide-y divide-ink-100">
-        @for (line of r.items; track line.id) {
-          <li class="flex items-center justify-between gap-2 py-2 text-sm">
-            <span class="text-ink-700">{{ line.productTitle }} × {{ line.quantity }}</span>
-            <span class="font-medium text-ink-900">{{ line.returnPrice | iwnCurrency }}</span>
-          </li>
-        }
-      </ul>
-    </ui-card>
-  </div>
-
-  @if (message()) {
-    <div
-      class="mt-4 rounded-xl px-4 py-3 text-sm"
-      [class.bg-danger-soft]="isError()"
-      [class.text-danger]="isError()"
-      [class.bg-success-soft]="!isError()"
-      [class.text-success-fg]="!isError()"
-    >
-      {{ message() }}
-    </div>
-  }
-
-  <ui-card [heading]="t('actions')" class="mt-6 block">
-    <div class="space-y-4">
-      @if (r.status === 'Pending') {
-        <ui-form-field [label]="t('adminNotes')">
-          <textarea class="ui-textarea" [(ngModel)]="adminNotes" rows="2"></textarea>
-        </ui-form-field>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="ui-btn-primary ui-btn-sm" (click)="approve()" [disabled]="busy()">{{ t('approve') }}</button>
-        </div>
-        <ui-form-field [label]="t('rejectionReason')">
-          <input class="ui-input" [(ngModel)]="rejectionReason" />
-        </ui-form-field>
-        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="reject()" [disabled]="busy()">{{ t('reject') }}</button>
-      }
-      @if (r.status === 'Approved') {
-        <button type="button" class="ui-btn-primary ui-btn-sm" (click)="receive()" [disabled]="busy()">{{ t('markReceived') }}</button>
-      }
-      @if (r.status === 'Processing') {
-        <ui-form-field [label]="t('refundTransactionId')">
-          <input class="ui-input" [(ngModel)]="refundTransactionId" />
-        </ui-form-field>
-        <button type="button" class="ui-btn-primary ui-btn-sm" (click)="complete()" [disabled]="busy()">{{ t('completeRefund') }}</button>
-      }
-      @if (r.status !== 'Completed' && r.status !== 'Rejected' && r.status !== 'Cancelled') {
-        <button type="button" class="ui-btn-danger ui-btn-sm" (click)="cancelReturn()" [disabled]="busy()">{{ t('cancel') }}</button>
+        <span class="text-sm font-semibold text-ink-900">{{ r.refundAmount | iwnCurrency }}</span>
       }
     </div>
-  </ui-card>
+
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <div class="space-y-6 lg:col-span-2">
+        <ui-card [heading]="t('sectionSummary')">
+          <ui-timeline [items]="returnTimeline()" [ariaLabel]="t('sectionSummary')" />
+        </ui-card>
+
+        <ui-card [heading]="t('reason')">
+          <p class="text-sm text-ink-700">{{ r.reason }}</p>
+          @if (r.additionalNotes) {
+            <p class="mt-3 text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('customerNotes') }}</p>
+            <p class="mt-1 text-sm text-ink-700">{{ r.additionalNotes }}</p>
+          }
+          @if (r.rejectionReason) {
+            <p class="mt-3 text-xs font-medium uppercase tracking-wide text-ink-400">{{ t('rejectionReason') }}</p>
+            <p class="mt-1 text-sm text-ink-700">{{ r.rejectionReason }}</p>
+          }
+        </ui-card>
+
+        <ui-card [heading]="t('items')">
+          <ul class="divide-y divide-ink-100">
+            @for (line of r.items; track line.id) {
+              <li class="flex items-center justify-between gap-2 py-2 text-sm">
+                <span class="text-ink-700">{{ line.productTitle }} × {{ line.quantity }}</span>
+                <span class="font-medium text-ink-900">{{ line.returnPrice | iwnCurrency }}</span>
+              </li>
+            }
+          </ul>
+        </ui-card>
+      </div>
+
+      <div class="space-y-6">
+        <ui-card [heading]="t('payment')">
+          <p class="text-sm text-ink-500">{{ t('orderNumber') }}</p>
+          <a [routerLink]="['/admin/orders', r.orderId]" class="mt-1 inline-block font-medium text-brand-700 hover:underline">#{{ r.orderId }}</a>
+          @if (r.refundAmount != null) {
+            <p class="mt-3 text-sm text-ink-500">{{ t('refundCol') }}</p>
+            <p class="font-semibold text-ink-900">{{ r.refundAmount | iwnCurrency }}</p>
+          }
+          @if (r.refundStatus) {
+            <p class="mt-3 text-sm text-ink-500">{{ t('refundStatus') }}</p>
+            <p class="font-medium text-ink-900">{{ labelStatus(r.refundStatus) }}</p>
+          }
+        </ui-card>
+
+        <ui-card [heading]="t('actions')">
+          @if (message()) {
+            <p class="mb-3 text-sm" [class.text-danger]="isError()" [class.text-success-fg]="!isError()">{{ message() }}</p>
+          }
+          <div class="space-y-4">
+            @if (r.status === 'Pending') {
+              <ui-form-field [label]="t('adminNotes')">
+                <textarea class="ui-textarea" [(ngModel)]="adminNotes" rows="2"></textarea>
+              </ui-form-field>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="ui-btn-primary ui-btn-sm" (click)="approve()" [disabled]="busy()">{{ t('approve') }}</button>
+              </div>
+              <ui-form-field [label]="t('rejectionReason')">
+                <input class="ui-input" [(ngModel)]="rejectionReason" />
+              </ui-form-field>
+              <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="reject()" [disabled]="busy()">{{ t('reject') }}</button>
+            }
+            @if (r.status === 'Approved') {
+              <button type="button" class="ui-btn-primary ui-btn-sm" (click)="receive()" [disabled]="busy()">{{ t('markReceived') }}</button>
+            }
+            @if (r.status === 'Processing') {
+              <ui-form-field [label]="t('refundTransactionId')">
+                <input class="ui-input" [(ngModel)]="refundTransactionId" />
+              </ui-form-field>
+              <button type="button" class="ui-btn-primary ui-btn-sm" (click)="complete()" [disabled]="busy()">{{ t('completeRefund') }}</button>
+            }
+            @if (r.status !== 'Completed' && r.status !== 'Rejected' && r.status !== 'Cancelled') {
+              <button type="button" class="ui-btn-danger ui-btn-sm" (click)="cancelReturn()" [disabled]="busy()">{{ t('cancel') }}</button>
+            }
+          </div>
+        </ui-card>
+      </div>
+    </div>
   }
 }

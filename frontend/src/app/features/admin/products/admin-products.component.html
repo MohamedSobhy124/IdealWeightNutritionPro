@@ -22,6 +22,8 @@
 }
 
 <ui-data-table
+  rowLinkBase="/admin/products"
+  storageKey="admin-products"
   [columns]="cols"
   [rows]="$any(products())"
   [loading]="loading()"

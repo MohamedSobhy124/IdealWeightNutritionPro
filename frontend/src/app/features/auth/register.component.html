@@ -27,28 +27,25 @@
           </ui-form-field>
 
           <ui-form-field [label]="t('email')">
-            <input type="email" formControlName="email" name="email" autocomplete="email" spellcheck="false" class="ui-input" />
+            <input type="email" formControlName="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" class="ui-input" />
           </ui-form-field>
 
           <div class="checkout-otp">
             <p class="text-sm font-medium text-ink-700">{{ t('verifyEmailFirst') }}</p>
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
               <ui-form-field [label]="t('verificationCode')" class="flex-1">
-                <input
+                <ui-otp-input
                   [(ngModel)]="otp"
                   [ngModelOptions]="{ standalone: true }"
                   name="otp"
-                  maxlength="6"
-                  inputmode="numeric"
-                  autocomplete="one-time-code"
-                  spellcheck="false"
-                  class="ui-input ui-input-ltr"
+                  [groupLabel]="t('verificationCode')"
+                  [digitLabelPattern]="t('otpDigit')"
                 />
               </ui-form-field>
               <div class="flex gap-2">
                 <button
                   type="button"
-                  class="ui-btn-secondary ui-btn-sm min-h-10 whitespace-nowrap"
+                  class="ui-btn-secondary ui-btn-sm whitespace-nowrap"
                   (click)="sendOtp()"
                   [disabled]="otpBusy() || form.controls.email.invalid"
                 >
@@ -56,7 +53,7 @@
                 </button>
                 <button
                   type="button"
-                  class="ui-btn-primary ui-btn-sm min-h-10 whitespace-nowrap"
+                  class="ui-btn-primary whitespace-nowrap"
                   (click)="verifyOtpCode()"
                   [disabled]="otpBusy() || !otp"
                 >
@@ -75,11 +72,13 @@
           </div>
 
           <ui-form-field [label]="t('phoneOptional')">
-            <input type="tel" formControlName="phone" name="phone" autocomplete="tel" class="ui-input ui-input-ltr" />
+            <input type="tel" formControlName="phone" name="phone" inputmode="tel" autocomplete="tel" class="ui-input ui-input-ltr" />
           </ui-form-field>
 
           <ui-form-field [label]="t('password')">
-            <input type="password" formControlName="password" name="password" autocomplete="new-password" class="ui-input" />
+            <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
+              <input type="password" formControlName="password" name="password" autocomplete="new-password" class="ui-input" />
+            </ui-password-field>
           </ui-form-field>
 
           @if (error()) {
@@ -102,7 +101,7 @@
         </button>
 
         <p class="mt-6 text-center text-sm">
-          <a routerLink="/auth/login" class="font-medium text-brand-600 hover:text-brand-700">{{ t('alreadyHaveAccount') }}</a>
+          <a routerLink="/auth/login" class="inline-flex min-h-11 items-center font-medium text-brand-600 hover:text-brand-700">{{ t('alreadyHaveAccount') }}</a>
         </p>
       </div>
     </div>

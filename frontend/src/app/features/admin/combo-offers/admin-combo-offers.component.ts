@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminComboOfferListItem } from '../../../core/models/admin-combo-offer.models';
 import { AdminComboOfferService } from '../../../core/services/admin-combo-offer.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
   UiCellDirective,
@@ -15,6 +16,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -31,6 +33,7 @@ import {
 export class AdminComboOffersComponent implements OnInit {
   private readonly comboApi = inject(AdminComboOfferService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminComboOfferListItem[]>([]);
   readonly loading = signal(true);
@@ -94,8 +97,8 @@ export class AdminComboOffersComponent implements OnInit {
     });
   }
 
-  remove(item: AdminComboOfferListItem): void {
-    if (!confirm(this.t('confirmDeleteComboOffer'))) return;
+  async remove(item: AdminComboOfferListItem): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteComboOffer'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.comboApi.delete(item.id).subscribe({

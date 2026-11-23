@@ -1,11 +1,10 @@
 import { isPlatformBrowser } from '@angular/common';
-import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, OnDestroy, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
-  Brand,
   Category,
   CategoryProductSection,
   ProductListItem,
@@ -41,10 +40,7 @@ import {
   UiSkeletonComponent,
   UiSectionHeaderComponent,
   UiCategoryCardComponent,
-  UiBrandCardComponent,
-  UiGoalCardComponent,
   UiReviewCardComponent,
-  UiTrustStripComponent,
 } from '../../shared/ui';
 import { RevealOnScrollDirective } from '../../shared/directives/reveal-on-scroll.directive';
 
@@ -92,16 +88,22 @@ type HeroSlide =
       type: 'default';
       title: string;
       lead: string;
+      imageUrl?: string | null;
       primaryLink: string;
       secondaryLink: string;
       secondaryLabelKey: UiKey;
     };
 
+type DealsTab = 'flash' | 'sale' | 'combos';
+type ProductsTab = 'best' | 'new';
+
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
     DecimalPipe,
+    NgTemplateOutlet,
     IwnCurrencyPipe,
     FlashSaleCountdownComponent,
     UiBadgeComponent,
@@ -109,11 +111,8 @@ type HeroSlide =
     UiSkeletonComponent,
     UiSectionHeaderComponent,
     UiCategoryCardComponent,
-    UiBrandCardComponent,
-    UiGoalCardComponent,
-    UiReviewCardComponent,
-    UiTrustStripComponent,
-    RevealOnScrollDirective,
+        UiReviewCardComponent,
+      RevealOnScrollDirective,
   ],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css',
@@ -136,7 +135,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
   readonly flashSales = signal<FlashSaleSummary[]>([]);
   readonly combos = signal<ComboOfferSummary[]>([]);
   readonly categories = signal<Category[]>([]);
-  readonly brands = signal<Brand[]>([]);
   readonly bestSellers = signal<ProductListItem[]>([]);
   readonly newArrivals = signal<ProductListItem[]>([]);
   readonly discountedProducts = signal<ProductListItem[]>([]);
@@ -159,41 +157,111 @@ export class HomePageComponent implements OnInit, OnDestroy {
     return this.locale.isArabic() ? `translateX(${offset}%)` : `translateX(-${offset}%)`;
   });
   private heroTimer: ReturnType<typeof setInterval> | null = null;
+  static readonly heroIntervalMs = 6000;
+  readonly heroIntervalMs = HomePageComponent.heroIntervalMs;
 
-  readonly trustItems = computed(() => [
-    { icon: 'verified', label: this.t('trustedOriginals') },
-    { icon: 'local_shipping', label: this.t('sameDayDelivery') },
-    { icon: 'support_agent', label: this.t('expertSupportShort') },
-    { icon: 'lock', label: this.t('securePayments') },
+  /** Deals band: one tinted section with tabs for whichever promo data exists. */
+  readonly dealsTabChoice = signal<DealsTab | null>(null);
+  readonly dealsTabs = computed(() => {
+    const tabs: { id: DealsTab; label: string; icon: string }[] = [];
+    if (this.flashSales().length > 0) tabs.push({ id: 'flash', label: this.t('flashSales'), icon: 'bolt' });
+    if (this.discountedProducts().length > 0) tabs.push({ id: 'sale', label: this.t('homeDealsOnSale'), icon: 'sell' });
+    if (this.combos().length > 0) tabs.push({ id: 'combos', label: this.t('comboOffers'), icon: 'inventory_2' });
+    return tabs;
+  });
+  readonly activeDealsTab = computed<DealsTab | null>(() => {
+    const tabs = this.dealsTabs();
+    const chosen = this.dealsTabChoice();
+    return tabs.find((tab) => tab.id === chosen)?.id ?? tabs[0]?.id ?? null;
+  });
+  readonly dealsViewAllLink = computed(() => {
+    switch (this.activeDealsTab()) {
+      case 'flash':
+        return '/flash-sales';
+      case 'combos':
+        return '/combos';
+      default:
+        return '/offers';
+    }
+  });
+
+  /** Best sellers / new arrivals share one tabbed rail. */
+  readonly productsTabChoice = signal<ProductsTab | null>(null);
+  readonly productsTabs = computed(() => {
+    const tabs: { id: ProductsTab; label: string }[] = [];
+    if (this.bestSellers().length > 0) tabs.push({ id: 'best', label: this.t('bestSellers') });
+    if (this.newArrivals().length > 0) tabs.push({ id: 'new', label: this.t('newArrivals') });
+    return tabs;
+  });
+  readonly activeProductsTab = computed<ProductsTab | null>(() => {
+    const tabs = this.productsTabs();
+    const chosen = this.productsTabChoice();
+    return tabs.find((tab) => tab.id === chosen)?.id ?? tabs[0]?.id ?? null;
+  });
+  readonly activeProducts = computed(() =>
+    this.activeProductsTab() === 'new' ? this.newArrivals() : this.bestSellers(),
+  );
+
+  /** Opener tiles: up to 5 categories plus an "All products" tile. */
+  readonly introCategories = computed(() => this.categories().slice(0, 5));
+
+  /** Only summarise real reviews; the static fallbacks must not pose as data. */
+  readonly reviewSummary = computed(() => {
+    const reviews = this.featuredReviews();
+    if (reviews.length === 0) return null;
+    const average = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+    return { average, count: reviews.length };
+  });
+
+  readonly aboutPhotos = [
+    'https://idealweightnutrition.ae/Images/Products/AboutUs00.jpeg',
+    'https://idealweightnutrition.ae/Images/Products/AboutUs0.jpeg',
+    'https://idealweightnutrition.ae/Images/Products/AboutUs1.jpeg',
+    'https://idealweightnutrition.ae/Images/Products/AboutUs2.jpeg',
+    'https://idealweightnutrition.ae/Images/Products/AboutUs3.jpeg',
+  ];
+  readonly aboutPhoto = signal(0);
+  readonly welcomePoints = computed(() => [
+    this.t('homeWelcomePoint1'),
+    this.t('homeWelcomePoint2'),
+    this.t('homeWelcomePoint3'),
   ]);
-
-  readonly healthGoals = computed(() => [
-    {
-      title: this.t('goalWeightLoss'),
-      subtitle: this.t('goalWeightLossLead'),
-      icon: 'monitor_weight',
-      queryParams: { search: 'weight' },
-    },
-    {
-      title: this.t('goalMuscleGain'),
-      subtitle: this.t('goalMuscleGainLead'),
-      icon: 'fitness_center',
-      queryParams: { search: 'protein' },
-    },
-    {
-      title: this.t('goalWellness'),
-      subtitle: this.t('goalWellnessLead'),
-      icon: 'spa',
-      queryParams: { search: 'vitamin' },
-    },
-    {
-      title: this.t('goalEnergy'),
-      subtitle: this.t('goalEnergyLead'),
-      icon: 'bolt',
-      queryParams: { search: 'energy' },
-    },
+  readonly branches = computed(() => [
+    { name: this.t('branchShamkha'), address: this.t('branchShamkhaAddress'), map: 'https://maps.app.goo.gl/9SU1q2p69vfRTkMn8' },
+    { name: this.t('branchWathba'), address: this.t('branchWathbaAddress'), map: 'https://maps.app.goo.gl/12J3mbtkGsk6FKLp9' },
   ]);
-
+  readonly whyCards = computed(() => [
+    { icon: 'verified', title: this.t('whyQualityTitle'), lead: this.t('whyQualityLead') },
+    { icon: 'support_agent', title: this.t('whyGuidanceTitle'), lead: this.t('whyGuidanceLead') },
+    { icon: 'local_shipping', title: this.t('whyDeliveryTitle'), lead: this.t('whyDeliveryLead') },
+    { icon: 'health_and_safety', title: this.t('whyGuaranteeTitle'), lead: this.t('whyGuaranteeLead') },
+  ]);
+  readonly aboutPoints = computed(() => [
+    { icon: 'workspace_premium', label: this.t('aboutPointQuality') },
+    { icon: 'favorite', label: this.t('aboutPointService') },
+    { icon: 'local_shipping', label: this.t('aboutPointShipping') },
+    { icon: 'storefront', label: this.t('aboutPointBranches') },
+  ]);
+  readonly homeStats = computed(() => [
+    { value: '5,000+', label: this.t('homeStatProducts') },
+    { value: '20,000+', label: this.t('homeStatCustomers') },
+    { value: '50+', label: this.t('homeStatBrands') },
+    { value: '100%', label: this.t('homeStatOriginal') },
+  ]);
+  readonly seoPoints = computed(() => [
+    { icon: 'verified', title: this.t('homeSeoOriginalTitle'), lead: this.t('homeSeoOriginalLead') },
+    { icon: 'local_shipping', title: this.t('homeSeoDeliveryTitle'), lead: this.t('homeSeoDeliveryLead') },
+    { icon: 'sell', title: this.t('homeSeoPriceTitle'), lead: this.t('homeSeoPriceLead') },
+    { icon: 'forum', title: this.t('homeSeoAdviceTitle'), lead: this.t('homeSeoAdviceLead') },
+  ]);
+  readonly supplementRange = computed(() => [
+    { icon: 'fitness_center', title: this.t('homeRangeProtein'), lead: this.t('homeRangeProteinLead') },
+    { icon: 'trending_up', title: this.t('homeRangeMass'), lead: this.t('homeRangeMassLead') },
+    { icon: 'local_fire_department', title: this.t('homeRangeCut'), lead: this.t('homeRangeCutLead') },
+    { icon: 'medication', title: this.t('homeRangeVitamins'), lead: this.t('homeRangeVitaminsLead') },
+    { icon: 'bolt', title: this.t('homeRangePerformance'), lead: this.t('homeRangePerformanceLead') },
+    { icon: 'favorite', title: this.t('homeRangeWellness'), lead: this.t('homeRangeWellnessLead') },
+  ]);
   readonly staticCustomerReviews = computed(() => [
     { id: 1, quote: this.t('reviewQuote1'), author: this.t('reviewAuthor1'), location: this.t('reviewLocation1'), rating: 5 },
     { id: 2, quote: this.t('reviewQuote2'), author: this.t('reviewAuthor2'), location: this.t('reviewLocation2'), rating: 5 },
@@ -206,7 +274,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
       return apiReviews.map((review) => ({
         id: review.id,
         quote: review.comment,
-        author: review.userName,
+        author: this.publicAuthorName(review.userName),
         location: review.location ?? null,
         rating: review.rating,
       }));
@@ -229,6 +297,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
       sections.find((s) => s.category.id === selectedId) ?? sections[0] ?? null;
     if (!section) return '';
     return this.locale.pick(section.category.name, section.category.nameAr);
+  });
+
+  readonly nextFlashEndDate = computed(() => {
+    const now = Date.now();
+    return (
+      this.flashSales()
+        .map((sale) => sale.endDate)
+        .filter((endDate) => new Date(endDate).getTime() > now)
+        .sort()[0] ?? null
+    );
   });
 
   readonly heroSlides = computed((): HeroSlide[] => {
@@ -289,6 +367,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
         type: 'default',
         title: this.t('heroTitle'),
         lead: this.t('heroLead'),
+        imageUrl: HomePageComponent.heroFallbackPhoto,
         primaryLink: '/shop',
         secondaryLink: '/flash-sales',
         secondaryLabelKey: 'flashSales',
@@ -298,11 +377,48 @@ export class HomePageComponent implements OnInit, OnDestroy {
     return slides;
   });
 
+  /** Store photo shown in the hero until an admin video/poster banner is uploaded. */
+  private static readonly heroFallbackPhoto = 'https://idealweightnutrition.ae/Images/Products/AboutUs2.jpeg';
   private static readonly homeSectionLimit = 4;
   private static readonly productSectionSize = 8;
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  /** Picks a Material icon from the category name (EN or AR) for tiles without an image. */
+  categoryIcon(category: Category): string {
+    const name = `${category.name ?? ''} ${category.nameAr ?? ''}`.toLowerCase();
+    const rules: [RegExp, string][] = [
+      [/weight|وزن|diet|رجيم|slim|تنحيف/, 'monitor_weight'],
+      [/sport|رياض|protein|بروتين|muscle|عضل|gym/, 'fitness_center'],
+      [/food|غذ|اغذ|أغذ|snack|وجب/, 'restaurant'],
+      [/vitamin|فيتامين|supplement|مكمل/, 'medication'],
+      [/health|صح|wellness|عافي/, 'spa'],
+      [/energy|طاق/, 'bolt'],
+      [/beauty|جمال|skin|بشر/, 'face_retouching_natural'],
+      [/drink|مشروب|juice|عصير/, 'local_cafe'],
+    ];
+    return rules.find(([pattern]) => pattern.test(name))?.[1] ?? 'eco';
+  }
+
+  /** Some accounts use their email as the display name; never show it publicly. */
+  private publicAuthorName(name: string | null | undefined): string {
+    const value = (name ?? '').trim();
+    if (!value.includes('@')) return value || this.t('homeVerifiedCustomer');
+    const local = value.split('@')[0].replace(/[._\-+0-9]+/g, ' ').trim();
+    const first = local.split(/\s+/)[0] ?? '';
+    return first ? first.charAt(0).toUpperCase() + first.slice(1) : this.t('homeVerifiedCustomer');
+  }
+
+  reviewSummaryText(summary: { average: number; count: number }): string {
+    return this.t('homeReviewsSummary')
+      .replace('{avg}', summary.average.toFixed(1))
+      .replace('{n}', String(summary.count));
+  }
+
+  slideLabel(index: number): string {
+    return this.t('slideNumber').replace('{n}', String(index + 1));
   }
 
   productTitle(p: ProductListItem): string {
@@ -311,10 +427,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   categoryName(c: Category): string {
     return this.locale.pick(c.name, c.nameAr);
-  }
-
-  brandName(b: Brand): string {
-    return this.locale.pick(b.name, b.nameAr);
   }
 
   flashName(sale: FlashSaleSummary): string {
@@ -327,6 +439,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   serviceTitle(service: ServiceSubscriptionSummary): string {
     return this.locale.pick(service.title, service.titleAr);
+  }
+
+  serviceLead(service: ServiceSubscriptionSummary): string {
+    return this.locale.pick(service.description ?? '', service.descriptionAr);
   }
 
   selectCategory(categoryId: number): void {
@@ -370,18 +486,32 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   selectHero(index: number): void {
     this.heroIndex.set(index);
+    this.restartHeroTimer();
   }
 
   prevHero(): void {
     const length = this.heroSlides().length;
     if (!length) return;
     this.heroIndex.set((this.heroIndex() - 1 + length) % length);
+    this.restartHeroTimer();
   }
 
-  nextHero(): void {
+  nextHero(manual = true): void {
     const length = this.heroSlides().length;
     if (!length) return;
     this.heroIndex.set((this.heroIndex() + 1) % length);
+    if (manual) this.restartHeroTimer();
+  }
+
+  /** Keeps the progress pill and the auto-advance in step after a manual change. */
+  private restartHeroTimer(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.heroTimer) clearInterval(this.heroTimer);
+    this.heroTimer = setInterval(() => {
+      if (!this.heroPaused() && this.heroSlides().length > 1) {
+        this.nextHero(false);
+      }
+    }, HomePageComponent.heroIntervalMs);
   }
 
   private absoluteUrl(path: string): string {
@@ -462,7 +592,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
       combos: this.combosApi.listActive().pipe(catchError(() => of([] as ComboOfferSummary[]))),
       banner: this.videoBannerApi.getPublicBanner().pipe(catchError(() => of(null))),
       categories: this.catalogue.listCategories().pipe(catchError(() => of([] as Category[]))),
-      brands: this.catalogue.listBrands().pipe(catchError(() => of([] as Brand[]))),
       discounted: this.catalogue
         .listDiscountedProducts(HomePageComponent.productSectionSize)
         .pipe(catchError(() => of([] as ProductListItem[]))),
@@ -496,7 +625,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
         combos,
         banner,
         categories,
-        brands,
         discounted,
         categorySections,
         services,
@@ -509,7 +637,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
         this.combos.set(combos.slice(0, HomePageComponent.homeSectionLimit));
         this.videoBanner.set(banner);
         this.categories.set(categories.slice(0, HomePageComponent.homeSectionLimit * 2));
-        this.brands.set(brands.slice(0, HomePageComponent.homeSectionLimit * 2));
         const rails = this.dedupeProductRails(discounted, bestSellers.items, newArrivals.items);
         this.discountedProducts.set(rails.discounted);
         this.categorySections.set(categorySections);
@@ -534,13 +661,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
       },
     });
 
-    if (isPlatformBrowser(this.platformId)) {
-      this.heroTimer = setInterval(() => {
-        if (!this.heroPaused()) {
-          this.nextHero();
-        }
-      }, 5000);
-    }
+    this.restartHeroTimer();
   }
 
   ngOnDestroy(): void {

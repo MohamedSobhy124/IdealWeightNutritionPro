@@ -1,0 +1,63 @@
+@if (shell.mobileMenuOpen()) {
+  <div class="fixed inset-0 z-50 lg:hidden">
+    <div class="absolute inset-0 bg-scrim/40 backdrop-blur-sm" (click)="shell.mobileMenuOpen.set(false)" aria-hidden="true"></div>
+    <div
+      class="absolute inset-y-0 start-0 flex w-[82%] max-w-xs flex-col bg-[var(--surface)] shadow-overlay animate-fade-in"
+      id="mobile-nav-drawer"
+      role="dialog"
+      aria-modal="true"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      [attr.aria-label]="t('menu')"
+    >
+      <div class="flex h-14 items-center justify-between border-b border-[var(--border)] px-4 sm:h-16">
+        <div class="flex items-center gap-2">
+          <img src="/images/logo.png" [alt]="t('brandName')" width="32" height="32" class="h-8 w-8 rounded-lg object-contain" />
+          <span class="text-base font-bold text-brand-900">{{ t('brandName') }}</span>
+        </div>
+        <button type="button" class="ui-btn-icon" (click)="shell.mobileMenuOpen.set(false)" [attr.aria-label]="t('closeMenu')">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <form class="relative p-4" (submit)="$event.preventDefault(); shell.submitSearch()">
+        <span class="material-icons pointer-events-none absolute start-7 top-1/2 -translate-y-1/2 !text-[20px] text-ink-400">search</span>
+        <input
+          type="search"
+          class="ui-input ps-10"
+          [placeholder]="t('searchProductsNav')"
+          [ngModel]="shell.headerSearch()"
+          (ngModelChange)="shell.headerSearch.set($event)"
+          name="mq"
+        />
+      </form>
+      <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
+        <p class="mb-2 px-3 pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-600">{{ t('quickLinks') }}</p>
+        <div class="mb-2 flex flex-wrap gap-1.5 px-2">
+          <a routerLink="/offers" class="app-mobile-chip">{{ t('navOffers') }}</a>
+          <a routerLink="/flash-sales" class="app-mobile-chip">{{ t('flashSales') }}</a>
+          <a routerLink="/combos" class="app-mobile-chip">{{ t('combos') }}</a>
+        </div>
+        <a routerLink="/" routerLinkActive="bg-brand-50 text-brand-700" [routerLinkActiveOptions]="{ exact: true }" class="block rounded-lg px-3 py-3 text-sm font-medium text-ink-700 hover:bg-ink-100">{{ t('navHome') }}</a>
+        @for (item of primaryNav; track item.link) {
+          <a [routerLink]="item.link" routerLinkActive="bg-brand-50 text-brand-700" class="block rounded-lg px-3 py-3 text-sm font-medium text-ink-700 hover:bg-ink-100">{{ t(item.labelKey) }}</a>
+        }
+      </nav>
+      <div class="border-t border-ink-200 p-4">
+        <div class="mb-3 flex items-center justify-between gap-3 min-[360px]:hidden">
+          <span class="text-sm font-medium text-ink-700">{{ t('themeToggle') }}</span>
+          <ui-theme-toggle [ariaLabel]="t('themeToggle')" />
+        </div>
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/account" class="ui-btn-secondary w-full">{{ t('account') }}</a>
+          @if (shell.isStaff()) {
+            <a routerLink="/admin" class="ui-btn-ghost mt-2 w-full">{{ t('admin') }}</a>
+          }
+          <button type="button" class="ui-btn-ghost mt-2 w-full text-danger" (click)="auth.logout()">{{ t('logout') }}</button>
+        } @else {
+          <a routerLink="/auth/login" class="ui-btn-primary w-full">{{ t('login') }}</a>
+          <a routerLink="/auth/register" class="ui-btn-secondary mt-2 w-full">{{ t('register') }}</a>
+        }
+      </div>
+    </div>
+  </div>
+}

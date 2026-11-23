@@ -35,5 +35,5 @@ export function createBackendProxy(target: string): RequestHandler {
 }
 
 export function resolveBackendUrl(): string {
-  return process.env['BACKEND_URL']?.trim() || 'http://localhost:5228';
+  return process.env['BACKEND_URL']?.trim() || 'https://localhost:7128';
 }

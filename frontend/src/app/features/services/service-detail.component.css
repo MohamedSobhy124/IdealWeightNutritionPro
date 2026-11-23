@@ -1,3 +1,29 @@
 :host {
   display: block;
 }
+
+:host ::ng-deep .ui-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.service-gallery {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  background: var(--stage);
+}
+
+.service-gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.service-gallery__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  aspect-ratio: 1;
+  background: var(--stage);
+}

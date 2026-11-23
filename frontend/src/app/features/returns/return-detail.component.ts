@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
@@ -7,6 +7,8 @@ import { ReturnRequest } from '../../core/models/return.models';
 import { AuthService } from '../../core/services/auth.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { ReturnService } from '../../core/services/return.service';
+import { buildReturnTimeline } from '../../core/utils/return-timeline';
+import { statusLabel } from '../../core/utils/status-label';
 import {
   UiBadgeComponent,
   UiCardComponent,
@@ -18,6 +20,7 @@ import {
 } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -47,6 +50,14 @@ export class ReturnDetailComponent implements OnInit {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  labelStatus(status: string | null | undefined): string {
+    return statusLabel(status, (key) => this.t(key));
+  }
+
+  timelineItems(status: string, requestDate: string) {
+    return buildReturnTimeline(status, requestDate, (key) => this.t(key));
   }
 
   ngOnInit(): void {

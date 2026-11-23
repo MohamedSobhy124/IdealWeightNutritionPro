@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -9,6 +9,7 @@ import {
   UiSkeletonComponent,
 } from '../../../shared/ui';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 import {
   PromoCodeExclusions,
   PromoExcludedComboOffer,
@@ -26,6 +27,7 @@ import { LocaleService } from '../../../core/services/locale.service';
 import { ServiceSubscriptionService } from '../../../core/services/service-subscription.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -39,7 +41,7 @@ import { ServiceSubscriptionService } from '../../../core/services/service-subsc
   templateUrl: './admin-promo-form.component.html',
   styleUrl: './admin-promo-form.component.css',
 })
-export class AdminPromoFormComponent implements OnInit {
+export class AdminPromoFormComponent extends UnsavedChangesForm implements OnInit {
   private readonly promoApi = inject(AdminPromoService);
   private readonly productsApi = inject(AdminProductService);
   private readonly combosApi = inject(ComboOfferService);
@@ -329,6 +331,7 @@ export class AdminPromoFormComponent implements OnInit {
     op.subscribe({
       next: (promo) => {
         this.submitting.set(false);
+        this.markSaved();
         if (!this.isEdit()) {
           void this.router.navigate(['/admin/promo-codes', promo.id]);
         }

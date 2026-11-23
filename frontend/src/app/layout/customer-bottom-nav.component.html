@@ -1,0 +1,23 @@
+<nav class="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-ink-200 bg-[var(--surface-overlay)] pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden" [attr.aria-label]="t('primaryNavigation')">
+  <div class="grid grid-cols-5">
+    @for (item of items(); track item.labelKey) {
+      <a
+        [routerLink]="item.link"
+        routerLinkActive="app-bottom-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: item.exact }"
+        #rla="routerLinkActive"
+        [attr.aria-current]="rla.isActive ? 'page' : null"
+        [attr.aria-label]="item.ariaLabel"
+        class="app-bottom-nav__item"
+      >
+        <span class="app-bottom-nav__icon-wrap">
+          <span class="material-icons !text-[24px]" aria-hidden="true">{{ rla.isActive ? item.activeIcon : item.icon }}</span>
+          @if (item.badge > 0) {
+            <span class="app-bottom-nav__badge" aria-hidden="true">{{ item.badge > 99 ? '99+' : item.badge }}</span>
+          }
+        </span>
+        <span class="text-[11px] font-medium leading-none">{{ t(item.labelKey) }}</span>
+      </a>
+    }
+  </div>
+</nav>

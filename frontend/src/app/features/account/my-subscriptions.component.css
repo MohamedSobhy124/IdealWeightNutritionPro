@@ -1,3 +1,14 @@
 :host {
   display: block;
 }
+
+:host ::ng-deep .subscription-card,
+.subscription-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.subscription-discount {
+  color: var(--citrus-fg);
+}

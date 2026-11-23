@@ -7,10 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using IdealWeightNutrition.Domain.Identity;
-using LegacyOrderDetail = IdealWeightNutrition.Models.OrderDetail;
-using LegacyOrderHeader = IdealWeightNutrition.Models.OrderHeader;
-using LegacyProduct = IdealWeightNutrition.Models.Product;
-using LegacyUser = IdealWeightNutrition.Models.ApplicationUser;
 
 namespace IdealWeightNutrition.Infrastructure.Services;
 
@@ -56,18 +52,16 @@ internal sealed class OrderNotificationService : IOrderNotificationService
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
-        LegacyUser? legacyUser = null;
+        InvoiceCustomer? invoiceCustomer = null;
         if (!string.IsNullOrEmpty(order.ApplicationUserId))
         {
             var user = await _users.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == order.ApplicationUserId, cancellationToken);
             if (user is not null)
             {
-                legacyUser = new LegacyUser
+                invoiceCustomer = new InvoiceCustomer
                 {
-                    Id = user.Id,
                     Email = user.Email ?? order.Email,
-                    UserName = user.UserName,
                     Name = user.Name ?? order.Name ?? string.Empty,
                     PhoneNumber = user.PhoneNumber
                 };
@@ -89,15 +83,15 @@ internal sealed class OrderNotificationService : IOrderNotificationService
             }
         }
 
-        var legacyHeader = MapHeader(order);
-        var legacyDetails = order.Details.Select(d => MapDetail(d, products)).ToList();
+        var invoiceOrder = MapInvoiceOrder(order);
+        var invoiceLines = order.Details.Select(d => MapInvoiceLine(d, products)).ToList();
         var subject = $"Order Confirmation #{order.Id} - Ideal Weight";
-        var body = BuildConfirmationEmailBody(order, legacyDetails);
+        var body = BuildConfirmationEmailBody(order, invoiceLines);
 
         byte[]? pdf = null;
         try
         {
-            pdf = _invoices.GenerateInvoicePdf(legacyHeader, legacyDetails, legacyUser);
+            pdf = _invoices.GenerateInvoicePdf(invoiceOrder, invoiceLines, invoiceCustomer);
         }
         catch (Exception ex)
         {
@@ -178,28 +172,27 @@ internal sealed class OrderNotificationService : IOrderNotificationService
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
-        LegacyUser? legacyUser = null;
+        InvoiceCustomer? invoiceCustomer = null;
         if (!string.IsNullOrEmpty(order.ApplicationUserId))
         {
             var user = await _users.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == order.ApplicationUserId, cancellationToken);
             if (user is not null)
             {
-                legacyUser = new LegacyUser
+                invoiceCustomer = new InvoiceCustomer
                 {
-                    Id = user.Id,
                     Email = user.Email,
                     Name = user.Name ?? order.Name ?? string.Empty
                 };
             }
         }
 
-        var legacyHeader = MapHeader(order);
-        var legacyDetails = order.Details.Select(d => MapDetail(d, products)).ToList();
+        var invoiceOrder = MapInvoiceOrder(order);
+        var invoiceLines = order.Details.Select(d => MapInvoiceLine(d, products)).ToList();
 
         try
         {
-            return _invoices.GenerateInvoicePdf(legacyHeader, legacyDetails, legacyUser);
+            return _invoices.GenerateInvoicePdf(invoiceOrder, invoiceLines, invoiceCustomer);
         }
         catch (Exception ex)
         {
@@ -233,72 +226,43 @@ internal sealed class OrderNotificationService : IOrderNotificationService
         return user?.Email?.Trim().ToLowerInvariant() == normalizedEmail;
     }
 
-    private static LegacyOrderHeader MapHeader(OrderHeader order) => new()
+    private static InvoiceOrder MapInvoiceOrder(OrderHeader order) => new()
     {
         Id = order.Id,
-        ApplicationUserId = order.ApplicationUserId,
         Email = order.Email,
-        IsGuestOrder = order.IsGuestOrder,
         OrderDate = order.OrderDate,
-        ShippingDate = order.ShippingDate,
         OrderTotal = order.OrderTotal,
-        OrderStatus = order.OrderStatus,
         PaymentStatus = order.PaymentStatus,
-        TrackingNumber = order.TrackingNumber,
-        Carrier = order.Carrier,
-        PaymentDate = order.PaymentDate,
-        PaymentDueDate = order.PaymentDueDate,
-        SessionId = order.SessionId,
-        PaymentIntentId = order.PaymentIntentId,
-        PaymentMethod = order.PaymentMethod,
         PhoneNumber = order.PhoneNumber,
         StreetAddress = order.StreetAddress,
         City = order.City,
-        Area = order.Area,
         State = order.State,
-        PostalCode = order.PostalCode,
         Name = order.Name,
-        PromoCodeId = order.PromoCodeId,
         PromoCodeText = order.PromoCodeText,
         DiscountAmount = order.DiscountAmount,
         OrderSubtotal = order.OrderSubtotal
     };
 
-    private static LegacyOrderDetail MapDetail(
+    private static InvoiceLine MapInvoiceLine(
         OrderDetail detail,
         IReadOnlyDictionary<int, Domain.Catalogue.Product> products)
     {
         products.TryGetValue(detail.ProductId, out var product);
-        return new LegacyOrderDetail
+        return new InvoiceLine
         {
-            Id = detail.Id,
-            OrderHeaderId = detail.OrderHeaderId,
-            ProductId = detail.ProductId,
+            Name = product?.Title ?? $"Product #{detail.ProductId}",
             Count = detail.Count,
-            Price = detail.Price,
-            FlashSaleItemId = detail.FlashSaleItemId,
-            ProductVariantId = detail.ProductVariantId,
-            ComboOfferId = detail.ComboOfferId,
-            Product = product is null
-                ? null!
-                : new LegacyProduct
-                {
-                    Id = product.Id,
-                    Title = product.Title,
-                    TitleAr = product.TitleAr,
-                    Price = product.Price,
-                    ListPrice = product.ListPrice
-                }
+            Price = detail.Price
         };
     }
 
-    private string BuildConfirmationEmailBody(OrderHeader order, IReadOnlyList<LegacyOrderDetail> items)
+    private string BuildConfirmationEmailBody(OrderHeader order, IReadOnlyList<InvoiceLine> items)
     {
         var siteName = _configuration["SiteSettings:Business:Name"] ?? "Ideal Weight Nutrition";
         var rows = string.Join(
             string.Empty,
             items.Select(i =>
-                $"<tr><td>{System.Net.WebUtility.HtmlEncode(i.Product?.Title ?? $"Product #{i.ProductId}")}</td>" +
+                $"<tr><td>{System.Net.WebUtility.HtmlEncode(i.Name)}</td>" +
                 $"<td>{i.Count}</td><td>AED {i.Price * i.Count:N2}</td></tr>"));
 
         return $"""

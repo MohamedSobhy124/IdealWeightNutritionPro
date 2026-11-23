@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminPromoCodeListItem } from '../../../core/models/admin-promo.models';
 import { AdminPromoService } from '../../../core/services/admin-promo.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import { formatIwnCurrency } from '../../../core/utils/iwn-currency';import {
   UiBadgeComponent,
   UiCellDirective,
@@ -14,6 +15,7 @@ import { formatIwnCurrency } from '../../../core/utils/iwn-currency';import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -29,6 +31,7 @@ import { formatIwnCurrency } from '../../../core/utils/iwn-currency';import {
 export class AdminPromoCodesComponent implements OnInit {
   private readonly promoApi = inject(AdminPromoService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminPromoCodeListItem[]>([]);
   readonly loading = signal(true);
@@ -97,8 +100,8 @@ export class AdminPromoCodesComponent implements OnInit {
     });
   }
 
-  remove(item: AdminPromoCodeListItem): void {
-    if (!confirm(this.t('confirmDeletePromo'))) return;
+  async remove(item: AdminPromoCodeListItem): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeletePromo'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.promoApi.delete(item.id).subscribe({

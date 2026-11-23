@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { VideoBanner, VideoBannerService } from '../../../core/services/video-banner.service';
 import { LocaleService } from '../../../core/services/locale.service';
@@ -10,6 +10,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [DecimalPipe, UiPageHeaderComponent, UiCardComponent, UiSkeletonComponent],
   templateUrl: './admin-video-banner.component.html',

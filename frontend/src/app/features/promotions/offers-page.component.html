@@ -16,7 +16,7 @@
     <div class="product-grid">
       @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
         <div class="ui-card overflow-hidden">
-          <ui-skeleton height="0" class="block aspect-square" />
+          <ui-skeleton height="0" class="block aspect-square bg-stage" />
           <div class="space-y-2 p-3">
             <ui-skeleton height="0.9rem" />
             <ui-skeleton width="40%" height="0.9rem" />
@@ -34,8 +34,10 @@
           @let pricing = cardPricing(p);
           <ui-product-card
             density="compact"
+            [alwaysShowActions]="true"
             [title]="productTitle(p)"
             [slug]="p.slug"
+            [brand]="p.brandName || null"
             [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
             [price]="pricing.price"
             [listPrice]="pricing.listPrice"
@@ -48,7 +50,8 @@
             [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
             (toggleWishlist)="toggleWishlist($event, p.id)"
             (quickAdd)="quickAdd(p)"
-          />        }
+          />
+        }
       </div>
     }
     </div>
@@ -61,8 +64,8 @@
         @for (sale of flashSales(); track sale.id) {
           <article class="ui-card ui-hover-lift overflow-hidden">
             @if (sale.imageUrl) {
-              <div class="relative aspect-[16/9] bg-ink-100">
-                <span class="absolute start-3 top-3 z-10"><ui-badge variant="danger">{{ t('flashSaleBadge') }}</ui-badge></span>
+              <div class="relative aspect-[16/9] bg-stage">
+                <span class="absolute start-3 top-3 z-10"><ui-badge variant="citrus">{{ t('flashSaleBadge') }}</ui-badge></span>
                 <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" [alt]="flashName(sale)" loading="lazy" class="h-full w-full object-cover" />
               </div>
             }
@@ -76,7 +79,7 @@
                 <span class="text-ink-300">·</span>
                 {{ sale.productCount }} {{ t('productsLabel') }}
               </p>
-              <a class="ui-btn-primary ui-btn-sm mt-3" [routerLink]="['/flash-sales', sale.id]">{{ t('shopSale') }}</a>
+              <a class="ui-btn-primary mt-3" [routerLink]="['/flash-sales', sale.id]">{{ t('shopSale') }}</a>
             </div>
           </article>
         }
@@ -92,7 +95,7 @@
         @for (combo of combos(); track combo.id) {
           <article class="ui-card ui-hover-lift overflow-hidden">
             @if (combo.imageUrl) {
-              <div class="aspect-[16/9] bg-ink-100">
+              <div class="aspect-[16/9] bg-stage">
                 <img [src]="catalogue.resolveImageUrl(combo.imageUrl)" [alt]="comboName(combo)" loading="lazy" class="h-full w-full object-cover" />
               </div>
             }
@@ -101,11 +104,15 @@
                 <a [routerLink]="['/combos', combo.id]" class="hover:text-brand-700">{{ comboName(combo) }}</a>
               </h3>
               <p class="mt-2 flex flex-wrap items-baseline gap-2">
-                <span class="font-bold text-danger">{{ combo.comboPrice | iwnCurrency }}</span>
-                <span class="text-sm text-ink-400 line-through">{{ combo.originalPrice | iwnCurrency }}</span>
-                <ui-badge variant="success">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge>
+                <span class="font-bold text-citrus">{{ combo.comboPrice | iwnCurrency }}</span>
+                <span class="text-sm text-ink-600 line-through">{{ combo.originalPrice | iwnCurrency }}</span>
+                <ui-badge variant="citrus">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge>
               </p>
-              <a class="ui-btn-primary ui-btn-sm mt-3" [routerLink]="['/combos', combo.id]">{{ t('viewCombo') }}</a>
+              <p class="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-600">
+                {{ t('saleEndsIn') }}
+                <app-flash-sale-countdown [endDate]="combo.endDate" />
+              </p>
+              <a class="ui-btn-primary mt-3" [routerLink]="['/combos', combo.id]">{{ t('viewCombo') }}</a>
             </div>
           </article>
         }

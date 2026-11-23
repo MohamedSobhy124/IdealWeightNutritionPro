@@ -1,3 +1,16 @@
 :host {
   display: block;
 }
+
+:host ::ng-deep .ui-card,
+:host ::ng-deep .ui-product-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.wishlist-toast {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink-700);
+}

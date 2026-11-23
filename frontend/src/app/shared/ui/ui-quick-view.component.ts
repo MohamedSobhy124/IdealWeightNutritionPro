@@ -10,18 +10,18 @@ import { UiModalComponent } from './ui-modal.component';
   imports: [RouterLink, IwnCurrencyPipe, UiBadgeComponent, UiModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ui-modal [open]="open()" [heading]="title()" size="lg" (closed)="closed.emit()">
+    <ui-modal [open]="open()" [heading]="title()" [closeLabel]="closeLabel()" size="lg" (closed)="closed.emit()">
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="overflow-hidden rounded-xl bg-ink-100">
           <img [src]="imageUrl()" [alt]="title()" class="aspect-square w-full object-cover" />
         </div>
         <div class="space-y-3">
           @if (brand()) {
-            <p class="text-sm text-ink-500">{{ brand() }}</p>
+            <p class="text-sm text-ink-600">{{ brand() }}</p>
           }
-          <p class="text-xl font-bold text-ink-900">{{ price() | iwnCurrency }}</p>
+          <p class="text-xl font-bold" [class.text-citrus]="listPrice() > price()" [class.text-ink-900]="listPrice() <= price()">{{ price() | iwnCurrency }}</p>
           @if (listPrice() > price()) {
-            <p class="text-sm text-ink-400 line-through">{{ listPrice() | iwnCurrency }}</p>
+            <p class="text-sm text-ink-600 line-through">{{ listPrice() | iwnCurrency }}</p>
           }
           <ui-badge [variant]="inStock() ? 'success' : 'danger'" [dot]="true">
             {{ inStock() ? inStockLabel() : outOfStockLabel() }}
@@ -57,6 +57,7 @@ export class UiQuickViewComponent {
   readonly outOfStockLabel = input('Out of stock');
   readonly addToCartLabel = input('Add to cart');
   readonly viewDetailsLabel = input('View details');
+  readonly closeLabel = input('Close');
 
   readonly closed = output<void>();
   readonly addToCart = output<void>();

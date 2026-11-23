@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminOrderListItem, AdminOrderStatistics } from '../../../core/models/admin-order.models';
@@ -18,6 +18,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -35,6 +36,7 @@ import {
 export class AdminOrdersComponent implements OnInit {
   private readonly ordersApi = inject(AdminOrderService);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   readonly locale = inject(LocaleService);
 
   readonly isAdmin = computed(
@@ -68,8 +70,8 @@ export class AdminOrdersComponent implements OnInit {
 
   get cols(): UiTableColumn[] {
     return [
-      { key: 'id', header: this.t('orderNumber'), sortable: true },
-      { key: 'customerName', header: this.t('customer') },
+      { key: 'id', header: this.t('orderNumber'), sortable: true, mobile: 'primary' },
+      { key: 'customerName', header: this.t('customer'), mobile: 'secondary' },
       { key: 'city', header: this.t('city'), hideOnMobile: true },
       { key: 'orderStatus', header: this.t('productStatus') },
       { key: 'paymentStatus', header: this.t('payment') },
@@ -167,21 +169,19 @@ export class AdminOrdersComponent implements OnInit {
     this.load();
   }
 
-  prevPage(): void {
-    if (this.page() <= 1) return;
-    this.page.update((p) => p - 1);
+  goToPage(page: number): void {
+    this.page.set(page);
     this.load();
   }
 
-  nextPage(): void {
-    const maxPage = Math.ceil(this.totalCount() / this.pageSize());
-    if (this.page() >= maxPage) return;
-    this.page.update((p) => p + 1);
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.page.set(1);
     this.load();
   }
 
-  totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalCount() / this.pageSize()));
+  openOrder(order: AdminOrderListItem): void {
+    void this.router.navigate(['/admin/orders', order.id]);
   }
 
   exportCsv(): void {

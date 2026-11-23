@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminServiceOfferListItem } from '../../../core/models/admin-service-offer.models';
 import { AdminServiceOfferService } from '../../../core/services/admin-service-offer.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import { formatIwnCurrency } from '../../../core/utils/iwn-currency';
 import {
   UiBadgeComponent,
@@ -15,6 +16,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -31,6 +33,7 @@ export class AdminServiceOffersComponent implements OnInit {
   private readonly offersApi = inject(AdminServiceOfferService);
   private readonly route = inject(ActivatedRoute);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminServiceOfferListItem[]>([]);
   readonly loading = signal(true);
@@ -109,8 +112,8 @@ export class AdminServiceOffersComponent implements OnInit {
     });
   }
 
-  remove(item: AdminServiceOfferListItem): void {
-    if (!confirm(this.t('confirmDeleteServiceOffer'))) return;
+  async remove(item: AdminServiceOfferListItem): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteServiceOffer'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.offersApi.delete(item.id).subscribe({

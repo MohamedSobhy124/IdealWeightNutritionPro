@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { FlashSaleSummary } from '../../core/models/flash-sale.models';
@@ -8,6 +8,7 @@ import { LocaleService } from '../../core/services/locale.service';
 import { FlashSaleCountdownComponent } from './flash-sale-countdown.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-flash-sale-banner',
   standalone: true,
   imports: [RouterLink, FlashSaleCountdownComponent],

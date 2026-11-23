@@ -14,7 +14,7 @@
 .inline-form label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--ink-700, #334155);
+  color: var(--ink-700);
 }
 
 .field input,
@@ -39,7 +39,7 @@ textarea {
   font-size: 0.875rem;
   color: inherit;
   background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  box-shadow: 0 1px 2px rgb(var(--rgb-ink-900) / 0.04);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -48,7 +48,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgb(5 150 105 / 0.2);
+  box-shadow: 0 0 0 3px rgb(var(--rgb-brand-600) / 0.2);
 }
 
 input:disabled,

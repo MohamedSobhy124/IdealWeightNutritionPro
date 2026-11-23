@@ -9,6 +9,8 @@
 }
 
 <ui-data-table
+  rowLinkBase="/admin/promo-codes"
+  storageKey="admin-promo-codes"
   [columns]="cols"
   [rows]="$any(items())"
   [loading]="loading()"

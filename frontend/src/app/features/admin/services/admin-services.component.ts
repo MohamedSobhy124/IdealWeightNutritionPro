@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
@@ -6,6 +6,8 @@ import { AdminServiceListItem } from '../../../core/models/admin-service.models'
 import { AdminServiceService } from '../../../core/services/admin-service.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import {
   UiBadgeComponent,
   UiCellDirective,
@@ -16,6 +18,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -33,6 +36,8 @@ export class AdminServicesComponent implements OnInit {
   private readonly servicesApi = inject(AdminServiceService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
+  private readonly toast = inject(UiToastService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -81,11 +86,14 @@ export class AdminServicesComponent implements OnInit {
     this.servicesApi.toggle(id).subscribe({ next: () => this.load() });
   }
 
-  deleteService(id: number): void {
-    if (!confirm(this.t('confirmDeleteService'))) return;
+  async deleteService(id: number): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteService'), this.t('actionCannotBeUndone')))) return;
     this.servicesApi.delete(id).subscribe({
-      next: () => this.load(),
-      error: (err) => alert(err?.error?.errors?.[0] ?? this.t('deleteFailed')),
+      next: () => {
+        this.toast.success(this.t('deletedToast'));
+        this.load();
+      },
+      error: (err) => this.toast.error(err?.error?.errors?.[0] ?? this.t('deleteFailed')),
     });
   }
 

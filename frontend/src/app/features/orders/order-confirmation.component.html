@@ -14,7 +14,7 @@
     @if (order(); as o) {
       <div class="text-center">
         <div class="ui-success-icon mb-4 flex justify-center">
-          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-success-soft text-success-fg">
+          <span class="order-success-mark flex h-16 w-16 items-center justify-center rounded-full">
             <span class="material-icons text-[32px]">check_circle</span>
           </span>
         </div>
@@ -39,17 +39,21 @@
           </div>
           <div>
             <dt class="text-ink-500">{{ t('status') }}</dt>
-            <dd><ui-badge [variant]="statusVariant(o.orderStatus)">{{ o.orderStatus }}</ui-badge></dd>
+            <dd><ui-badge [variant]="statusVariant(o.orderStatus)">{{ labelStatus(o.orderStatus) }}</ui-badge></dd>
           </div>
           <div>
             <dt class="text-ink-500">{{ t('payment') }}</dt>
-            <dd class="font-medium text-ink-900">{{ o.paymentStatus }}</dd>
+            <dd class="font-medium text-ink-900">{{ labelStatus(o.paymentStatus) }}</dd>
           </div>
         </dl>
         <div class="checkout-summary-total mt-4 flex items-center justify-between gap-3">
           <span class="text-sm font-medium text-white/80">{{ t('total') }}</span>
           <span class="text-xl font-bold tabular-nums">{{ o.orderTotal | iwnCurrency }}</span>
         </div>
+      </ui-card>
+
+      <ui-card class="ui-card-pad block">
+        <ui-timeline [ariaLabel]="t('trackOrderTitle')" [items]="timelineItems(o)" />
       </ui-card>
 
       <ui-card [heading]="t('items')" class="block">

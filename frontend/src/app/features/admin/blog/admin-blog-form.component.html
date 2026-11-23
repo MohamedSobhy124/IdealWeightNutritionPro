@@ -13,7 +13,7 @@
 } @else if (error()) {
   <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
 } @else {
-  <form class="space-y-6" (ngSubmit)="submit()">
+  <form class="admin-form" (ngSubmit)="submit()">
     <ui-card [heading]="t('sectionBasicInfo')">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ui-form-field [label]="t('titleEn')" [required]="true">
@@ -79,7 +79,7 @@
       </div>
     </ui-card>
 
-    <ui-card [heading]="t('sectionContent')">
+    <ui-card class="admin-form-span" [heading]="t('sectionContent')">
       <div class="space-y-4">
         <ui-form-field [label]="t('blogContentEn')" [required]="true">
           <app-rich-text-editor [(ngModel)]="content" name="content" direction="ltr" />
@@ -108,10 +108,10 @@
     </ui-card>
 
     @if (saveError()) {
-      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
     }
 
-    <div class="flex justify-end gap-2">
+    <div class="admin-form-bar">
       <a routerLink="/admin/blog" class="ui-btn-secondary">{{ t('cancel') }}</a>
       <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
         {{ submitting() ? t('saving') : t('save') }}

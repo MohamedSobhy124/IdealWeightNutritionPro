@@ -1,4 +1,4 @@
-<section class="ui-fade-in py-6 sm:py-8">
+<section class="ui-fade-in">
   <ui-page-header [title]="t('myReturns')" [breadcrumbs]="[{ label: t('myAccount'), link: '/account' }]" />
 
   @if (loading()) {
@@ -23,7 +23,7 @@
               </p>
             </a>
             <div class="flex flex-col items-end gap-1">
-              <ui-badge [variant]="statusVariant(item.status)">{{ item.status }}</ui-badge>
+              <ui-badge [variant]="statusVariant(item.status)">{{ labelStatus(item.status) }}</ui-badge>
               @if (item.refundAmount != null) {
                 <span class="text-sm font-bold tabular-nums text-ink-900">{{ item.refundAmount | iwnCurrency }}</span>
               }

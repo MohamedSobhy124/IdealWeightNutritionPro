@@ -1,20 +1,4 @@
-<ui-card [heading]="t('reviewsTitle')" class="block">
-  @if (summary(); as s) {
-    <div class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-ink-200 bg-ink-50/80 px-4 py-3">
-      @if (s.reviewCount > 0) {
-        <span class="text-2xl font-bold text-ink-900">{{ s.averageRating | number: '1.1-1' }}</span>
-        <div class="flex items-center gap-0.5 text-brand-500" aria-hidden="true">
-          @for (star of [1, 2, 3, 4, 5]; track star) {
-            <span class="material-icons text-[20px]" [class.text-ink-300]="star > s.averageRating">star</span>
-          }
-        </div>
-        <span class="text-sm text-ink-600">{{ s.reviewCount }} {{ t('reviewsCountLabel') }}</span>
-      } @else {
-        <span class="text-sm text-ink-600">{{ t('noReviewsYet') }}</span>
-      }
-    </div>
-  }
-
+<ng-template #reviewBody>
   @if (loading()) {
     <div class="space-y-4">
       @for (i of [1, 2]; track i) {
@@ -24,7 +8,7 @@
   } @else if (reviews().length === 0) {
     <ui-empty-state icon="rate_review" [title]="t('noReviewsYet')" />
   } @else {
-    <div class="space-y-4 ui-stagger-children">
+    <div class="space-y-4">
       @for (review of reviews(); track review.id) {
         <div>
           <ui-review-card
@@ -86,4 +70,50 @@
       </form>
     }
   </div>
+</ng-template>
+
+<ui-card [heading]="t('reviewsTitle')" class="block">
+  @if (summary(); as s) {
+    <div class="flex flex-wrap items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
+      @if (s.reviewCount > 0) {
+        <span class="text-2xl font-bold text-ink-900">{{ s.averageRating | number: '1.1-1' }}</span>
+        <div class="flex items-center gap-0.5 text-brand-700" aria-hidden="true">
+          @for (star of [1, 2, 3, 4, 5]; track star) {
+            <span class="material-icons text-[20px]" [class.text-ink-300]="star > s.averageRating">star</span>
+          }
+        </div>
+        <span class="text-sm text-ink-600">{{ s.reviewCount }} {{ t('reviewsCountLabel') }}</span>
+      } @else {
+        <span class="text-sm text-ink-600">{{ t('noReviewsYet') }}</span>
+      }
+    </div>
+  }
+
+  <button
+    type="button"
+    class="ui-btn-secondary mt-4 w-full lg:hidden"
+    (click)="sheetOpen.set(true)"
+    [attr.aria-expanded]="sheetOpen()"
+  >
+    <span class="material-icons !text-[18px]" aria-hidden="true">rate_review</span>
+    {{ t('viewReviews') }}
+  </button>
+
+  @if (!sheetOpen()) {
+    <div class="mt-5 hidden lg:block">
+      <ng-container [ngTemplateOutlet]="reviewBody" />
+    </div>
+  }
 </ui-card>
+
+<ui-modal
+  [open]="sheetOpen()"
+  [heading]="t('reviewsTitle')"
+  [closeLabel]="t('closeDialog')"
+  size="lg"
+  (closed)="sheetOpen.set(false)"
+>
+  @if (sheetOpen()) {
+    <ng-container [ngTemplateOutlet]="reviewBody" />
+  }
+</ui-modal>

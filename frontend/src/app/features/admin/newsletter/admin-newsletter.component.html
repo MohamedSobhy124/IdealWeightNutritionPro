@@ -55,21 +55,12 @@
 
     <ui-filter-bar>
 
-      <label class="flex flex-col gap-1">
-
-        <span class="ui-label">{{ t('productStatus') }}</span>
-
-        <select class="ui-select" [(ngModel)]="status" name="status" (change)="load()">
-
-          <option value="all">{{ t('filterAll') }}</option>
-
-          <option value="active">{{ t('filterActive') }}</option>
-
-          <option value="inactive">{{ t('filterInactive') }}</option>
-
-        </select>
-
-      </label>
+      <ui-segmented
+        [label]="t('productStatus')"
+        [options]="statusOptions()"
+        [value]="status"
+        (valueChange)="status = $event; load()"
+      />
 
     </ui-filter-bar>
 

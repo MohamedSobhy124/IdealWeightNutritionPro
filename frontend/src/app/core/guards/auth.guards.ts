@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, CanMatchFn, Router } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { UserProfile } from '../models/auth.models';
@@ -25,6 +25,14 @@ function ensureProfile(auth: AuthService) {
     catchError(() => of(null as UserProfile | null)),
   );
 }
+
+/** Keeps signed-out visits off the admin bundle so the outlet does not flash blank. */
+export const staffEntryMatch: CanMatchFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.isAuthenticated()) return true;
+  return router.createUrlTree(['/auth/login']);
+};
 
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);

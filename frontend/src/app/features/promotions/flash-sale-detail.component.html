@@ -3,7 +3,7 @@
     <div class="product-grid">
       @for (i of [1, 2, 3, 4]; track i) {
         <div class="ui-card overflow-hidden">
-          <ui-skeleton height="0" class="block aspect-square" />
+          <ui-skeleton height="0" class="block aspect-square bg-stage" />
           <div class="space-y-2 p-2">
             <ui-skeleton height="0.9rem" />
             <ui-skeleton width="40%" height="0.9rem" />
@@ -19,15 +19,16 @@
     @if (sale(); as s) {
       <ui-page-header
         [title]="saleName(s)"
+        [subtitle]="s.description || null"
         [breadcrumbs]="[{ label: t('allFlashSales'), link: '/flash-sales' }]"
       />
 
-      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3">
-        <p class="flex items-center gap-2 text-sm font-medium text-danger">
+      <div class="flash-sale-countdown-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-citrus/25 bg-citrus-soft px-4 py-3">
+        <p class="flex items-center gap-2 text-sm font-medium text-citrus">
           <span class="material-icons text-[20px]" aria-hidden="true">bolt</span>
           {{ t('saleEndsIn') }}
         </p>
-        <app-flash-sale-countdown [endDate]="s.endDate" />
+        <app-flash-sale-countdown [endDate]="s.endDate" [live]="true" />
       </div>
 
       <div class="product-grid ui-stagger-children">

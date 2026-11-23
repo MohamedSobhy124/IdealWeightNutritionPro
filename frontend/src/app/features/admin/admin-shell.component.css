@@ -1,4 +1,150 @@
-/* Admin shell layout is fully handled by Tailwind utility classes in the template. */
 :host {
   display: block;
+}
+
+/* ---- Shell layout ------------------------------------------------------- */
+
+.shell-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 50;
+  display: flex;
+  width: 16rem;
+  transform: translateX(-100%);
+  background: rgb(var(--rgb-forest-deep));
+  border-inline-end-color: rgb(244 247 245 / 0.08);
+  color: rgb(244 247 245);
+}
+
+:host-context([dir='rtl']) .shell-drawer {
+  transform: translateX(100%);
+}
+
+.shell-drawer--open,
+:host-context([dir='rtl']) .shell-drawer--open {
+  transform: none;
+}
+
+@media (min-width: 1024px) {
+  .shell-drawer,
+  :host-context([dir='rtl']) .shell-drawer {
+    transform: none;
+  }
+
+  .shell-drawer--collapsed {
+    width: 4.75rem;
+  }
+}
+
+.shell-drawer__brand {
+  border-block-end: 1px solid rgb(244 247 245 / 0.1);
+}
+
+.shell-drawer__mark {
+  background: rgb(255 255 255 / 0.12);
+  color: rgb(244 247 245);
+}
+
+.shell-drawer__title {
+  color: rgb(244 247 245);
+}
+
+.shell-drawer__subtitle,
+.shell-drawer__group {
+  color: rgb(244 247 245 / 0.72);
+}
+
+.shell-drawer__footer {
+  border-block-start: 1px solid rgb(244 247 245 / 0.1);
+}
+
+/* ---- Nav links (lime left accent + cream text when active) -------------- */
+
+.admin-nav-link {
+  position: relative;
+  color: rgb(244 247 245 / 0.78);
+  border-radius: 0.75rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav-link:hover {
+  background: rgb(244 247 245 / 0.08);
+  color: rgb(244 247 245);
+}
+
+.admin-nav-link--active {
+  background: rgb(244 247 245 / 0.1);
+  color: rgb(244 247 245);
+  font-weight: 600;
+}
+
+.admin-nav-link--active::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.35rem;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: rgb(244 247 245 / 0.85);
+}
+
+.admin-nav-store {
+  color: rgb(244 247 245 / 0.72);
+}
+
+.admin-nav-store:hover {
+  background: rgb(244 247 245 / 0.08);
+  color: rgb(244 247 245);
+}
+
+.shell-drawer .ui-btn-icon {
+  color: rgb(244 247 245 / 0.85);
+}
+
+.shell-drawer .ui-btn-icon:hover {
+  background: rgb(244 247 245 / 0.1);
+  color: rgb(244 247 245);
+}
+
+/* ---- Main column: paper ground, quiet chrome ---------------------------- */
+
+.admin-shell {
+  background: var(--surface-muted); /* paper */
+  color: var(--ink-900);
+}
+
+.admin-shell__main {
+  background: var(--surface-muted);
+}
+
+.admin-shell__topbar {
+  background: rgb(var(--rgb-surface) / 0.94);
+  border-block-end-color: var(--border);
+}
+
+.admin-shell__palette-trigger {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink-400);
+}
+
+.admin-shell__palette-trigger:hover {
+  border-color: var(--border-strong);
+  color: var(--ink-600);
+}
+
+.admin-shell__avatar {
+  background: rgb(var(--rgb-brand-700));
+  color: rgb(244 247 245);
+}
+
+.admin-shell__palette-active {
+  background: rgb(var(--rgb-lime-soft));
+  color: var(--ink-900);
+  box-shadow: inset 3px 0 0 rgb(var(--rgb-lime-deep));
+}
+
+:host-context([dir='rtl']) .admin-shell__palette-active {
+  box-shadow: inset -3px 0 0 rgb(var(--rgb-lime-deep));
 }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
@@ -11,9 +11,10 @@ import {
   readGuestNewsletterEmail,
 } from '../../core/services/newsletter-storage';
 import { apiErrorMessage } from '../../core/utils/api-error';
-import { UiFormFieldComponent, UiPageHeaderComponent } from '../../shared/ui';
+import { UiConfirmService, UiFormFieldComponent, UiPageHeaderComponent } from '../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [FormsModule, RouterLink, UiPageHeaderComponent, UiFormFieldComponent],
   templateUrl: './newsletter-unsubscribe.component.html',
@@ -24,6 +25,7 @@ export class NewsletterUnsubscribeComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly platformId = inject(PLATFORM_ID);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly email = signal('');
   readonly busy = signal(false);
@@ -50,15 +52,20 @@ export class NewsletterUnsubscribeComponent implements OnInit {
     return this.locale.pick(UI[key].en, UI[key].ar);
   }
 
-  unsubscribe(): void {
-    if (!confirm(this.t('newsletterConfirmUnsubscribe'))) return;
-
+  async unsubscribe(): Promise<void> {
     const value = this.email().trim();
     if (!value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
       this.message.set(this.t('newsletterInvalidEmail'));
       this.error.set(true);
       return;
     }
+
+    const confirmed = await this.confirmDialog.ask({
+      title: this.t('newsletterConfirmUnsubscribe'),
+      confirmLabel: this.t('newsletterUnsubscribe'),
+      icon: 'unsubscribe',
+    });
+    if (!confirmed) return;
 
     this.busy.set(true);
     this.message.set(null);

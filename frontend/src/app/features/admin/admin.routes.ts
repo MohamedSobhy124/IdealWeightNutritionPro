@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { adminOnlyGuard, staffGuard } from '../../core/guards/auth.guards';
+import { unsavedChangesGuard } from '../../core/guards/unsaved-changes.guard';
 
 export const ADMIN_ROUTES: Routes = [
   {
@@ -33,6 +34,7 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'products/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./products/admin-product-create.component').then(
             (m) => m.AdminProductCreateComponent
@@ -83,12 +85,14 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'promo-codes/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./promo-codes/admin-promo-form.component').then((m) => m.AdminPromoFormComponent),
       },
       {
         path: 'promo-codes/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./promo-codes/admin-promo-form.component').then((m) => m.AdminPromoFormComponent),
       },
@@ -113,12 +117,14 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'flash-sales/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./flash-sales/admin-flash-sale-form.component').then((m) => m.AdminFlashSaleFormComponent),
       },
       {
         path: 'flash-sales/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./flash-sales/admin-flash-sale-form.component').then((m) => m.AdminFlashSaleFormComponent),
       },
@@ -131,12 +137,14 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'combo-offers/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./combo-offers/admin-combo-offer-form.component').then((m) => m.AdminComboOfferFormComponent),
       },
       {
         path: 'combo-offers/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./combo-offers/admin-combo-offer-form.component').then((m) => m.AdminComboOfferFormComponent),
       },
@@ -161,12 +169,14 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'blog/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./blog/admin-blog-form.component').then((m) => m.AdminBlogFormComponent),
       },
       {
         path: 'blog/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./blog/admin-blog-form.component').then((m) => m.AdminBlogFormComponent),
       },
@@ -179,12 +189,14 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'services/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./services/admin-service-form.component').then((m) => m.AdminServiceFormComponent),
       },
       {
         path: 'services/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./services/admin-service-form.component').then((m) => m.AdminServiceFormComponent),
       },
@@ -197,12 +209,14 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'service-offers/new',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./service-offers/admin-service-offer-form.component').then((m) => m.AdminServiceOfferFormComponent),
       },
       {
         path: 'service-offers/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./service-offers/admin-service-offer-form.component').then((m) => m.AdminServiceOfferFormComponent),
       },

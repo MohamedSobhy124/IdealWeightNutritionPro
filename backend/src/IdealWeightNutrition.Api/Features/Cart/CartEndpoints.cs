@@ -7,21 +7,32 @@ namespace IdealWeightNutrition.Api.Features.Cart;
 
 internal static class CartHttpExtensions
 {
-    public static void SetGuestCartCookie(HttpContext ctx, string cartId, bool isDevelopment)
+    public static void SetGuestCartCookie(HttpContext ctx, string cartId)
     {
-        ctx.Response.Cookies.Append(CartHttp.GuestCartCookie, cartId, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = !isDevelopment,
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromDays(14),
-            Path = "/"
-        });
+        var options = GuestCartCookieOptions(ctx);
+        options.MaxAge = TimeSpan.FromDays(14);
+        ctx.Response.Cookies.Append(CartHttp.GuestCartCookie, cartId, options);
     }
 
     public static void ClearGuestCartCookie(HttpContext ctx)
     {
-        ctx.Response.Cookies.Delete(CartHttp.GuestCartCookie, new CookieOptions { Path = "/" });
+        ctx.Response.Cookies.Delete(CartHttp.GuestCartCookie, GuestCartCookieOptions(ctx));
+    }
+
+    /// <summary>
+    /// Local dev reaches the API through the storefront proxy, so Lax stays first-party.
+    /// Production calls the API on another site, so the cookie has to be cross-site.
+    /// </summary>
+    private static CookieOptions GuestCartCookieOptions(HttpContext ctx)
+    {
+        var isDevelopment = ctx.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !isDevelopment,
+            SameSite = isDevelopment ? SameSiteMode.Lax : SameSiteMode.None,
+            Path = "/",
+        };
     }
 }
 
@@ -50,13 +61,8 @@ public sealed class GetCartEndpoint : EndpointWithoutRequest<CartResponse>
 public sealed class AddCartItemEndpoint : Endpoint<AddCartItemRequest, CartResponse>
 {
     private readonly ICartService _cart;
-    private readonly IWebHostEnvironment _env;
 
-    public AddCartItemEndpoint(ICartService cart, IWebHostEnvironment env)
-    {
-        _cart = cart;
-        _env = env;
-    }
+    public AddCartItemEndpoint(ICartService cart) => _cart = cart;
 
     public override void Configure()
     {
@@ -72,7 +78,7 @@ public sealed class AddCartItemEndpoint : Endpoint<AddCartItemRequest, CartRespo
         if (userId is null && string.IsNullOrEmpty(guestCartId))
         {
             guestCartId = _cart.CreateGuestCartId();
-            CartHttpExtensions.SetGuestCartCookie(HttpContext, guestCartId, _env.IsDevelopment());
+            CartHttpExtensions.SetGuestCartCookie(HttpContext, guestCartId);
         }
 
         try

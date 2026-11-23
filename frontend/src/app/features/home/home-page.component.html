@@ -1,285 +1,323 @@
-<section class="ui-fade-in space-y-6 py-1 sm:space-y-14 sm:py-2" aria-label="Home content">
-  <section class="hero-banner relative overflow-hidden rounded-2xl bg-ink-900 sm:rounded-3xl" (mouseenter)="heroPaused.set(true)" (mouseleave)="heroPaused.set(false)">
-    <div class="flex transition-transform duration-500" [style.transform]="heroTransform()">
-      @for (slide of heroSlides(); track $index) {
-        <div class="relative min-h-[220px] w-full shrink-0 sm:min-h-[420px]">
-          @if (slide.type === 'video') {
-            <video autoplay muted loop playsinline [poster]="slide.posterUrl ?? undefined" class="hero-media absolute inset-0 h-full w-full object-cover">
-              <source [src]="slide.videoUrl" type="video/mp4" />
-            </video>
-          } @else if (slide.type === 'image') {
-            <img [src]="slide.imageUrl" [alt]="slide.title" fetchpriority="high" width="1600" height="900" class="hero-media absolute inset-0 h-full w-full object-cover" />
-          } @else {
-            <div class="hero-default-gradient absolute inset-0" aria-hidden="true"></div>
-            @if (slide.type === 'flash' || slide.type === 'combo') {
-              @if (slide.imageUrl) {
-                <img [src]="catalogue.resolveImageUrl(slide.imageUrl)" [alt]="slide.title" class="absolute end-0 top-0 h-full w-1/2 object-cover opacity-50" />
-              }
-            }
-          }
-          <div class="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-ink-900/90 via-ink-900/50 to-transparent p-4 pb-10 text-white sm:justify-center sm:p-12 sm:pb-12">
-            <div class="hero-shell max-w-2xl">
-              <span class="hero-eyebrow">{{ t('heroBadge') }}</span>
-              <h1 class="mt-3 max-w-xl text-2xl font-bold leading-tight sm:text-5xl">{{ slide.title }}</h1>
-              <p class="mt-2 max-w-lg text-sm text-white/85 sm:mt-3 sm:text-lg">{{ slide.lead }}</p>
-              <ul class="mt-3 flex flex-wrap gap-2.5 text-xs text-white/90 sm:mt-4 sm:text-sm">
-                <li class="hero-point">{{ t('heroPointOriginal') }}</li>
-                <li class="hero-point">{{ t('heroPointDelivery') }}</li>
-                <li class="hero-point">{{ t('heroPointSupport') }}</li>
-              </ul>
-            </div>
-            <div class="mt-4 flex w-full flex-col gap-2 sm:mt-6 sm:w-auto sm:flex-row sm:gap-3">
-              <a [routerLink]="slide.primaryLink" class="hero-primary-cta ui-btn-primary ui-btn-lg w-full sm:w-auto">{{ t('shopNow') }}</a>
-              <a [routerLink]="slide.secondaryLink" class="ui-btn-secondary ui-btn-lg w-full border-white/60 bg-white/10 text-white hover:bg-white/20 hover:border-white/80 sm:w-auto">{{ t(slide.secondaryLabelKey) }}</a>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-    <button type="button" class="ui-btn-icon absolute start-2 top-1/2 hidden -translate-y-1/2 bg-white/90 sm:start-3 sm:inline-flex" (click)="prevHero()" aria-label="Previous slide">
-      <span class="material-icons rtl:rotate-180">chevron_left</span>
-    </button>
-    <button type="button" class="ui-btn-icon absolute end-2 top-1/2 hidden -translate-y-1/2 bg-white/90 sm:end-3 sm:inline-flex" (click)="nextHero()" aria-label="Next slide">
-      <span class="material-icons rtl:rotate-180">chevron_right</span>
-    </button>
-    <div class="absolute bottom-3 start-0 end-0 flex justify-center gap-2">
-      @for (slide of heroSlides(); track $index) {
-        <button type="button" class="h-2 rounded-full bg-white/60 transition-all" [class.w-8]="heroIndex() === $index" [class.w-2]="heroIndex() !== $index" (click)="selectHero($index)" [attr.aria-label]="'Slide ' + ($index + 1)"></button>
-      }
-    </div>
-  </section>
+<ng-template #productCard let-p>
+  @let pricing = cardPricing(p);
+  <ui-product-card class="product-carousel__item"
+    density="compact"
+    [alwaysShowActions]="true"
+    [title]="productTitle(p)"
+    [slug]="p.slug"
+    [brand]="p.brandName || null"
+    [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
+    [price]="pricing.price"
+    [listPrice]="pricing.listPrice"
+    [flashSale]="pricing.isFlashSale"
+    [inStock]="p.inStock"
+    [inWishlist]="isInWishlist(p.id)"
+    [busy]="wishlistBusyId() === p.id || quickAddBusyId() === p.id"
+    [quickAddLabel]="quickAddLabel(p)"
+    [flashLabel]="t('flashSaleBadge')"
+    [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
+    (toggleWishlist)="toggleWishlist($event, p.id)"
+    (quickAdd)="quickAdd(p)"
+  />
+</ng-template>
 
-  <section class="home-section" appReveal>
-    <ui-trust-strip [items]="trustItems()" [ariaLabel]="t('whyChooseUsTitle')" />
-  </section>
+<ng-template #railSkeleton>
+  <div class="product-carousel" aria-hidden="true">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <ui-skeleton height="19rem" class="product-carousel__item" />
+    }
+  </div>
+</ng-template>
 
-  <section class="home-quick-start home-section rounded-2xl border border-ink-200 bg-white p-3 sm:rounded-3xl sm:p-4" appReveal>
-    <div class="mb-2 flex items-center justify-between gap-2">
-      <h2 class="text-sm font-semibold text-ink-800 sm:text-base">{{ t('quickStartTitle') }}</h2>
-      <a routerLink="/shop" class="text-xs font-semibold text-brand-600 hover:text-brand-700 sm:text-sm">{{ t('viewAll') }}</a>
-    </div>
-    <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
-      <a class="quick-chip snap-start" [routerLink]="['/shop']" [queryParams]="{ sortBy: 'trending' }">{{ t('bestSellers') }}</a>
-      <a class="quick-chip snap-start" [routerLink]="['/shop']" [queryParams]="{ sortBy: 'new' }">{{ t('newArrivals') }}</a>
-      <a class="quick-chip snap-start" routerLink="/offers">{{ t('discountedProducts') }}</a>
-      <a class="quick-chip snap-start" routerLink="/flash-sales">{{ t('flashSales') }}</a>
-      <a class="quick-chip snap-start" routerLink="/combos">{{ t('comboOffers') }}</a>
-      <a class="quick-chip snap-start" routerLink="/services">{{ t('homeServicesTitle') }}</a>
-    </div>
-  </section>
+<div class="home-stack ui-fade-in" [attr.aria-label]="t('homeContent')">
+  <!-- Opener: first screen the customer sees (no reveal delay) ------- -->
+  <section class="intro" [attr.aria-label]="t('homeIntroTitle')">
+    <span class="intro__glow intro__glow--a" aria-hidden="true"></span>
+    <span class="intro__glow intro__glow--b" aria-hidden="true"></span>
 
+    <div class="intro__copy">
+      <span class="intro__eyebrow">
+        <span class="material-icons" aria-hidden="true">auto_awesome</span>{{ t('heroBadge') }}
+      </span>
+      <h1 class="intro__title display-title">
+        {{ t('homeIntroTitle') }}
+        <span class="intro__title-accent">{{ t('homeIntroTitleAccent') }}</span>
+      </h1>
+      <p class="intro__lead">{{ t('homeIntroLead') }}</p>
 
-
-
-  <div class="home-band home-band--goals" appReveal>
-    <section class="home-section" aria-label="Shop by goals" appReveal>
-      <div class="mb-4 flex items-end justify-between gap-3">
-        <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('whyChooseUsTitle') }}</h2>
-        <a routerLink="/shop" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
+      <div class="intro__actions">
+        <a routerLink="/shop" class="ui-btn ui-btn-lg ui-btn-primary intro__cta">
+          {{ t('shopNow') }}
+          <span class="material-icons !text-[20px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+        </a>
+        <a routerLink="/offers" class="ui-btn ui-btn-lg intro__cta-ghost">
+          <span class="material-icons !text-[20px]" aria-hidden="true">local_offer</span>{{ t('navOffers') }}
+        </a>
       </div>
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 ui-stagger-children">
-        @for (goal of healthGoals(); track goal.title) {
-          <ui-goal-card [title]="goal.title" [subtitle]="goal.subtitle" [icon]="goal.icon" [link]="'/shop'" [queryParams]="goal.queryParams" />
+
+      <ul class="intro__trust">
+        <li><span class="material-icons" aria-hidden="true">verified</span>{{ t('heroPointOriginal') }}</li>
+        <li><span class="material-icons" aria-hidden="true">local_shipping</span>{{ t('heroPointDelivery') }}</li>
+        <li><span class="material-icons" aria-hidden="true">support_agent</span>{{ t('heroPointSupport') }}</li>
+      </ul>
+
+      @if (reviewSummary(); as summary) {
+        <p class="intro__rating">
+          <span class="intro__stars" aria-hidden="true">
+            @for (s of [1, 2, 3, 4, 5]; track s) {
+              <span class="material-icons">{{ s <= summary.average + 0.25 ? 'star' : 'star_border' }}</span>
+            }
+          </span>
+          {{ reviewSummaryText(summary) }}
+        </p>
+      }
+    </div>
+
+    <div class="intro__shop">
+      <p class="intro__shop-title">
+        <span>{{ t('shopByCategory') }}</span>
+        <a routerLink="/shop">{{ t('viewAll') }}</a>
+      </p>
+      <div class="intro__tiles ui-stagger-children">
+        @if (loadingMerch()) {
+          @for (i of [1, 2, 3, 4]; track i) {
+            <ui-skeleton height="8.5rem" />
+          }
+        } @else {
+          @for (category of introCategories(); track category.id; let i = $index) {
+            <a
+              class="intro-tile"
+              [attr.data-tone]="i % 4"
+              routerLink="/shop"
+              [queryParams]="{ categoryId: category.id }"
+            >
+              <span class="intro-tile__art" aria-hidden="true">
+                @if (category.imageUrl) {
+                  <img [src]="catalogue.resolveImageUrl(category.imageUrl)" alt="" loading="eager" width="96" height="96" />
+                } @else {
+                  <span class="material-icons">{{ categoryIcon(category) }}</span>
+                }
+              </span>
+              <span class="intro-tile__name">{{ categoryName(category) }}</span>
+              <span class="intro-tile__go">
+                {{ t('shopNow') }}
+                <span class="material-icons rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+              </span>
+            </a>
+          }
+          <a class="intro-tile intro-tile--all" routerLink="/shop">
+            <span class="intro-tile__art" aria-hidden="true"><span class="material-icons">grid_view</span></span>
+            <span class="intro-tile__name">{{ t('homeIntroAllProducts') }}</span>
+            <span class="intro-tile__go">
+              {{ t('viewAll') }}
+              <span class="material-icons rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+            </span>
+          </a>
         }
       </div>
-    </section>
-  </div>
-  @if (loadingMerch()) {    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-      @for (i of [1,2,3,4,5,6]; track i) {
-        <ui-skeleton height="6.5rem" />
-      }
     </div>
-  } @else {
-    @if (categories().length > 0) {
-      <section class="home-section" appReveal>
-        <ui-section-header [title]="t('shopByCategory')" [viewAllLink]="'/shop'" [viewAllLabel]="t('viewAll')" />
-        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          @for (category of categories(); track category.id) {
-            <ui-category-card
-              [name]="categoryName(category)"
-              [imageUrl]="category.imageUrl ? catalogue.resolveImageUrl(category.imageUrl) : null"
-              [queryParams]="{ categoryId: category.id }"
-            />
-          }
-        </div>
-      </section>
-    }
+  </section>
 
-    @if (brands().length > 0) {
-      <section class="home-section" appReveal>
-        <ui-section-header [title]="t('shopByBrand')" [viewAllLink]="'/shop'" [viewAllLabel]="t('viewAll')" />
-        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          @for (brand of brands(); track brand.id) {
-            <ui-brand-card
-              [name]="brandName(brand)"
-              [imageUrl]="brand.imageUrl ? catalogue.resolveImageUrl(brand.imageUrl) : null"
-              [queryParams]="{ brandId: brand.id }"
-            />
-          }
-        </div>
-      </section>
-    }
-  }
-
-  @if (!loadingProducts() && discountedProducts().length > 0) {
-    <div class="home-band home-band--flash" appReveal>
-      <section class="home-section" appReveal>
-        <div class="mb-4 flex items-end justify-between gap-3">
-          <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('discountedProducts') }}</h2>
-          <a routerLink="/offers" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
-        </div>
-        <div class="product-grid ui-stagger-children">
-          @for (p of discountedProducts(); track p.id) {
-            @let pricing = cardPricing(p);
-            <ui-product-card
-              density="compact"
-              [alwaysShowActions]="true"
-              [title]="productTitle(p)"
-              [slug]="p.slug"
-              [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
-              [price]="pricing.price"
-              [listPrice]="pricing.listPrice"
-              [flashSale]="pricing.isFlashSale"
-              [inStock]="p.inStock"
-              [inWishlist]="isInWishlist(p.id)"
-              [busy]="wishlistBusyId() === p.id || quickAddBusyId() === p.id"
-              [quickAddLabel]="quickAddLabel(p)"
-              [flashLabel]="t('flashSaleBadge')"
-              [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
-              (toggleWishlist)="toggleWishlist($event, p.id)"
-              (quickAdd)="quickAdd(p)"
-            />
-          }
-        </div>
-      </section>
-    </div>
-  }
+  <!-- 4. Deals band ------------------------------------------------------ -->
   @if (loadingPromos()) {
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      @for (i of [1,2,3]; track i) {
-        <ui-skeleton height="13rem" />
-      }
+    <div class="home-band home-band--deals" aria-hidden="true">
+      <ui-skeleton height="2.25rem" class="mb-5 block max-w-xs" />
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (i of [1, 2, 3]; track i) {
+          <ui-skeleton height="15rem" />
+        }
+      </div>
     </div>
-  } @else {
-    @if (flashSales().length > 0) {
-      <section class="home-section" appReveal>
-        <div class="mb-4 flex items-end justify-between gap-3">
-          <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('flashSales') }}</h2>
-          <a routerLink="/flash-sales" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
-        </div>
-        <div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
-          @for (sale of flashSales(); track sale.id) {
-            <article class="ui-card ui-hover-lift home-spotlight-card overflow-hidden">
-              @if (sale.imageUrl) {
-                <div class="relative aspect-[16/9] bg-ink-100">
-                  <span class="absolute start-3 top-3 z-10"><ui-badge variant="danger">{{ t('flashSaleBadge') }}</ui-badge></span>
-                  <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" [alt]="flashName(sale)" loading="lazy" class="h-full w-full object-cover" />
-                </div>
-              }
-              <div class="p-4">
-                <h3 class="text-base font-semibold text-ink-900"><a [routerLink]="['/flash-sales', sale.id]" class="hover:text-brand-700">{{ flashName(sale) }}</a></h3>
-                @if (sale.description) {
-                  <p class="mt-1 line-clamp-2 text-sm text-ink-500">{{ sale.description }}</p>
-                }
-                <p class="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-600">
-                  {{ t('saleEndsIn') }} <app-flash-sale-countdown [endDate]="sale.endDate" /> <span class="text-ink-300">·</span> {{ sale.productCount }} {{ t('productsLabel') }}
-                </p>
-                <a class="ui-btn-primary ui-btn-sm mt-3" [routerLink]="['/flash-sales', sale.id]">{{ t('shopSale') }}</a>
-              </div>
-            </article>
+  } @else if (dealsTabs().length > 0) {
+    <section class="home-band home-band--deals" [attr.aria-label]="t('homeDealsTitle')" appReveal>
+      <div class="deals__head">
+        <div class="min-w-0">
+          <p class="deals__eyebrow"><span class="material-icons" aria-hidden="true">schedule</span>{{ t('homeDealsEyebrow') }}</p>
+          <h2 class="deals__title display-title">{{ t('homeDealsTitle') }}</h2>
+          @if (activeDealsTab() === 'flash' && nextFlashEndDate(); as endDate) {
+            <p class="deals__countdown">{{ t('saleEndsIn') }} <app-flash-sale-countdown [endDate]="endDate" /></p>
           }
         </div>
-      </section>
-    }
+        <a class="deals__viewall" [routerLink]="dealsViewAllLink()">
+          {{ t('viewAll') }}
+          <span class="material-icons !text-[18px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+        </a>
+      </div>
 
-    @if (combos().length > 0) {
-      <section class="home-section" appReveal>
-        <div class="mb-4 flex items-end justify-between gap-3">
-          <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('comboOffers') }}</h2>
-          <a routerLink="/combos" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
-        </div>
-        <div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
-          @for (combo of combos(); track combo.id) {
-            <article class="ui-card ui-hover-lift home-spotlight-card overflow-hidden">
-              @if (combo.imageUrl) {
-                <div class="aspect-[16/9] bg-ink-100">
-                  <img [src]="catalogue.resolveImageUrl(combo.imageUrl)" [alt]="comboName(combo)" loading="lazy" class="h-full w-full object-cover" />
-                </div>
-              }
-              <div class="p-4">
-                <h3 class="text-base font-semibold text-ink-900"><a [routerLink]="['/combos', combo.id]" class="hover:text-brand-700">{{ comboName(combo) }}</a></h3>
-                <p class="mt-2 flex flex-wrap items-baseline gap-2">
-                  <span class="font-bold text-danger">{{ combo.comboPrice | iwnCurrency }}</span>
-                  <span class="text-sm text-ink-400 line-through">{{ combo.originalPrice | iwnCurrency }}</span>
-                  <ui-badge variant="success">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge>
-                </p>
-                <a class="ui-btn-primary ui-btn-sm mt-3" [routerLink]="['/combos', combo.id]">{{ t('viewCombo') }}</a>
-              </div>
-            </article>
-          }
-        </div>
-      </section>
-    }
-  }
-
-  @if (categorySections().length > 0) {
-    <div class="home-band home-band--flash" appReveal>
-      <section class="home-section" appReveal>
-        <div class="mb-4 flex items-end justify-between gap-3">
-          <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('whyChooseUsTitle') }}</h2>
-          <a routerLink="/shop" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
-        </div>
-        <div class="mb-4 flex flex-wrap gap-2" role="tablist">
-          @for (section of categorySections(); track section.category.id) {
-            <button type="button" role="tab" class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors" [class.border-brand-600]="selectedCategoryId() === section.category.id" [class.bg-brand-600]="selectedCategoryId() === section.category.id" [class.text-white]="selectedCategoryId() === section.category.id" [class.border-ink-200]="selectedCategoryId() !== section.category.id" [class.bg-white]="selectedCategoryId() !== section.category.id" [class.text-ink-700]="selectedCategoryId() !== section.category.id" [class.hover:bg-ink-50]="selectedCategoryId() !== section.category.id" (click)="selectCategory(section.category.id)">
-              {{ categoryName(section.category) }}
+      @if (dealsTabs().length > 1) {
+        <div class="ui-pill-tabs ui-pill-tabs--inverse mb-5" role="tablist" [attr.aria-label]="t('homeDealsTitle')">
+          @for (tab of dealsTabs(); track tab.id) {
+            <button
+              type="button"
+              role="tab"
+              class="ui-pill-tab"
+              [attr.aria-selected]="activeDealsTab() === tab.id"
+              (click)="dealsTabChoice.set(tab.id)"
+            >
+              <span class="material-icons !text-[18px]" aria-hidden="true">{{ tab.icon }}</span>{{ tab.label }}
             </button>
           }
         </div>
-        <div class="product-grid ui-stagger-children">
-          @for (p of activeCategoryProducts(); track p.id) {
-            @let pricing = cardPricing(p);
-            <ui-product-card
-              density="compact"
-              [alwaysShowActions]="true"
-              [title]="productTitle(p)"
-              [slug]="p.slug"
-              [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
-              [price]="pricing.price"
-              [listPrice]="pricing.listPrice"
-              [flashSale]="pricing.isFlashSale"
-              [inStock]="p.inStock"
-              [inWishlist]="isInWishlist(p.id)"
-              [busy]="wishlistBusyId() === p.id || quickAddBusyId() === p.id"
-              [quickAddLabel]="quickAddLabel(p)"
-              [flashLabel]="t('flashSaleBadge')"
-              [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
-              (toggleWishlist)="toggleWishlist($event, p.id)"
-              (quickAdd)="quickAdd(p)"
-            />
+      }
+
+      @switch (activeDealsTab()) {
+        @case ('flash') {
+          <div class="deals__grid ui-stagger-children">
+            @for (sale of flashSales(); track sale.id) {
+              <article class="deal-card">
+                <a class="deal-card__media" [routerLink]="['/flash-sales', sale.id]" tabindex="-1" aria-hidden="true">
+                  @if (sale.imageUrl) {
+                    <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" alt="" loading="lazy" width="640" height="360" />
+                  } @else {
+                    <span class="material-icons deal-card__icon">bolt</span>
+                  }
+                  <span class="deal-card__badge"><ui-badge variant="citrus">{{ t('flashSaleBadge') }}</ui-badge></span>
+                </a>
+                <div class="deal-card__body">
+                  <h3 class="deal-card__title"><a [routerLink]="['/flash-sales', sale.id]">{{ flashName(sale) }}</a></h3>
+                  <p class="deal-card__meta">
+                    <app-flash-sale-countdown [endDate]="sale.endDate" />
+                    <span aria-hidden="true">·</span>
+                    {{ sale.productCount }} {{ t('productsLabel') }}
+                  </p>
+                  <a class="ui-btn-primary deal-card__cta" [routerLink]="['/flash-sales', sale.id]">{{ t('shopSale') }}</a>
+                </div>
+              </article>
+            }
+          </div>
+        }
+        @case ('combos') {
+          <div class="deals__grid ui-stagger-children">
+            @for (combo of combos(); track combo.id) {
+              <article class="deal-card">
+                <a class="deal-card__media" [routerLink]="['/combos', combo.id]" tabindex="-1" aria-hidden="true">
+                  @if (combo.imageUrl) {
+                    <img [src]="catalogue.resolveImageUrl(combo.imageUrl)" alt="" loading="lazy" width="640" height="360" />
+                  } @else {
+                    <span class="material-icons deal-card__icon">inventory_2</span>
+                  }
+                  <span class="deal-card__badge"><ui-badge variant="citrus">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge></span>
+                </a>
+                <div class="deal-card__body">
+                  <h3 class="deal-card__title"><a [routerLink]="['/combos', combo.id]">{{ comboName(combo) }}</a></h3>
+                  <p class="deal-card__meta">
+                    <span class="deal-card__price">{{ combo.comboPrice | iwnCurrency }}</span>
+                    <span class="line-through">{{ combo.originalPrice | iwnCurrency }}</span>
+                  </p>
+                  <a class="ui-btn-primary deal-card__cta" [routerLink]="['/combos', combo.id]">{{ t('viewCombo') }}</a>
+                </div>
+              </article>
+            }
+          </div>
+        }
+        @case ('sale') {
+          <div class="product-carousel">
+            @for (p of discountedProducts(); track p.id) {
+              <ng-container [ngTemplateOutlet]="productCard" [ngTemplateOutletContext]="{ $implicit: p }" />
+            }
+          </div>
+        }
+      }
+    </section>
+  }
+
+  <!-- 5. Category tabs rail --------------------------------------------- -->
+  @if (loadingProducts()) {
+    <ng-container [ngTemplateOutlet]="railSkeleton" />
+  } @else if (categorySections().length > 0) {
+    <section class="home-section" [attr.aria-label]="t('shopByCategory')" appReveal>
+      <ui-section-header
+        [title]="t('homeCategoryPicksTitle')"
+        [subtitle]="t('homeCategoryPicksLead')"
+        [viewAllLink]="'/shop'"
+        [viewAllQueryParams]="selectedCategoryId() != null ? { categoryId: '' + selectedCategoryId() } : null"
+        [viewAllLabel]="t('viewAll')"
+      />
+      <div class="ui-pill-tabs mb-5" role="tablist" [attr.aria-label]="t('shopByCategory')">
+        @for (section of categorySections(); track section.category.id) {
+          <button
+            type="button"
+            role="tab"
+            class="ui-pill-tab"
+            [attr.aria-selected]="selectedCategoryId() === section.category.id"
+            (click)="selectCategory(section.category.id)"
+          >
+            {{ categoryName(section.category) }}
+          </button>
+        }
+      </div>
+      <div class="product-carousel">
+        @for (p of activeCategoryProducts(); track p.id) {
+          <ng-container [ngTemplateOutlet]="productCard" [ngTemplateOutletContext]="{ $implicit: p }" />
+        }
+      </div>
+    </section>
+  }
+
+  <!-- 6. Best sellers / New arrivals ------------------------------------ -->
+  @if (loadingProducts()) {
+    <ng-container [ngTemplateOutlet]="railSkeleton" />
+  } @else if (productsTabs().length > 0) {
+    <section class="home-band home-band--tint" [attr.aria-label]="t('homePicksTitle')" appReveal>
+      <ui-section-header
+        [eyebrow]="t('homePicksEyebrow')"
+        [title]="t('homePicksTitle')"
+        [viewAllLink]="'/shop'"
+        [viewAllQueryParams]="{ sortBy: activeProductsTab() === 'new' ? 'new' : 'trending' }"
+        [viewAllLabel]="t('viewAll')"
+      />
+      @if (productsTabs().length > 1) {
+        <div class="ui-pill-tabs mb-5" role="tablist" [attr.aria-label]="t('homePicksTitle')">
+          @for (tab of productsTabs(); track tab.id) {
+            <button
+              type="button"
+              role="tab"
+              class="ui-pill-tab"
+              [attr.aria-selected]="activeProductsTab() === tab.id"
+              (click)="productsTabChoice.set(tab.id)"
+            >
+              {{ tab.label }}
+            </button>
           }
         </div>
-      </section>
-    </div>
-  }
-  @if (services().length > 0) {
-    <section class="home-section" appReveal>
-      <div class="mb-4 flex items-end justify-between gap-3">
-        <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('homeServicesTitle') }}</h2>
-        <a routerLink="/services" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
+      }
+      <div class="product-carousel">
+        @for (p of activeProducts(); track p.id) {
+          <ng-container [ngTemplateOutlet]="productCard" [ngTemplateOutletContext]="{ $implicit: p }" />
+        }
       </div>
-      <div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-        @for (service of services(); track service.id) {
-          <article class="ui-card ui-hover-lift home-spotlight-card overflow-hidden">
-            @if (service.imageUrl) {
-              <div class="aspect-[16/9] bg-ink-100">
-                <img [src]="catalogue.resolveImageUrl(service.imageUrl)" [alt]="serviceTitle(service)" loading="lazy" class="h-full w-full object-cover" />
+    </section>
+  }
+
+  <!-- 8. Services -------------------------------------------------------- -->
+  @if (services().length > 0) {
+    <section class="home-section" [attr.aria-label]="t('homeServicesTitle')" appReveal>
+      <ui-section-header [title]="t('homeServicesTitle')" [viewAllLink]="'/services'" [viewAllLabel]="t('viewAll')" />
+      <div class="home-services">
+        @for (service of services().slice(0, 3); track service.id) {
+          @let onOffer = service.hasActiveOffer && service.salePrice != null;
+          <article class="service-card">
+            <a class="service-card__media" [routerLink]="['/services', service.id]" tabindex="-1" aria-hidden="true">
+              @if (service.imageUrl) {
+                <img [src]="catalogue.resolveImageUrl(service.imageUrl)" alt="" loading="lazy" width="320" height="320" />
+              } @else {
+                <span class="material-icons">self_improvement</span>
+              }
+            </a>
+            <div class="service-card__body">
+              <h3 class="service-card__title"><a [routerLink]="['/services', service.id]">{{ serviceTitle(service) }}</a></h3>
+              @if (serviceLead(service)) {
+                <p class="service-card__lead">{{ serviceLead(service) }}</p>
+              }
+              <div class="service-card__foot">
+                <span class="service-card__price" [class.service-card__price--sale]="onOffer">
+                  {{ (onOffer ? service.salePrice : service.price) | iwnCurrency }}
+                </span>
+                <a class="service-card__link" [routerLink]="['/services', service.id]">
+                  {{ t('viewDetails') }}
+                  <span class="material-icons !text-[18px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+                </a>
               </div>
-            }
-            <div class="p-4">
-              <h3 class="text-base font-semibold text-ink-900"><a [routerLink]="['/services', service.id]" class="hover:text-brand-700">{{ serviceTitle(service) }}</a></h3>
-              <p class="mt-1 font-bold text-ink-900">{{ service.price | iwnCurrency }}</p>
-              <a class="ui-btn-secondary ui-btn-sm mt-3" [routerLink]="['/services', service.id]">{{ t('viewDetails') }}</a>
             </div>
           </article>
         }
@@ -287,101 +325,242 @@
     </section>
   }
 
-  @if (!loadingProducts()) {
-    @if (bestSellers().length > 0 || newArrivals().length > 0) {
-      <div class="home-band home-band--flash" appReveal>
-        @if (bestSellers().length > 0) {
-          <section [class.mb-10]="newArrivals().length > 0" [class.sm:mb-12]="newArrivals().length > 0">
-            <div class="mb-4 flex items-end justify-between gap-3">
-              <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('bestSellers') }}</h2>
-              <a [routerLink]="['/shop']" [queryParams]="{ sortBy: 'trending' }" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
-            </div>
-            <div class="product-grid ui-stagger-children">
-              @for (p of bestSellers(); track p.id) {
-                @let pricing = cardPricing(p);
-                <ui-product-card
-                  density="compact"
-                  [alwaysShowActions]="true"
-                  [title]="productTitle(p)"
-                  [slug]="p.slug"
-                  [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
-                  [price]="pricing.price"
-                  [listPrice]="pricing.listPrice"
-                  [flashSale]="pricing.isFlashSale"
-                  [inStock]="p.inStock"
-                  [inWishlist]="isInWishlist(p.id)"
-                  [busy]="wishlistBusyId() === p.id || quickAddBusyId() === p.id"
-                  [quickAddLabel]="quickAddLabel(p)"
-                  [flashLabel]="t('flashSaleBadge')"
-                  [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
-                  (toggleWishlist)="toggleWishlist($event, p.id)"
-                  (quickAdd)="quickAdd(p)"
-                />
-              }
-            </div>
-          </section>
-        }
+  <!-- Hero (video banner from admin) ---------------------------------- -->
+  <section
+    class="hero home-bleed"
+    [class.hero--paused]="heroPaused()"
+    (mouseenter)="heroPaused.set(true)"
+    (mouseleave)="heroPaused.set(false)"
+    (focusin)="heroPaused.set(true)"
+    (focusout)="heroPaused.set(false)"
+  >
+    <div class="hero__track" [style.transform]="heroTransform()">
+      @for (slide of heroSlides(); track $index) {
+        <div class="hero-slide" [attr.aria-hidden]="heroIndex() !== $index ? 'true' : null" [attr.inert]="heroIndex() !== $index ? '' : null">
+          <div class="hero-slide__media">
+            @if (slide.type === 'video') {
+              <video autoplay muted loop playsinline preload="metadata" [poster]="slide.posterUrl ?? undefined" class="hero-slide__img">
+                <source [src]="slide.videoUrl" type="video/mp4" />
+              </video>
+            } @else if (slide.type === 'image') {
+              <img [src]="slide.imageUrl" [alt]="slide.title" loading="lazy" width="1600" height="900" class="hero-slide__img" />
+            } @else if ((slide.type === 'flash' || slide.type === 'combo') && slide.imageUrl) {
+              <img [src]="catalogue.resolveImageUrl(slide.imageUrl)" [alt]="slide.title" width="1200" height="900" class="hero-slide__img" />
+            } @else if (slide.type === 'default' && slide.imageUrl) {
+              <img [src]="slide.imageUrl" [alt]="t('aboutHomeTitle')" loading="lazy" width="1600" height="1200" class="hero-slide__img" />
+            } @else {
+              <div class="hero-slide__placeholder" aria-hidden="true">
+                <span class="material-icons">eco</span>
+              </div>
+            }
+          </div>
 
-        @if (newArrivals().length > 0) {
-          <section class="home-section" appReveal>
-            <div class="mb-4 flex items-end justify-between gap-3">
-              <h2 class="text-xl font-bold text-ink-900 sm:text-2xl">{{ t('newArrivals') }}</h2>
-              <a [routerLink]="['/shop']" [queryParams]="{ sortBy: 'new' }" class="text-sm font-semibold text-brand-600 hover:text-brand-700">{{ t('viewAll') }}</a>
-            </div>
-            <div class="product-grid ui-stagger-children">
-              @for (p of newArrivals(); track p.id) {
-                @let pricing = cardPricing(p);
-                <ui-product-card
-                  density="compact"
-                  [alwaysShowActions]="true"
-                  [title]="productTitle(p)"
-                  [slug]="p.slug"
-                  [imageUrl]="catalogue.resolveImageUrl(p.imageUrl)"
-                  [price]="pricing.price"
-                  [listPrice]="pricing.listPrice"
-                  [flashSale]="pricing.isFlashSale"
-                  [inStock]="p.inStock"
-                  [inWishlist]="isInWishlist(p.id)"
-                  [busy]="wishlistBusyId() === p.id || quickAddBusyId() === p.id"
-                  [quickAddLabel]="quickAddLabel(p)"
-                  [flashLabel]="t('flashSaleBadge')"
-                  [wishlistLabel]="isInWishlist(p.id) ? t('removeFromWishlist') : t('addToWishlist')"
-                  (toggleWishlist)="toggleWishlist($event, p.id)"
-                  (quickAdd)="quickAdd(p)"
-                />
+          <div class="hero-slide__copy">
+            <span class="hero__eyebrow">
+              @if (slide.type === 'flash') {
+                <span class="material-icons" aria-hidden="true">bolt</span>{{ t('flashSaleBadge') }}
+              } @else if (slide.type === 'combo') {
+                <span class="material-icons" aria-hidden="true">inventory_2</span>{{ t('comboOffers') }}
+              } @else {
+                {{ t('heroBadge') }}
               }
+            </span>
+            <h2 class="hero__title display-title">{{ slide.title }}</h2>
+            <p class="hero__lead">{{ slide.lead }}</p>
+            <div class="hero__actions">
+              <a [routerLink]="slide.primaryLink" class="ui-btn ui-btn-lg hero__cta-primary">
+                {{ t('shopNow') }}
+                <span class="material-icons !text-[20px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+              </a>
+              <a [routerLink]="slide.secondaryLink" class="ui-btn ui-btn-lg hero__cta-secondary">{{ t(slide.secondaryLabelKey) }}</a>
             </div>
-          </section>
-        }
-      </div>
-    }
-  }
-
-  <div class="home-band home-band--brand" appReveal>
-    <section class="home-section" appReveal>
-      <ui-section-header [title]="t('customerReviewsTitle')" [subtitle]="t('customerReviewsLead')" />
-      @if (loadingReviews()) {
-        <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible">
-          @for (i of [1, 2, 3]; track i) {
-            <ui-skeleton height="9rem" class="min-w-[85%] sm:min-w-0" />
-          }
-        </div>
-      } @else {
-        <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible">
-          @for (review of displayReviews(); track review.id) {
-            <div class="min-w-[85%] snap-start sm:min-w-0">
-              <ui-review-card [quote]="review.quote" [author]="review.author" [location]="review.location" [rating]="review.rating" />
-            </div>
-          }
+            <ul class="hero__points">
+              <li><span class="material-icons" aria-hidden="true">verified</span>{{ t('heroPointOriginal') }}</li>
+              <li><span class="material-icons" aria-hidden="true">local_shipping</span>{{ t('heroPointDelivery') }}</li>
+              <li class="hidden sm:flex"><span class="material-icons" aria-hidden="true">support_agent</span>{{ t('heroPointSupport') }}</li>
+            </ul>
+          </div>
         </div>
       }
-    </section>
-  </div>
-</section>
+    </div>
 
+    @if (heroSlides().length > 1) {
+      <div class="hero__controls">
+        <div class="hero__pills">
+          @for (slide of heroSlides(); track $index) {
+            <button
+              type="button"
+              class="hero__pill"
+              [class.hero__pill--active]="heroIndex() === $index"
+              (click)="selectHero($index)"
+              [attr.aria-current]="heroIndex() === $index ? 'true' : null"
+              [attr.aria-label]="slideLabel($index)"
+            >
+              <span class="hero__pill-fill" [style.animation-duration.ms]="heroIntervalMs"></span>
+            </button>
+          }
+        </div>
+        <div class="hidden gap-2 sm:flex">
+          <button type="button" class="hero__arrow" (click)="prevHero()" [attr.aria-label]="t('previousSlide')">
+            <span class="material-icons rtl:rotate-180">chevron_left</span>
+          </button>
+          <button type="button" class="hero__arrow" (click)="nextHero()" [attr.aria-label]="t('nextSlide')">
+            <span class="material-icons rtl:rotate-180">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
+  </section>
 
+  <!-- 9. Why us + stats -------------------------------------------------- -->
+  <section class="home-band home-band--why" [attr.aria-label]="t('whyChooseUsTitle')" appReveal>
+    <div class="why__head">
+      <h2 class="why__title display-title">{{ t('whyChooseUsTitle') }}</h2>
+      <p class="why__lead">{{ t('whyChooseUsLead') }}</p>
+    </div>
+    <div class="why__grid">
+      @for (card of whyCards(); track card.title) {
+        <article class="why__card">
+          <span class="why__icon" aria-hidden="true"><span class="material-icons">{{ card.icon }}</span></span>
+          <h3 class="why__card-title">{{ card.title }}</h3>
+          <p class="why__card-lead">{{ card.lead }}</p>
+        </article>
+      }
+    </div>
+    <dl class="why__stats">
+      @for (stat of homeStats(); track stat.label) {
+        <div class="why__stat">
+          <dt class="why__stat-label">{{ stat.label }}</dt>
+          <dd class="why__stat-value display-title"><bdi dir="ltr">{{ stat.value }}</bdi></dd>
+        </div>
+      }
+    </dl>
+  </section>
 
+  <!-- 10. Reviews -------------------------------------------------------- -->
+  <section class="home-section" [attr.aria-label]="t('customerReviewsTitle')" appReveal>
+    <div class="reviews__head">
+      <ui-section-header [title]="t('customerReviewsTitle')" [subtitle]="t('customerReviewsLead')" />
+      @if (reviewSummary(); as summary) {
+        <p class="reviews__summary">
+          <span class="material-icons" aria-hidden="true">star</span>
+          {{ reviewSummaryText(summary) }}
+        </p>
+      }
+    </div>
+    <div class="home-reviews">
+      @if (loadingReviews()) {
+        @for (i of [1, 2, 3]; track i) {
+          <ui-skeleton height="10rem" class="home-reviews__item" />
+        }
+      } @else {
+        @for (review of displayReviews(); track review.id) {
+          <div class="home-reviews__item">
+            <ui-review-card [quote]="review.quote" [author]="review.author" [location]="review.location" [rating]="review.rating" />
+          </div>
+        }
+      }
+    </div>
+  </section>
 
+  <!-- 11. Story & visit us ---------------------------------------------- -->
+  <section class="home-story" [attr.aria-label]="t('aboutHomeTitle')" appReveal>
+    <div class="story__about">
+      <ui-section-header [eyebrow]="t('homeWelcomeBadge')" [title]="t('aboutHomeTitle')" />
+      <p class="story__lead">{{ t('aboutHomeLead') }}</p>
+      <ul class="story__points">
+        @for (point of aboutPoints(); track point.label) {
+          <li><span class="material-icons" aria-hidden="true">{{ point.icon }}</span>{{ point.label }}</li>
+        }
+      </ul>
+      <div class="story__gallery">
+        <img [src]="aboutPhotos[aboutPhoto()]" [alt]="t('aboutHomeTitle')" loading="lazy" width="640" height="480" class="story__photo" />
+        <div class="story__thumbs">
+          @for (photo of aboutPhotos; track photo; let i = $index) {
+            <button
+              type="button"
+              class="story__thumb"
+              [class.story__thumb--active]="aboutPhoto() === i"
+              (click)="aboutPhoto.set(i)"
+              [attr.aria-label]="slideLabel(i)"
+              [attr.aria-current]="aboutPhoto() === i ? 'true' : null"
+            >
+              <img [src]="photo" alt="" loading="lazy" width="64" height="64" />
+            </button>
+          }
+        </div>
+      </div>
+      <a routerLink="/about" class="ui-btn ui-btn-secondary mt-5">{{ t('learnMoreAbout') }}</a>
+    </div>
 
+    <div class="story__visit">
+      <h2 class="story__visit-title display-title">{{ t('homeVisitUsTitle') }}</h2>
+      <p class="story__visit-lead">{{ t('ourBranchesLead') }}</p>
+      <ul class="story__branches">
+        @for (branch of branches(); track branch.name) {
+          <li class="story__branch">
+            <span class="material-icons story__branch-pin" aria-hidden="true">location_on</span>
+            <div class="min-w-0">
+              <h3 class="story__branch-name">{{ branch.name }}</h3>
+              <p class="story__branch-address">{{ branch.address }}</p>
+              <a class="story__branch-map" [href]="branch.map" target="_blank" rel="noopener noreferrer">
+                {{ t('openInMaps') }}
+                <span class="material-icons !text-[16px]" aria-hidden="true">open_in_new</span>
+              </a>
+            </div>
+          </li>
+        }
+      </ul>
+      <div class="story__contact">
+        <a href="tel:+971507700559">
+          <span class="material-icons" aria-hidden="true">call</span>
+          <span><span class="story__contact-label">{{ t('phone') }}</span><bdi dir="ltr">+971 50 770 0559</bdi></span>
+        </a>
+        <a href="mailto:info@idealweightnutrition.ae">
+          <span class="material-icons" aria-hidden="true">mail</span>
+          <span><span class="story__contact-label">{{ t('email') }}</span>info&#64;idealweightnutrition.ae</span>
+        </a>
+      </div>
+    </div>
+  </section>
 
-
+  <!-- SEO copy: kept in the DOM, collapsed for a calmer page ------------- -->
+  <details class="home-seo">
+    <summary class="home-seo__summary">
+      <span>{{ t('homeMoreAboutShopping') }}</span>
+      <span class="material-icons home-seo__chevron" aria-hidden="true">expand_more</span>
+    </summary>
+    <div class="home-seo__body">
+      <h2 class="home-seo__title display-title">{{ t('homeSeoTitle') }}</h2>
+      <p>{{ t('homeSeoLead') }}</p>
+      <h3 class="home-seo__sub">{{ t('homeWelcomeTitle') }}</h3>
+      <p>{{ t('homeWelcomeLead') }}</p>
+      <ul class="home-seo__list">
+        @for (point of welcomePoints(); track point) {
+          <li>{{ point }}</li>
+        }
+      </ul>
+      <h3 class="home-seo__sub">{{ t('homeSeoWhyTitle') }}</h3>
+      <div class="home-seo__grid">
+        @for (point of seoPoints(); track point.title) {
+          <article>
+            <h4>{{ point.title }}</h4>
+            <p>{{ point.lead }}</p>
+          </article>
+        }
+      </div>
+      <h3 class="home-seo__sub">{{ t('homeSeoRangeTitle') }}</h3>
+      <p>{{ t('homeSeoRangeLead') }}</p>
+      <div class="home-seo__grid">
+        @for (item of supplementRange(); track item.title) {
+          <article>
+            <h4>{{ item.title }}</h4>
+            <p>{{ item.lead }}</p>
+          </article>
+        }
+      </div>
+      <h3 class="home-seo__sub">{{ t('homeCoverageTitle') }}</h3>
+      <p>{{ t('homeCoverageLead') }}</p>
+    </div>
+  </details>
+</div>

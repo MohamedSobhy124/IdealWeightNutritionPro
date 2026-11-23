@@ -16,7 +16,7 @@
 
   @if (open()) {
     <div
-      class="absolute end-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-elevated animate-slide-up"
+      class="absolute end-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-ink-200 bg-surface shadow-elevated animate-slide-up"
       (click)="$event.stopPropagation()"
     >
       <div class="flex items-center justify-between border-b border-ink-200 px-4 py-3">
@@ -34,11 +34,11 @@
       </div>
 
       @if (loading()) {
-        <p class="px-4 py-8 text-center text-sm text-ink-400">{{ t('loading') }}</p>
+        <p class="px-4 py-8 text-center text-sm text-ink-600">{{ t('loading') }}</p>
       } @else if (items().length === 0) {
         <div class="flex flex-col items-center px-4 py-10 text-center">
           <span class="material-icons mb-2 !text-[32px] text-ink-300">notifications_off</span>
-          <p class="text-sm text-ink-400">{{ t('noNotifications') }}</p>
+          <p class="text-sm text-ink-600">{{ t('noNotifications') }}</p>
         </div>
       } @else {
         <ul class="max-h-[60vh] divide-y divide-ink-100 overflow-y-auto">
@@ -56,7 +56,7 @@
                 <span class="min-w-0 flex-1">
                   <span class="block truncate text-sm font-medium text-ink-900">{{ item.title }}</span>
                   <span class="block text-xs text-ink-500 line-clamp-2">{{ item.message }}</span>
-                  <small class="mt-0.5 block text-[11px] text-ink-400">{{ item.createdAt | date: 'short' }}</small>
+                  <small class="mt-0.5 block text-[11px] text-ink-600">{{ item.createdAt | date: 'short' }}</small>
                 </span>
               </button>
             </li>

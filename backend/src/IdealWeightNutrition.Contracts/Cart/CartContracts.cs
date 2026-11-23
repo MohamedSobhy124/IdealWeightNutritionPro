@@ -6,6 +6,7 @@ public sealed class CartItemDto
     public required int ProductId { get; init; }
     public int? ProductVariantId { get; init; }
     public required string Title { get; init; }
+    public string TitleAr { get; init; } = string.Empty;
     public required string Slug { get; init; }
     public required string ImageUrl { get; init; }
     public required int Quantity { get; init; }

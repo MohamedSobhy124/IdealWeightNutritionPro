@@ -42,7 +42,7 @@
     </div>
   }
 
-  <form class="space-y-6" (ngSubmit)="save()">
+  <form class="admin-form" (ngSubmit)="save()">
     <ui-card [heading]="t('sectionBasicInfo')">
       <ui-form-field [label]="t('title')" [required]="true">
         <input class="ui-input" [(ngModel)]="title" name="title" required />
@@ -101,7 +101,7 @@
     </ui-card>
 
     @if (isVariable()) {
-      <ui-card [heading]="t('productOptions')">
+      <ui-card class="admin-form-span" [heading]="t('productOptions')">
         @for (option of options(); track option.id) {
           <div class="mb-4 rounded-xl border border-ink-200 p-4">
             <div class="mb-3 flex items-center justify-between gap-2">
@@ -162,7 +162,7 @@
       </ui-card>
 
       @if (variants().length > 0) {
-        <ui-card [heading]="t('variants')">
+        <ui-card class="admin-form-span" [heading]="t('variants')">
           <div class="hidden overflow-x-auto md:block">
             <table class="w-full text-sm">
               <caption class="sr-only">{{ t('variantsTableCaption') }}</caption>
@@ -310,7 +310,7 @@
       }
     }
 
-    <ui-card [heading]="t('images')">
+    <ui-card class="admin-form-span" [heading]="t('images')">
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         @for (image of images(); track image.id) {
           <figure class="relative">
@@ -338,13 +338,13 @@
     </ui-card>
 
     @if (saveError()) {
-      <div class="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
+      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
     }
     @if (saveMessage()) {
-      <div class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg">{{ saveMessage() }}</div>
+      <div class="admin-form-span rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg">{{ saveMessage() }}</div>
     }
 
-    <div class="flex justify-end">
+    <div class="admin-form-bar">
       <button type="submit" class="ui-btn-primary" [disabled]="saving()">
         {{ saving() ? t('saving') : t('saveChanges') }}
       </button>

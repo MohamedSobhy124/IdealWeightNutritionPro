@@ -1,3 +1,14 @@
 :host {
   display: block;
 }
+
+:host ::ng-deep .ui-card {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.combo-price-panel {
+  background: #fff;
+  border-color: var(--border);
+}

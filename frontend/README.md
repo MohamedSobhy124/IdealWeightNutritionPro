@@ -32,7 +32,7 @@ npm run build
 
 ## API integration
 
-- Dev proxy: `proxy.conf.json` → `https://localhost:7001`
+- Development API: `https://localhost:7128/api` (Swagger UI: `https://localhost:7128/swagger/index.html`)
 - Typed models: generate from OpenAPI (`IdealWeightNutrition.Contracts` / Swagger) when endpoints are added
 
 ## Next steps

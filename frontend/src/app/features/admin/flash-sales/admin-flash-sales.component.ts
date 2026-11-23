@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminFlashSaleListItem } from '../../../core/models/admin-flash-sale.models';
 import { AdminFlashSaleService } from '../../../core/services/admin-flash-sale.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
   UiCellDirective,
@@ -14,6 +15,7 @@ import {
 } from '../../../shared/ui';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     RouterLink,
@@ -29,6 +31,7 @@ import {
 export class AdminFlashSalesComponent implements OnInit {
   private readonly flashApi = inject(AdminFlashSaleService);
   readonly locale = inject(LocaleService);
+  private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminFlashSaleListItem[]>([]);
   readonly loading = signal(true);
@@ -91,8 +94,8 @@ export class AdminFlashSalesComponent implements OnInit {
     });
   }
 
-  remove(item: AdminFlashSaleListItem): void {
-    if (!confirm(this.t('confirmDeleteFlashSale'))) return;
+  async remove(item: AdminFlashSaleListItem): Promise<void> {
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteFlashSale'), this.t('actionCannotBeUndone')))) return;
     this.busyId.set(item.id);
     this.message.set(null);
     this.flashApi.delete(item.id).subscribe({

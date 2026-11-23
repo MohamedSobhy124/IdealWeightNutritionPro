@@ -15,12 +15,12 @@ export interface UiBreadcrumb {
   template: `
     <div [class]="compact() ? 'mb-0' : 'mb-4 sm:mb-6'">
       @if (breadcrumbs().length) {
-        <nav class="mb-2 flex items-center gap-1.5 text-xs text-ink-500" [attr.aria-label]="breadcrumbLabel()">
+        <nav class="mb-1 flex flex-wrap items-center gap-1 text-xs text-ink-600" [attr.aria-label]="breadcrumbLabel()">
           @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
             @if (crumb.link) {
-              <a [routerLink]="crumb.link" [queryParams]="crumb.queryParams ?? null" class="hover:text-brand-600">{{ crumb.label }}</a>
+              <a [routerLink]="crumb.link" [queryParams]="crumb.queryParams ?? null" class="inline-flex min-h-11 items-center px-1 hover:text-brand-700">{{ crumb.label }}</a>
             } @else {
-              <span [class.text-ink-700]="last" [class.font-medium]="last">{{ crumb.label }}</span>
+              <span class="inline-flex min-h-11 items-center px-1" [class.text-ink-900]="last" [class.font-medium]="last">{{ crumb.label }}</span>
             }
             @if (!last) {
               <span class="text-ink-300 rtl:rotate-180" aria-hidden="true">›</span>
@@ -30,9 +30,13 @@ export interface UiBreadcrumb {
       }
       <div [class]="compact() ? 'flex items-start justify-between gap-2' : 'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'">
         <div class="min-w-0">
-          <h1 class="text-balance text-lg font-bold tracking-tight text-ink-900 sm:text-2xl">{{ title() }}</h1>
+          @if (titleTag() === 'p') {
+            <p class="display-title m-0 text-balance text-xl text-ink-900 sm:text-2xl lg:text-[1.75rem]">{{ title() }}</p>
+          } @else {
+            <h1 class="display-title m-0 text-balance text-xl text-ink-900 sm:text-2xl lg:text-[1.75rem]">{{ title() }}</h1>
+          }
           @if (subtitle()) {
-            <p class="mt-1 text-sm text-ink-500">{{ subtitle() }}</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-500">{{ subtitle() }}</p>
           }
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -48,4 +52,6 @@ export class UiPageHeaderComponent {
   readonly breadcrumbs = input<UiBreadcrumb[]>([]);
   readonly breadcrumbLabel = input('Breadcrumb');
   readonly compact = input(false);
+  /** Product pages pass `p` so the buy box keeps the only h1. */
+  readonly titleTag = input<'h1' | 'p'>('h1');
 }

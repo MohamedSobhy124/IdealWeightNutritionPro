@@ -5,6 +5,7 @@ export interface CartItem {
   flashSaleItemId?: number;
   comboOfferId?: number;
   title: string;
+  titleAr?: string | null;
   slug: string;
   imageUrl: string;
   quantity: number;
