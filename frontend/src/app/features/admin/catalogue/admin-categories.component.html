@@ -1,17 +1,14 @@
-<ui-page-header [title]="t('categoriesTitle')">
-
+<ui-page-header [title]="t('categoriesTitle')" [subtitle]="items().length + ' ' + t('categoriesTitle')">
   <div header-actions>
-
-    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">{{ t('newCategory') }}</button>
-
+    <button type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">
+      <span class="material-icons !text-[18px]" aria-hidden="true">add</span>
+      {{ t('newCategory') }}
+    </button>
   </div>
-
 </ui-page-header>
 
-
-
-@if (message() && !showForm()) {
-  <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
+@if (error()) {
+  <ui-alert class="mb-4" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 }
 
 <ui-modal
@@ -22,128 +19,109 @@
   [closeLabel]="t('shellClose')"
   (closed)="cancelForm()"
 >
-  <form id="category-form" (ngSubmit)="submit()">
-    @if (message()) {
-      <p class="mb-4 text-sm text-danger">{{ message() }}</p>
+  <form id="category-form" (ngSubmit)="submit()" novalidate>
+    @if (formError()) {
+      <ui-alert class="mb-4" variant="danger" [message]="formError()" />
     }
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <ui-form-field [label]="t('titleEn')" [required]="true">
         <input class="ui-input" [(ngModel)]="name" name="name" required />
       </ui-form-field>
       <ui-form-field [label]="t('titleAr')" [required]="true">
-        <input class="ui-input" [(ngModel)]="nameAr" name="nameAr" required />
+        <input class="ui-input" dir="rtl" [(ngModel)]="nameAr" name="nameAr" required />
       </ui-form-field>
       <ui-form-field [label]="t('description')">
-        <input class="ui-input" [(ngModel)]="description" name="description" />
+        <textarea class="ui-textarea" rows="2" [(ngModel)]="description" name="description"></textarea>
       </ui-form-field>
       <ui-form-field [label]="t('descriptionAr')">
-        <input class="ui-input" [(ngModel)]="descriptionAr" name="descriptionAr" />
+        <textarea class="ui-textarea" rows="2" dir="rtl" [(ngModel)]="descriptionAr" name="descriptionAr"></textarea>
       </ui-form-field>
-      <ui-form-field [label]="t('imageUrl')" class="sm:col-span-2">
-        <input class="ui-input" [(ngModel)]="imageUrl" name="imageUrl" />
-      </ui-form-field>
+
+      <div class="sm:col-span-2">
+        <p class="ui-label mb-2">{{ t('images') }}</p>
+        <div class="flex items-center gap-4">
+          <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink-200 bg-stage text-ink-300">
+            @if (imageUrl) {
+              <img class="h-full w-full object-cover" [src]="catalogue.resolveImageUrl(imageUrl)" alt="" />
+            } @else {
+              <span class="material-icons !text-[28px]" aria-hidden="true">image</span>
+            }
+          </div>
+          @if (editingId()) {
+            <label class="ui-btn-secondary ui-btn-sm cursor-pointer" [class.opacity-60]="uploadingImage()">
+              <span class="material-icons !text-[18px]" aria-hidden="true">upload</span>
+              {{ uploadingImage() ? t('saving') : t('uploadImage') }}
+              <input type="file" accept="image/*" class="sr-only" (change)="onImageSelected($event)" [disabled]="uploadingImage()" />
+            </label>
+          } @else {
+            <p class="ui-help m-0">{{ t('categoryBrandImageSaveFirst') }}</p>
+          }
+        </div>
+        <ui-form-field [label]="t('imageUrl')" class="mt-3 block">
+          <input class="ui-input" dir="ltr" [(ngModel)]="imageUrl" name="imageUrl" />
+        </ui-form-field>
+      </div>
     </div>
   </form>
-  <div modal-footer class="flex shrink-0 gap-2 border-t border-ink-200 px-5 py-4">
-    <button type="submit" form="category-form" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">{{ t('save') }}</button>
+  <div modal-footer class="flex shrink-0 justify-end gap-2 border-t border-ink-200 px-5 py-4">
     <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelForm()">{{ t('cancel') }}</button>
+    <button type="submit" form="category-form" class="ui-btn-primary ui-btn-sm" [disabled]="busyId() !== null">
+      <span class="material-icons !text-[18px]" aria-hidden="true">check</span>
+      {{ busyId() !== null ? t('saving') : t('save') }}
+    </button>
   </div>
 </ui-modal>
 
-
-
-@if (error()) {
-
-  <p class="mb-4 text-danger">{{ error() }}</p>
-
-}
-
-
-
 <ui-data-table
-
   [columns]="cols"
-
   [rows]="$any(items())"
-
   [loading]="loading()"
-
   [clickableRows]="true"
   (rowClick)="openEdit($any($event))"
   [exportable]="true"
   exportFileName="categories.csv"
   storageKey="admin-categories"
   [pageSize]="20"
-
+  [tabs]="tabs()"
+  [activeTab]="activeTab()"
+  (tabChange)="onTab($event)"
+  emptyIcon="category"
   [emptyTitle]="t('noCategories')"
-
   [ofLabel]="t('of')"
   [previousPageLabel]="t('prevPage')"
   [nextPageLabel]="t('nextPage')"
-  >
-
-  <div table-toolbar>
-
-    <ui-filter-bar>
-
-      <label class="flex items-center gap-2 text-sm text-ink-600">
-
-        <input type="checkbox" class="accent-brand-600" [(ngModel)]="includeDeleted" name="includeDeleted" (change)="load()" />
-
-        {{ t('showDeleted') }}
-
-      </label>
-
-    </ui-filter-bar>
-
-  </div>
-
-
+>
+  <button table-empty-actions type="button" class="ui-btn-primary ui-btn-sm" (click)="openCreate()">
+    <span class="material-icons !text-[18px]" aria-hidden="true">add</span>
+    {{ t('newCategory') }}
+  </button>
 
   <ng-template uiCell="title" let-row>
-
     @let item = $any(row);
-
-    <span class="font-medium" [class.opacity-60]="item.isDeleted">{{ categoryName(item) }}</span>
-
-    <span class="ms-2 text-xs text-ink-400">#{{ item.id }}</span>
-
+    <div class="flex items-center gap-3" [class.opacity-60]="item.isDeleted">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-ink-100 bg-stage text-ink-300">
+        @if (item.imageUrl) {
+          <img class="h-full w-full object-cover" [src]="catalogue.resolveImageUrl(item.imageUrl)" alt="" loading="lazy" />
+        } @else {
+          <span class="material-icons !text-[18px]" aria-hidden="true">image</span>
+        }
+      </div>
+      <div class="min-w-0">
+        <span class="block font-semibold text-ink-900">{{ categoryName(item) }}</span>
+        <span class="block text-xs text-ink-500">#{{ item.id }} · {{ locale.isArabic() ? item.name : item.nameAr }}</span>
+      </div>
+    </div>
   </ng-template>
-
-
 
   <ng-template uiCell="status" let-row>
-
     @let item = $any(row);
-
     <ui-badge [variant]="item.isDeleted ? 'neutral' : 'success'" [dot]="!item.isDeleted">
-
       {{ item.isDeleted ? t('deleted') : t('active') }}
-
     </ui-badge>
-
   </ng-template>
-
-
 
   <ng-template uiCell="actions" let-row>
-
     @let item = $any(row);
-
-    <div class="flex flex-wrap gap-1.5">
-
-      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="openEdit(item)" [disabled]="busyId() === item.id">{{ t('edit') }}</button>
-
-      @if (!item.isDeleted) {
-
-        <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('remove') }}</button>
-
-      }
-
-    </div>
-
+    <ui-action-menu [label]="t('moreActions') + ': ' + categoryName(item)" [items]="rowMenu(item)" [disabled]="busyId() === item.id" (select)="onRowAction($event, item)" />
   </ng-template>
-
 </ui-data-table>
-
-

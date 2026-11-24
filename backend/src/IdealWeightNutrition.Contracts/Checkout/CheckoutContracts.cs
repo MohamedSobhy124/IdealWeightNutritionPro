@@ -32,6 +32,17 @@ public sealed class ShippingQuoteResponse
     public required double Total { get; init; }
     public required string CityName { get; init; }
     public string? AreaName { get; init; }
+
+    /// <summary>Delivery charge before any free-delivery rule (city or remote-area charge).</summary>
+    public double BaseShipping { get; init; }
+    /// <summary>The order currently ships for free.</summary>
+    public bool IsFreeDelivery { get; init; }
+    /// <summary>Every item in the cart allows free delivery, so a threshold applies.</summary>
+    public bool FreeDeliveryAvailable { get; init; }
+    /// <summary>Subtotal (before promo discount) needed for free delivery; null when not available.</summary>
+    public double? FreeDeliveryThreshold { get; init; }
+    /// <summary>How much more subtotal unlocks free delivery; 0 when already free or not available.</summary>
+    public double AmountRemainingForFreeDelivery { get; init; }
 }
 
 public sealed class CheckoutOtpRequest

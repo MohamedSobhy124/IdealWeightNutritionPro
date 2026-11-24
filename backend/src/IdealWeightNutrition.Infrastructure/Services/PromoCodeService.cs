@@ -90,6 +90,13 @@ internal sealed class PromoCodeService : IPromoCodeService
 
     public async Task RecordUsageAsync(int promoCodeId, string userId, int orderId, CancellationToken cancellationToken = default)
     {
+        // Idempotent: an order uses a promo code at most once, however many confirmation
+        // paths (return, webhook, background job) reach this.
+        var alreadyRecorded = await _db.PromoCodeUsages
+            .AnyAsync(u => u.OrderId == orderId && u.PromoCodeId == promoCodeId, cancellationToken);
+        if (alreadyRecorded)
+            return;
+
         _db.PromoCodeUsages.Add(new PromoCodeUsage
         {
             PromoCodeId = promoCodeId,
@@ -97,12 +104,37 @@ internal sealed class PromoCodeService : IPromoCodeService
             OrderId = orderId,
             UsedDate = _clock.Now
         });
-
-        var promo = await _db.PromoCodes.FirstOrDefaultAsync(p => p.Id == promoCodeId, cancellationToken);
-        if (promo is not null)
-            promo.TimesUsed++;
-
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Atomic increment so concurrent orders cannot lose an update.
+        await _db.PromoCodes
+            .Where(p => p.Id == promoCodeId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.TimesUsed, p => p.TimesUsed + 1), cancellationToken);
+    }
+
+    public async Task<int> ReleaseUsageForOrderAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        var usages = await _db.PromoCodeUsages
+            .Where(u => u.OrderId == orderId)
+            .ToListAsync(cancellationToken);
+
+        if (usages.Count == 0)
+            return 0;
+
+        _db.PromoCodeUsages.RemoveRange(usages);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        foreach (var group in usages.GroupBy(u => u.PromoCodeId))
+        {
+            var count = group.Count();
+            await _db.PromoCodes
+                .Where(p => p.Id == group.Key)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(p => p.TimesUsed, p => p.TimesUsed > count ? p.TimesUsed - count : 0),
+                    cancellationToken);
+        }
+
+        return usages.Count;
     }
 
     private static PromoValidationResult Invalid(string message) =>

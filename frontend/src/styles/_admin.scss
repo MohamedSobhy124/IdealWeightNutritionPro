@@ -1,0 +1,145 @@
+/*
+ * Admin "clean and calm" layer (docs/ADMIN_UX_PLAN.md §2b).
+ * Scoped to `.admin-shell` so the storefront keeps its own look.
+ */
+:root {
+  /* Lighter than surface-muted, which reads too green on large areas. */
+  --rgb-admin-canvas: 247 249 248;
+}
+
+.dark {
+  --rgb-admin-canvas: 12 18 16;
+}
+
+/* Outlined icons in admin only, including overlays (menus, toasts) rendered outside the shell. */
+body:has(.admin-shell) .material-icons {
+  font-family: 'Material Icons Outlined', 'Material Icons';
+}
+
+.admin-shell {
+  /* Cards: thin border, no resting shadow, 14px radius. */
+  .ui-card {
+    border-radius: var(--radius-lg);
+    border-color: var(--border);
+    box-shadow: none;
+  }
+
+  /* Page title: 24px, KPI-style display font. */
+  .display-title {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* Numbers line up in tables and summaries. */
+  td,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Desktop: tighter controls (touch sizes stay at 44px below 1024px). */
+@media (min-width: 1024px) {
+  .admin-shell {
+    .ui-btn {
+      min-height: 2.5rem;
+      border-radius: var(--radius-md);
+    }
+
+    .ui-btn-sm {
+      min-height: 2.25rem;
+      font-size: 0.8125rem;
+      border-radius: var(--radius-md);
+    }
+  }
+}
+
+/* ---- Data table bulk bar: buttons sit on the dark (inverted) strip ------- */
+.ui-table-bulk .ui-btn-secondary,
+.ui-table-bulk .ui-btn-ghost,
+.ui-table-bulk .ui-btn-danger {
+  min-height: 2rem;
+  border: 1px solid rgb(var(--rgb-surface) / 0.25);
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.ui-table-bulk .ui-btn-secondary:hover,
+.ui-table-bulk .ui-btn-ghost:hover {
+  background: rgb(var(--rgb-surface) / 0.12);
+}
+
+.ui-table-bulk .ui-btn-danger {
+  border-color: rgb(var(--rgb-danger) / 0.6);
+}
+
+.ui-table-bulk .ui-btn-danger:hover {
+  background: rgb(var(--rgb-danger) / 0.3);
+}
+
+/* ---- Sticky save bar (used by <ui-form-bar>) ------------------------------ */
+.admin-form-bar__dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgb(var(--rgb-warning-fg));
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.admin-form-bar__dirty::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+/* ---- Long forms: section nav beside the form from 1280px ----------------- */
+.admin-form-with-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Let wide children (variant tables) scroll inside their card instead of stretching the page. */
+.admin-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Restates _layout.scss's two-column rule so it still wins over the base rule above. */
+@media (min-width: 1440px) {
+  .admin-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-form-with-nav {
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+  }
+
+  /* With the nav taking a column, keep the form single-column. */
+  .admin-form-with-nav .admin-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Form section anchors land below the sticky topbar ------------------- */
+.admin-shell [data-form-section] {
+  scroll-margin-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Links styled as buttons never show the browser's underline (preflight is off). */
+.admin-shell a[class*='ui-btn'] {
+  text-decoration: none;
+}

@@ -4,6 +4,9 @@ import { environment } from '../../../environments/environment';
 import {
   AddAdminComboOfferItemRequest,
   AdminComboOfferDetail,
+  AdminComboOfferImage,
+  AdminComboOfferItem,
+  UpdateAdminComboOfferItemRequest,
   AdminComboOfferListItem,
   UpsertAdminComboOfferRequest,
 } from '../models/admin-combo-offer.models';
@@ -48,11 +51,34 @@ export class AdminComboOfferService {
   }
 
   addItem(comboOfferId: number, request: AddAdminComboOfferItemRequest) {
-    return this.http.post<AdminComboOfferDetail>(
+    return this.http.post<AdminComboOfferItem>(
       `${this.baseUrl}/admin/combo-offers/${comboOfferId}/items`,
       request,
       { withCredentials: true }
     );
+  }
+
+  updateItem(comboOfferId: number, itemId: number, request: UpdateAdminComboOfferItemRequest) {
+    return this.http.put<AdminComboOfferItem>(
+      `${this.baseUrl}/admin/combo-offers/${comboOfferId}/items/${itemId}`,
+      request,
+      { withCredentials: true }
+    );
+  }
+
+  addImage(comboOfferId: number, file: File, imageInfo?: string) {
+    const form = new FormData();
+    form.append('file', file);
+    if (imageInfo?.trim()) form.append('imageInfo', imageInfo.trim());
+    return this.http.post<AdminComboOfferImage>(`${this.baseUrl}/admin/combo-offers/${comboOfferId}/images`, form, {
+      withCredentials: true,
+    });
+  }
+
+  deleteImage(comboOfferId: number, imageId: number) {
+    return this.http.delete<void>(`${this.baseUrl}/admin/combo-offers/${comboOfferId}/images/${imageId}`, {
+      withCredentials: true,
+    });
   }
 
   removeItem(itemId: number) {

@@ -82,6 +82,16 @@ export interface UpdateOrderLineRequest {
   unitPrice: number;
 }
 
+export interface UpdateOrderDetailsRequest {
+  name: string;
+  phoneNumber: string;
+  streetAddress: string;
+  city: string;
+  area?: string;
+  carrier?: string;
+  trackingNumber?: string;
+}
+
 export interface AdminOrderStatistics {
   all: number;
   pending: number;

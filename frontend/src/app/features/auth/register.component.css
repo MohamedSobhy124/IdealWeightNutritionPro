@@ -1,20 +1,104 @@
-:host {
-  display: block;
+/* Register-only additions; shared auth styles come from login.component.css. */
+
+.ap-form {
+  gap: 1.5rem;
 }
 
-.auth-form-card {
-  background: #fff;
-  border-color: var(--border);
-  box-shadow: none;
+.ap-group {
+  display: grid;
+  gap: 1rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-.auth-form-icon {
+.ap-group__legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  float: left; /* full width, so direction-neutral */
+  width: 100%;
+  margin-bottom: 0.25rem;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgb(var(--rgb-ink-900));
+}
+
+.ap-group__legend + * {
+  clear: both;
+}
+
+.ap-group__num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 999px;
   background: rgb(var(--rgb-brand-50));
   color: rgb(var(--rgb-brand-700));
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
-.checkout-otp {
-  border: 1px solid var(--border) !important;
-  background: #fff !important;
-  box-shadow: none;
+.ap-group__num .material-icons {
+  font-size: 1rem;
+}
+
+/* Verification step sits in a tinted panel. */
+.ap-group--verify {
+  padding: 1.1rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgb(var(--rgb-brand-solid) / 0.14);
+  background: linear-gradient(160deg, rgb(var(--rgb-brand-50)) 0%, rgb(var(--rgb-surface-raised)) 100%);
+}
+
+.ap-group--done {
+  border-color: rgb(var(--rgb-success) / 0.35);
+}
+
+.ap-group--done .ap-group__num {
+  background: rgb(var(--rgb-success-soft));
+  color: rgb(var(--rgb-success-fg));
+  box-shadow: inset 0 0 0 1px rgb(var(--rgb-success) / 0.4);
+}
+
+.ap-group__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: rgb(var(--rgb-ink-600));
+}
+
+.ap-otp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.ap-otp-actions > button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 379px) {
+  .ap-otp-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ap-otp-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgb(var(--rgb-ink-600));
+}
+
+.ap-otp-msg--ok {
+  color: rgb(var(--rgb-success-fg));
 }

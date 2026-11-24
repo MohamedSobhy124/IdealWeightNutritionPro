@@ -150,6 +150,7 @@ export const routes: Routes = [
   ...LEGACY_REDIRECT_ROUTES,
   {
     path: '**',
-    redirectTo: '',
+    loadComponent: () =>
+      import('./features/not-found/not-found.component').then((m) => m.NotFoundComponent),
   },
 ];

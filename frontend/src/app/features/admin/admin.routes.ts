@@ -43,6 +43,7 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'products/:id',
         canActivate: [adminOnlyGuard],
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./products/admin-product-detail.component').then(
             (m) => m.AdminProductDetailComponent

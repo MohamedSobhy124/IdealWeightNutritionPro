@@ -1,98 +1,225 @@
-<section class="ui-fade-in shop-shell space-y-4 sm:space-y-6">
-  <ui-page-header
-    class="shop-header"
-    [compact]="true"
-    [title]="t('shop')"
-    [subtitle]="!loading() && !error() ? totalCount() + ' ' + t('productsLabel') : null"
-  >
-    <button
-      type="button"
-      header-actions
-      class="shop-mobile-filter-btn shop-filter-btn min-h-11 shrink-0 lg:hidden"
-      (click)="mobileFiltersOpen.set(true)"
-      [attr.aria-expanded]="mobileFiltersOpen()"
-      aria-controls="shop-filters-drawer"
-    >
-      <span class="material-icons !text-[18px]" aria-hidden="true">tune</span>
-      {{ t('filtersTitle') }}
-    </button>
-  </ui-page-header>
+<section class="ui-fade-in shop">
+  <!-- Hero strip -->
+  <header class="shop-hero">
+    <span class="shop-hero__glow shop-hero__glow--a" aria-hidden="true"></span>
+    <span class="shop-hero__glow shop-hero__glow--b" aria-hidden="true"></span>
 
-  <div class="shop-layout flex flex-col gap-6 lg:grid lg:grid-cols-[280px_1fr] lg:gap-7">
-    <aside class="ui-sticky-filters hidden lg:block">
-      <form class="filters space-y-3.5" [formGroup]="filters" (ngSubmit)="applyFilters()">
-        <h2 class="text-sm font-semibold tracking-wide text-ink-800">{{ t('filtersTitle') }}</h2>
-        <input class="ui-input" type="search" [placeholder]="t('searchProducts')" formControlName="search" />
-        <ui-sheet-select formControlName="categoryId" [label]="t('allCategories')" [placeholder]="t('allCategories')" [closeLabel]="t('closeDialog')" [options]="categoryOptions()" />
-        <ui-sheet-select formControlName="brandId" [label]="t('allBrands')" [placeholder]="t('allBrands')" [closeLabel]="t('closeDialog')" [options]="brandOptions()" />
-        <ui-sheet-select formControlName="sortBy" [label]="t('sortFeatured')" [placeholder]="t('sortFeatured')" [closeLabel]="t('closeDialog')" [options]="sortOptions()" />
-        <div class="filters__actions flex w-full flex-col gap-2">
-          <button class="ui-btn-primary w-full" type="submit">{{ t('apply') }}</button>
-          <button class="ui-btn-secondary w-full" type="button" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+    <div class="shop-hero__copy">
+      <nav class="shop-crumbs" [attr.aria-label]="t('shop')">
+        <a routerLink="/">{{ t('navHome') }}</a>
+        <span class="material-icons rtl:rotate-180" aria-hidden="true">chevron_right</span>
+        @if (activeCategory() || activeBrand()) {
+          <a routerLink="/shop">{{ t('shop') }}</a>
+          <span class="material-icons rtl:rotate-180" aria-hidden="true">chevron_right</span>
+          <span aria-current="page">{{ heroTitle() }}</span>
+        } @else {
+          <span aria-current="page">{{ t('shop') }}</span>
+        }
+      </nav>
+
+      <span class="shop-hero__eyebrow">
+        <span class="material-icons" aria-hidden="true">verified</span>
+        {{ c('eyebrow') }}
+      </span>
+
+      <h1 class="shop-hero__title display-title">{{ heroTitle() }}</h1>
+
+      @if (appliedFilters().search) {
+        <p class="shop-hero__lead">{{ c('results') }} “{{ appliedFilters().search }}”</p>
+      } @else {
+        <p class="shop-hero__lead">{{ c('lead') }}</p>
+      }
+
+      <div class="shop-hero__meta">
+        <span class="shop-hero__stat">
+          <span class="material-icons" aria-hidden="true">inventory_2</span>
+          @if (loading()) {
+            <ui-skeleton width="3.5rem" height="0.9rem" />
+          } @else {
+            <strong>{{ totalCount() }}</strong> {{ t('productsLabel') }}
+          }
+        </span>
+        @if (activeCategory() && activeBrand()) {
+          <span class="shop-hero__stat">
+            <span class="material-icons" aria-hidden="true">sell</span>
+            {{ brandName(activeBrand()!) }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <span class="shop-hero__art" aria-hidden="true">
+      <span class="material-icons">storefront</span>
+    </span>
+  </header>
+
+  <!-- Category quick filter -->
+  @if (categories().length > 0) {
+    <div class="ui-pill-tabs shop-cats" role="tablist" [attr.aria-label]="t('categories')">
+      <button
+        type="button"
+        role="tab"
+        class="ui-pill-tab"
+        [attr.aria-selected]="!appliedFilters().categoryId"
+        (click)="selectCategory('')"
+      >
+        <span class="material-icons !text-[18px]" aria-hidden="true">grid_view</span>
+        {{ t('homeIntroAllProducts') }}
+      </button>
+      @for (cat of categories(); track cat.id) {
+        <button
+          type="button"
+          role="tab"
+          class="ui-pill-tab"
+          [attr.aria-selected]="appliedFilters().categoryId === '' + cat.id"
+          (click)="selectCategory('' + cat.id)"
+        >
+          {{ categoryName(cat) }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="shop-layout">
+    <!-- Desktop filters -->
+    <aside class="shop-aside ui-sticky-filters">
+      <form class="shop-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+        <div class="shop-filters__head">
+          <h2>
+            <span class="material-icons" aria-hidden="true">tune</span>
+            {{ t('filtersTitle') }}
+          </h2>
+          @if (activeFilterChips().length > 0) {
+            <button type="button" class="shop-link" (click)="clearFilters()">{{ c('clearAll') }}</button>
+          }
+        </div>
+
+        <div class="shop-filters__group">
+          <h3><span class="material-icons" aria-hidden="true">search</span>{{ c('search') }}</h3>
+          <div class="shop-search">
+            <span class="material-icons" aria-hidden="true">search</span>
+            <input class="ui-input" type="search" [placeholder]="t('searchProducts')" [attr.aria-label]="t('searchProducts')" formControlName="search" />
+          </div>
+        </div>
+
+        <div class="shop-filters__group">
+          <h3><span class="material-icons" aria-hidden="true">category</span>{{ c('category') }}</h3>
+          <ui-sheet-select formControlName="categoryId" [label]="t('allCategories')" [placeholder]="t('allCategories')" [closeLabel]="t('closeDialog')" [options]="categoryOptions()" />
+        </div>
+
+        <div class="shop-filters__group">
+          <h3><span class="material-icons" aria-hidden="true">sell</span>{{ c('brand') }}</h3>
+          <ui-sheet-select formControlName="brandId" [label]="t('allBrands')" [placeholder]="t('allBrands')" [closeLabel]="t('closeDialog')" [options]="brandOptions()" />
+        </div>
+
+        <div class="shop-filters__group">
+          <h3><span class="material-icons" aria-hidden="true">swap_vert</span>{{ c('sortBy') }}</h3>
+          <ui-sheet-select formControlName="sortBy" [label]="t('sortFeatured')" [placeholder]="t('sortFeatured')" [closeLabel]="t('closeDialog')" [options]="sortOptions()" />
+        </div>
+
+        <div class="shop-filters__actions">
+          <button class="ui-btn ui-btn-primary w-full" type="submit">
+            <span class="material-icons !text-[18px]" aria-hidden="true">check</span>
+            {{ t('apply') }}
+          </button>
+          <button class="ui-btn ui-btn-ghost w-full" type="button" (click)="clearFilters()">{{ t('clearFilters') }}</button>
         </div>
       </form>
     </aside>
 
-    <div class="space-y-4 sm:space-y-5">
-      <div class="lg:hidden">
-        <ui-segmented
-          [ariaLabel]="t('sortFeatured')"
-          [options]="sortOptions()"
-          [value]="filters.controls.sortBy.value"
-          (valueChange)="setSort($event)"
-        />
+    <div class="shop-main">
+      <!-- Toolbar -->
+      <div class="shop-toolbar">
+        <p class="shop-toolbar__count" aria-live="polite">
+          @if (!loading() && !error()) {
+            <strong>{{ totalCount() }}</strong> {{ t('productsLabel') }}
+          }
+        </p>
+        <div class="shop-toolbar__end">
+          <button
+            type="button"
+            class="shop-toolbar__filters lg:hidden"
+            (click)="mobileFiltersOpen.set(true)"
+            [attr.aria-expanded]="mobileFiltersOpen()"
+            aria-controls="shop-filters-drawer"
+          >
+            <span class="material-icons !text-[18px]" aria-hidden="true">tune</span>
+            {{ t('filtersTitle') }}
+            @if (activeFilterChips().length > 0) {
+              <span class="shop-toolbar__badge">{{ activeFilterChips().length }}</span>
+            }
+          </button>
+          <label class="shop-sort">
+            <span class="material-icons" aria-hidden="true">swap_vert</span>
+            <span class="sr-only">{{ c('sortBy') }}</span>
+            <select
+              class="shop-sort__select"
+              [value]="filters.controls.sortBy.value"
+              (change)="setSort($any($event.target).value)"
+            >
+              @for (opt of sortOptions(); track opt.value) {
+                <option [value]="opt.value" [selected]="opt.value === filters.controls.sortBy.value">{{ opt.label }}</option>
+              }
+            </select>
+            <span class="material-icons shop-sort__caret" aria-hidden="true">expand_more</span>
+          </label>
+        </div>
       </div>
+
+      <!-- Active filter chips -->
+      @if (activeFilterChips().length > 0) {
+        <div class="shop-chips" role="list">
+          @for (chip of activeFilterChips(); track chip.key) {
+            <button
+              type="button"
+              class="shop-chip"
+              role="listitem"
+              (click)="removeFilterChip(chip.key)"
+              [attr.aria-label]="t('clearFilters') + ': ' + chip.label"
+            >
+              <span class="shop-chip__label">{{ chip.label }}</span>
+              <span class="material-icons" aria-hidden="true">close</span>
+            </button>
+          }
+          <button type="button" class="shop-link" (click)="clearFilters()">{{ c('clearAll') }}</button>
+        </div>
+      }
+
       @if (loading()) {
-        <div class="product-grid product-grid--sidebar shop-products-grid">
-          @for (i of [1,2,3,4,5,6,7,8]; track i) {
-            <div class="ui-card overflow-hidden">
-              <ui-skeleton height="0" class="block aspect-square bg-stage" />
-              <div class="space-y-2 p-2">
+        <div class="product-grid product-grid--sidebar shop-grid" aria-busy="true">
+          @for (i of skeletons; track i) {
+            <div class="shop-skel">
+              <ui-skeleton height="0" class="shop-skel__media" />
+              <div class="shop-skel__body">
+                <ui-skeleton width="45%" height="0.7rem" />
                 <ui-skeleton height="0.9rem" />
-                <ui-skeleton width="40%" height="0.9rem" />
+                <ui-skeleton width="70%" height="0.9rem" />
+                <ui-skeleton width="40%" height="1.1rem" />
+                <ui-skeleton height="2.4rem" class="shop-skel__btn" />
               </div>
             </div>
           }
         </div>
       } @else if (error()) {
-        <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
-          <button type="button" class="ui-btn-secondary" (click)="reload()">{{ t('tryAgain') }}</button>
-        </ui-empty-state>
-      } @else if (products().length === 0) {
-        <ui-empty-state icon="inventory_2" [title]="t('noProductsFound')">
-          <button type="button" class="ui-btn-secondary" (click)="clearFilters()">{{ t('clearFilters') }}</button>
-        </ui-empty-state>
-      } @else {
-        <div class="shop-results-toolbar">
-          <div class="shop-results-toolbar__meta min-w-0 flex-1">
-            <p class="shop-results-toolbar__count">
-              <span class="shop-results-toolbar__count-num">{{ totalCount() }}</span>
-              {{ t('productsLabel') }}
-            </p>
-            @if (activeFilterChips().length > 0) {
-              <div class="shop-filter-chips" role="list">
-                @for (chip of activeFilterChips(); track chip.key) {
-                  <button
-                    type="button"
-                    class="shop-filter-chip"
-                    role="listitem"
-                    (click)="removeFilterChip(chip.key)"
-                    [attr.aria-label]="t('clearFilters') + ': ' + chip.label"
-                  >
-                    <span class="shop-filter-chip__label">{{ chip.label }}</span>
-                    <span class="material-icons !text-[14px]" aria-hidden="true">close</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-          <div class="shop-results-toolbar__actions shrink-0">
-            @if (activeFilterChips().length > 0) {
-              <button type="button" class="ui-btn-ghost ui-btn-sm text-ink-600" (click)="clearFilters()">{{ t('clearFilters') }}</button>
-            }
-          </div>
+        <div class="shop-state">
+          <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+            <button type="button" class="ui-btn ui-btn-secondary" (click)="reload()">{{ t('tryAgain') }}</button>
+          </ui-empty-state>
         </div>
-        <div class="product-grid product-grid--sidebar shop-products-grid ui-stagger-children">
+      } @else if (products().length === 0) {
+        <div class="shop-empty">
+          <span class="shop-empty__icon" aria-hidden="true">
+            <span class="material-icons">search_off</span>
+          </span>
+          <h2 class="shop-empty__title">{{ t('noProductsFound') }}</h2>
+          <p class="shop-empty__text">{{ c('emptyHint') }}</p>
+          <button type="button" class="ui-btn ui-btn-primary" (click)="clearFilters()">
+            <span class="material-icons !text-[18px]" aria-hidden="true">restart_alt</span>
+            {{ t('clearFilters') }}
+          </button>
+        </div>
+      } @else {
+        <div class="product-grid product-grid--sidebar shop-grid ui-stagger-children">
           @for (p of products(); track p.id) {
             @let pricing = cardPricing(p);
             <ui-product-card
@@ -120,19 +247,50 @@
             />
           }
         </div>
-        <ui-pagination
-          [page]="page()"
-          [pageSize]="pageSize"
-          [totalCount]="totalCount()"
-          [ofLabel]="t('paginationOf')"
-          [prevLabel]="t('previousPage')"
-          [nextLabel]="t('nextPage')"
-          (pageChange)="goToPage($event)"
-        />
+
+        @if (totalPages() > 1) {
+          <nav class="shop-pager" [attr.aria-label]="c('pagination')">
+            <button
+              type="button"
+              class="shop-pager__btn"
+              [disabled]="page() <= 1"
+              [attr.aria-label]="t('previousPage')"
+              (click)="goToPage(page() - 1)"
+            >
+              <span class="material-icons rtl:rotate-180" aria-hidden="true">chevron_left</span>
+            </button>
+            @for (n of pageItems(); track $index) {
+              @if (n === 0) {
+                <span class="shop-pager__gap" aria-hidden="true">…</span>
+              } @else {
+                <button
+                  type="button"
+                  class="shop-pager__btn"
+                  [attr.aria-current]="n === page() ? 'page' : null"
+                  [attr.aria-label]="c('page') + ' ' + n"
+                  (click)="n !== page() && goToPage(n)"
+                >
+                  {{ n }}
+                </button>
+              }
+            }
+            <button
+              type="button"
+              class="shop-pager__btn"
+              [disabled]="page() >= totalPages()"
+              [attr.aria-label]="t('nextPage')"
+              (click)="goToPage(page() + 1)"
+            >
+              <span class="material-icons rtl:rotate-180" aria-hidden="true">chevron_right</span>
+            </button>
+          </nav>
+          <p class="shop-pager__info">{{ page() }} {{ t('paginationOf') }} {{ totalPages() }}</p>
+        }
       }
     </div>
   </div>
 
+  <!-- Mobile filters sheet -->
   <ui-filter-drawer
     [open]="mobileFiltersOpen()"
     [heading]="t('filtersTitle')"
@@ -143,20 +301,27 @@
     (closed)="mobileFiltersOpen.set(false)"
     (apply)="applyMobileFilters()"
   >
-    <form class="space-y-3" [formGroup]="filters">
-      <ui-form-field [label]="t('searchProducts')">
-        <input class="ui-input" type="search" [placeholder]="t('searchProducts')" formControlName="search" name="search" autocomplete="off" />
-      </ui-form-field>
-      <ui-form-field [label]="t('allCategories')">
+    <form class="shop-sheet" [formGroup]="filters">
+      <div class="shop-filters__group">
+        <h3><span class="material-icons" aria-hidden="true">search</span>{{ c('search') }}</h3>
+        <div class="shop-search">
+          <span class="material-icons" aria-hidden="true">search</span>
+          <input class="ui-input" type="search" [placeholder]="t('searchProducts')" [attr.aria-label]="t('searchProducts')" formControlName="search" name="search" autocomplete="off" />
+        </div>
+      </div>
+      <div class="shop-filters__group">
+        <h3><span class="material-icons" aria-hidden="true">category</span>{{ c('category') }}</h3>
         <ui-sheet-select formControlName="categoryId" [label]="t('allCategories')" [placeholder]="t('allCategories')" [closeLabel]="t('closeDialog')" [options]="categoryOptions()" />
-      </ui-form-field>
-      <ui-form-field [label]="t('allBrands')">
+      </div>
+      <div class="shop-filters__group">
+        <h3><span class="material-icons" aria-hidden="true">sell</span>{{ c('brand') }}</h3>
         <ui-sheet-select formControlName="brandId" [label]="t('allBrands')" [placeholder]="t('allBrands')" [closeLabel]="t('closeDialog')" [options]="brandOptions()" />
-      </ui-form-field>
-      <ui-form-field [label]="t('sortFeatured')">
+      </div>
+      <div class="shop-filters__group">
+        <h3><span class="material-icons" aria-hidden="true">swap_vert</span>{{ c('sortBy') }}</h3>
         <ui-sheet-select formControlName="sortBy" [label]="t('sortFeatured')" [placeholder]="t('sortFeatured')" [closeLabel]="t('closeDialog')" [options]="sortOptions()" />
-      </ui-form-field>
-      <button type="button" class="ui-btn-ghost min-h-11 w-full" (click)="clearMobileFilters()">{{ t('clearFilters') }}</button>
+      </div>
+      <button type="button" class="ui-btn ui-btn-ghost min-h-11 w-full" (click)="clearMobileFilters()">{{ t('clearFilters') }}</button>
     </form>
   </ui-filter-drawer>
 

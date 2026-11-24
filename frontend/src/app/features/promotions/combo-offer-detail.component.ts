@@ -1,11 +1,12 @@
 import { DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { ComboOfferService } from '../../core/services/combo-offer.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
+import { freeDeliveryLabel } from '../../core/utils/free-delivery-label';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { ComboOfferDetail, ComboOfferLineItem } from '../../core/models/combo-offer.models';
 import { FlashSaleCountdownComponent } from './flash-sale-countdown.component';
@@ -33,6 +34,8 @@ export class ComboOfferDetailComponent implements OnInit {
   readonly adding = signal(false);
   readonly cartMessage = signal<string | null>(null);
 
+  readonly freeDeliveryText = computed(() => freeDeliveryLabel(this.combo(), this.locale));
+
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
   }
@@ -44,6 +47,8 @@ export class ComboOfferDetailComponent implements OnInit {
   itemTitle(item: ComboOfferLineItem): string {
     return item.title;
   }
+
+  readonly activeImage = signal<string | null>(null);
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));

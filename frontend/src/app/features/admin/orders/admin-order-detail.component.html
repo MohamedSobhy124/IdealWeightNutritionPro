@@ -1,7 +1,38 @@
-<ui-page-header
-  [title]="order() ? t('orderNumber') + ' #' + order()!.id : t('orderNumber')"
-  [breadcrumbs]="[{ label: t('ordersTitle'), link: '/admin/orders' }]"
-/>
+@if (order(); as o) {
+  <ui-page-header
+    [title]="t('orderNumber') + ' #' + o.id"
+    [subtitle]="(o.orderDate | date: 'd/M/y HH:mm') + ' · ' + o.items.length + ' ' + t('items') + (o.paymentMethod ? ' · ' + o.paymentMethod : '')"
+    backLink="/admin/orders"
+    [backLabel]="t('ordersTitle')"
+  >
+    <span header-status class="flex flex-wrap items-center gap-1.5">
+      <ui-badge [variant]="statusVariant(o.orderStatus)" [dot]="true">{{ labelStatus(o.orderStatus) }}</ui-badge>
+      <ui-badge [variant]="statusVariant(o.paymentStatus)">{{ labelStatus(o.paymentStatus) }}</ui-badge>
+    </span>
+    <div header-actions class="flex flex-wrap items-center gap-2">
+      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="downloadInvoice()" [disabled]="downloadingInvoice()">
+        <span class="material-icons !text-[18px]" aria-hidden="true">picture_as_pdf</span>
+        {{ t('orderDownloadInvoice') }}
+      </button>
+      <ui-action-menu
+        variant="button"
+        icon="more_horiz"
+        [label]="t('moreActions')"
+        [items]="headerMenu(o)"
+        [disabled]="busy()"
+        (select)="onHeaderAction($event)"
+      />
+      @if (nextStep(o); as step) {
+        <button type="button" class="ui-btn-primary ui-btn-sm" (click)="runNextStep(o)" [disabled]="busy()">
+          <span class="material-icons !text-[18px]" aria-hidden="true">{{ step.icon }}</span>
+          {{ step.label }}
+        </button>
+      }
+    </div>
+  </ui-page-header>
+} @else {
+  <ui-page-header [title]="t('orderNumber')" backLink="/admin/orders" [backLabel]="t('ordersTitle')" />
+}
 
 @if (loading()) {
   <div class="ui-card ui-card-pad space-y-3">
@@ -9,214 +40,337 @@
     <ui-skeleton height="8rem" />
   </div>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <div class="ui-card">
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/admin/orders" class="ui-btn-secondary ui-btn-sm">{{ t('ordersTitle') }}</a>
+    </ui-empty-state>
+  </div>
 } @else if (order()) {
   @if (order(); as o) {
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <ui-badge [variant]="statusVariant(o.orderStatus)" [dot]="true">{{ labelStatus(o.orderStatus) }}</ui-badge>
-      <ui-badge [variant]="statusVariant(o.paymentStatus)">{{ labelStatus(o.paymentStatus) }}</ui-badge>
-      @if (o.paymentMethod) {
-        <span class="text-sm text-ink-500">{{ o.paymentMethod }}</span>
-      }
-      <span class="text-sm text-ink-400">{{ o.orderDate | date: 'medium' }}</span>
-      <span class="text-sm font-semibold text-ink-900">{{ o.orderTotal | iwnCurrency }}</span>
-    </div>
+    <!-- Progress -->
+    @if (o.orderStatus === 'Cancelled') {
+      <ui-alert class="mb-6" variant="danger" icon="cancel" [message]="t('orderCancelledNotice')" />
+    } @else {
+      <ol class="ui-card m-0 mb-6 flex list-none items-center gap-2 overflow-x-auto px-4 py-4 sm:px-5" [attr.aria-label]="t('sectionSummary')">
+        @for (label of steps(); track $index; let i = $index; let last = $last) {
+          <li class="flex shrink-0 items-center gap-2" [attr.aria-current]="i === progressIndex(o) ? 'step' : null">
+            <span
+              class="flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold"
+              [class.border-brand-600]="i <= progressIndex(o)"
+              [class.bg-brand-600]="i < progressIndex(o) || (i === progressIndex(o) && i === 3)"
+              [class.text-white]="i < progressIndex(o) || (i === progressIndex(o) && i === 3)"
+              [class.text-brand-700]="i === progressIndex(o) && i !== 3"
+              [class.border-ink-200]="i > progressIndex(o)"
+              [class.text-ink-400]="i > progressIndex(o)"
+            >
+              @if (i < progressIndex(o) || (i === 3 && progressIndex(o) === 3)) {
+                <span class="material-icons !text-[16px]" aria-hidden="true">check</span>
+              } @else {
+                {{ i + 1 }}
+              }
+            </span>
+            <span
+              class="text-[13px] font-semibold"
+              [class.text-ink-900]="i < progressIndex(o)"
+              [class.text-brand-700]="i === progressIndex(o)"
+              [class.text-ink-400]="i > progressIndex(o)"
+            >{{ label }}</span>
+          </li>
+          @if (!last) {
+            <li aria-hidden="true" class="h-0.5 min-w-6 flex-1 rounded" [class.bg-brand-600]="i < progressIndex(o)" [class.bg-ink-200]="i >= progressIndex(o)"></li>
+          }
+        }
+      </ol>
+    }
+
+    <!-- Ship panel (opened from the header) -->
+    @if (shipOpen()) {
+      <form class="ui-card mb-6 border-brand-200 p-4 sm:p-5" (ngSubmit)="runAction('ship')">
+        <div class="mb-4 flex items-center gap-2">
+          <span class="material-icons text-brand-700" aria-hidden="true">local_shipping</span>
+          <h3 class="m-0 text-[15px] font-semibold text-ink-900">{{ t('shipOrderTitle') }}</h3>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <ui-form-field [label]="t('carrier')" [required]="true">
+            <input class="ui-input" [(ngModel)]="carrier" name="carrier" />
+          </ui-form-field>
+          <ui-form-field [label]="t('trackingNumber')" [required]="true">
+            <input class="ui-input" dir="ltr" [(ngModel)]="trackingNumber" name="tracking" />
+          </ui-form-field>
+          <div class="flex gap-2">
+            <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="shipOpen.set(false)">{{ t('cancel') }}</button>
+            <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busy()">
+              <span class="material-icons !text-[18px]" aria-hidden="true">local_shipping</span>
+              {{ t('markShipped') }}
+            </button>
+          </div>
+        </div>
+      </form>
+    }
 
     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <!-- Main column -->
       <div class="space-y-6 lg:col-span-2">
-        <ui-card [heading]="t('items')">
-          <ul class="divide-y divide-ink-100">
+        <ui-card [heading]="t('items') + ' (' + o.items.length + ')'" [padded]="false">
+          <div card-actions>
+            @if (o.orderStatus !== 'Cancelled') {
+              <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="editingLines.set(!editingLines())">
+                <span class="material-icons !text-[18px]" aria-hidden="true">{{ editingLines() ? 'check' : 'edit' }}</span>
+                {{ editingLines() ? t('doneEditing') : t('editItems') }}
+              </button>
+            }
+          </div>
+          <ul class="m-0 list-none divide-y divide-ink-100 p-0">
             @for (item of o.items; track item.productId) {
-              <li class="space-y-2 py-2 text-sm">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-ink-700">{{ item.title }} × {{ item.quantity }}</span>
-                  <span class="font-medium text-ink-900">{{ item.lineTotal | iwnCurrency }}</span>
-                </div>
-                @if (lineEditFor(item.orderDetailId); as lineEdit) {
-                  <div class="grid grid-cols-3 gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      class="ui-input"
-                      [value]="lineEdit.quantity"
-                      (input)="lineEdit.quantity = +$any($event.target).value"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      class="ui-input"
-                      [value]="lineEdit.unitPrice"
-                      (input)="lineEdit.unitPrice = +$any($event.target).value"
-                    />
-                    <button
-                      type="button"
-                      class="ui-btn-secondary ui-btn-sm"
-                      (click)="updateLineItem(item.orderDetailId)"
-                      [disabled]="busy()"
-                    >
-                      {{ t('saveLine') }}
-                    </button>
+              <li class="px-5 py-3.5 text-sm sm:px-6">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <span class="block font-medium text-ink-900">{{ item.title }}</span>
+                    <span class="block text-xs text-ink-500">{{ item.quantity }} × {{ item.unitPrice | iwnCurrency }}</span>
                   </div>
+                  <span class="shrink-0 font-semibold tabular-nums text-ink-900">{{ item.lineTotal | iwnCurrency }}</span>
+                </div>
+                @if (editingLines()) {
+                  @if (lineEditFor(item.orderDetailId); as lineEdit) {
+                    <div class="mt-3 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                      <label class="flex flex-col gap-1">
+                        <span class="ui-label">{{ t('quantityShort') }}</span>
+                        <input type="number" min="1" class="ui-input" [value]="lineEdit.quantity" (input)="lineEdit.quantity = +$any($event.target).value" />
+                      </label>
+                      <label class="flex flex-col gap-1">
+                        <span class="ui-label">{{ t('unitPriceShort') }}</span>
+                        <input type="number" min="0" step="0.01" class="ui-input" [value]="lineEdit.unitPrice" (input)="lineEdit.unitPrice = +$any($event.target).value" />
+                      </label>
+                      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="updateLineItem(item.orderDetailId)" [disabled]="busy()">
+                        {{ t('saveLine') }}
+                      </button>
+                    </div>
+                  }
                 }
               </li>
             }
           </ul>
-          <div class="mt-4 space-y-1 border-t border-ink-100 pt-3 text-sm">
-            <p class="flex justify-between text-ink-600">
-              <span>{{ t('subtotal') }}</span>
-              <span>{{ o.orderSubtotal ?? 0 | iwnCurrency }}</span>
-            </p>
+          <dl class="m-0 space-y-2 border-t border-ink-100 px-5 py-4 text-sm sm:px-6">
+            <div class="flex justify-between text-ink-600">
+              <dt>{{ t('subtotal') }}</dt>
+              <dd class="m-0 tabular-nums">{{ o.orderSubtotal ?? 0 | iwnCurrency }}</dd>
+            </div>
             @if (o.discountAmount) {
-              <p class="flex justify-between text-ink-600">
-                <span>{{ t('discount') }}</span>
-                <span>− {{ o.discountAmount | iwnCurrency }}</span>
-              </p>
+              <div class="flex justify-between text-ink-600">
+                <dt>{{ t('discount') }}@if (o.promoCodeText) { · {{ o.promoCodeText }} }</dt>
+                <dd class="m-0 tabular-nums text-success-fg">−{{ o.discountAmount | iwnCurrency }}</dd>
+              </div>
             }
-            <p class="flex justify-between text-ink-600">
-              <span>{{ t('shipping') }}</span>
-              <span>{{ o.shipping | iwnCurrency }}</span>
-            </p>
-            <p class="flex justify-between pt-1 text-base font-semibold text-ink-900">
-              <span>{{ t('totalLabel') }}</span>
-              <span>{{ o.orderTotal | iwnCurrency }}</span>
-            </p>
+            <div class="flex justify-between text-ink-600">
+              <dt>{{ t('shipping') }}@if (o.city) { · {{ o.city }} }</dt>
+              <dd class="m-0 tabular-nums">{{ o.shipping | iwnCurrency }}</dd>
+            </div>
+            <div class="flex justify-between border-t border-ink-100 pt-2 text-base font-bold text-ink-900">
+              <dt>{{ t('totalLabel') }}</dt>
+              <dd class="m-0 tabular-nums">{{ o.orderTotal | iwnCurrency }}</dd>
+            </div>
+          </dl>
+        </ui-card>
+
+        <!-- Activity: timeline / audit log -->
+        <section class="ui-card">
+          <div class="flex gap-1 border-b border-ink-100 px-2 sm:px-3" role="tablist" [attr.aria-label]="t('activity')">
+            <button
+              type="button"
+              role="tab"
+              class="border-0 border-b-2 border-solid bg-transparent px-2.5 pb-3 pt-3.5 text-[13px] font-semibold"
+              [class.border-brand-600]="activityTab() === 'timeline'"
+              [class.text-ink-900]="activityTab() === 'timeline'"
+              [class.border-transparent]="activityTab() !== 'timeline'"
+              [class.text-ink-500]="activityTab() !== 'timeline'"
+              [attr.aria-selected]="activityTab() === 'timeline'"
+              (click)="activityTab.set('timeline')"
+            >{{ t('sectionSummary') }}</button>
+            <button
+              type="button"
+              role="tab"
+              class="border-0 border-b-2 border-solid bg-transparent px-2.5 pb-3 pt-3.5 text-[13px] font-semibold"
+              [class.border-brand-600]="activityTab() === 'audit'"
+              [class.text-ink-900]="activityTab() === 'audit'"
+              [class.border-transparent]="activityTab() !== 'audit'"
+              [class.text-ink-500]="activityTab() !== 'audit'"
+              [attr.aria-selected]="activityTab() === 'audit'"
+              (click)="activityTab.set('audit')"
+            >
+              {{ t('auditLogTitle') }}
+              @if (auditLogs().length) {
+                <span class="ms-1 rounded-full bg-ink-100 px-1.5 text-[11px] text-ink-500">{{ auditLogs().length }}</span>
+              }
+            </button>
           </div>
-        </ui-card>
-
-        <ui-card [heading]="t('sectionSummary')">
-          <ui-timeline [items]="orderTimeline()" [ariaLabel]="t('sectionSummary')" />
-        </ui-card>
-
-        <ui-card [heading]="t('auditLogTitle')">
-          @if (loadingAudit()) {
-            <ui-skeleton height="6rem" />
-          } @else if (auditLogs().length === 0) {
-            <p class="text-sm text-ink-500">{{ t('auditLogEmpty') }}</p>
-          } @else {
-            <ui-timeline [items]="auditTimelineItems()" [ariaLabel]="t('auditLogTitle')" />
-          }
-        </ui-card>
+          <div class="ui-card-pad" role="tabpanel">
+            @if (activityTab() === 'timeline') {
+              <ui-timeline [items]="orderTimeline()" [ariaLabel]="t('sectionSummary')" />
+            } @else if (loadingAudit()) {
+              <ui-skeleton height="6rem" />
+            } @else if (auditLogs().length === 0) {
+              <p class="m-0 text-sm text-ink-500">{{ t('auditLogEmpty') }}</p>
+            } @else {
+              <ui-timeline [items]="auditTimelineItems()" [ariaLabel]="t('auditLogTitle')" />
+            }
+          </div>
+        </section>
       </div>
 
+      <!-- Side column -->
       <div class="space-y-6">
         <ui-card [heading]="t('sectionCustomer')">
-          <p class="font-medium text-ink-900">{{ o.name }}</p>
-          @if (o.email) {
-            <p class="mt-1 text-sm text-ink-600">{{ o.email }}</p>
-          }
-          <p class="mt-1 text-sm text-ink-600">{{ o.phoneNumber }}</p>
-          @if (o.isGuestOrder) {
-            <ui-badge class="mt-3 inline-flex" [variant]="'neutral'">{{ t('guestOrder') }}</ui-badge>
-          }
+          <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+            <dt class="text-ink-500">{{ t('orderFieldName') }}</dt>
+            <dd class="m-0 font-medium text-ink-900">
+              {{ o.name }}
+              @if (o.isGuestOrder) {
+                <ui-badge class="ms-1" [variant]="'neutral'">{{ t('guest') }}</ui-badge>
+              }
+            </dd>
+            <dt class="text-ink-500">{{ t('phone') }}</dt>
+            <dd class="m-0 flex items-center gap-1.5 text-ink-900">
+              <a [href]="'tel:' + o.phoneNumber" class="text-ink-900 no-underline hover:text-brand-700" dir="ltr">{{ o.phoneNumber }}</a>
+              <button type="button" class="inline-flex h-7 w-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-ink-400 hover:bg-ink-50 hover:text-ink-700" [attr.aria-label]="t('copy') + ' ' + t('phone')" (click)="copy(o.phoneNumber)">
+                <span class="material-icons !text-[16px]" aria-hidden="true">content_copy</span>
+              </button>
+            </dd>
+            @if (o.email) {
+              <dt class="text-ink-500">Email</dt>
+              <dd class="m-0 min-w-0 truncate"><a [href]="'mailto:' + o.email" class="text-ink-900 no-underline hover:text-brand-700">{{ o.email }}</a></dd>
+            }
+          </dl>
         </ui-card>
 
         <ui-card [heading]="t('sectionDelivery')">
-          <p class="text-sm text-ink-700">{{ o.streetAddress }}</p>
-          <p class="mt-1 text-sm text-ink-700">{{ o.city }}@if (o.area) {, {{ o.area }}}</p>
-          @if (o.carrier || o.trackingNumber) {
-            <p class="mt-3 text-sm text-ink-600">
-              @if (o.carrier) {
-                <strong>{{ o.carrier }}</strong>
+          <div card-actions>
+            @if (canEditDetails(o) && !editingDetails()) {
+              <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="startEditDetails()">
+                <span class="material-icons !text-[18px]" aria-hidden="true">edit</span>
+                {{ t('edit') }}
+              </button>
+            }
+          </div>
+          @if (!editingDetails()) {
+            <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+              <dt class="text-ink-500">{{ t('streetAddress') }}</dt>
+              <dd class="m-0 flex items-start gap-1.5 text-ink-900">
+                <span>{{ o.streetAddress }}</span>
+                <button type="button" class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-ink-400 hover:bg-ink-50 hover:text-ink-700" [attr.aria-label]="t('copy') + ' ' + t('streetAddress')" (click)="copy(o.streetAddress + ', ' + (o.area ? o.area + ', ' : '') + o.city)">
+                  <span class="material-icons !text-[16px]" aria-hidden="true">content_copy</span>
+                </button>
+              </dd>
+              <dt class="text-ink-500">{{ t('city') }}</dt>
+              <dd class="m-0 text-ink-900">{{ o.city }}@if (o.area) {, {{ o.area }}}</dd>
+              <dt class="text-ink-500">{{ t('carrier') }}</dt>
+              <dd class="m-0 text-ink-900">{{ o.carrier || '—' }}</dd>
+              <dt class="text-ink-500">{{ t('trackingNumber') }}</dt>
+              <dd class="m-0 text-ink-900" dir="ltr">{{ o.trackingNumber || '—' }}</dd>
+              @if (o.shippingDate) {
+                <dt class="text-ink-500">{{ t('stepShipped') }}</dt>
+                <dd class="m-0 text-ink-900">{{ o.shippingDate | date: 'd MMM y, HH:mm' }}</dd>
               }
-              @if (o.trackingNumber) {
-                — {{ o.trackingNumber }}
-              }
-            </p>
-          }
-          @if (o.shippingDate) {
-            <p class="mt-2 text-sm text-ink-400">{{ o.shippingDate | date: 'medium' }}</p>
+            </dl>
+          } @else {
+            <form class="space-y-3" (ngSubmit)="saveDetails()">
+              <ui-form-field [label]="t('orderFieldName')" [required]="true">
+                <input class="ui-input" [(ngModel)]="detailsForm.name" name="edit-name" required />
+              </ui-form-field>
+              <ui-form-field [label]="t('phone')" [required]="true">
+                <input class="ui-input" [(ngModel)]="detailsForm.phoneNumber" name="edit-phone" dir="ltr" required />
+              </ui-form-field>
+              <ui-form-field [label]="t('streetAddress')" [required]="true">
+                <input class="ui-input" [(ngModel)]="detailsForm.streetAddress" name="edit-street" required />
+              </ui-form-field>
+              <div class="grid grid-cols-2 gap-3">
+                <ui-form-field [label]="t('city')" [required]="true">
+                  <input class="ui-input" [(ngModel)]="detailsForm.city" name="edit-city" required />
+                </ui-form-field>
+                <ui-form-field [label]="t('orderFieldArea')">
+                  <input class="ui-input" [(ngModel)]="detailsForm.area" name="edit-area" />
+                </ui-form-field>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <ui-form-field [label]="t('carrier')">
+                  <input class="ui-input" [(ngModel)]="detailsForm.carrier" name="edit-carrier" />
+                </ui-form-field>
+                <ui-form-field [label]="t('trackingNumber')">
+                  <input class="ui-input" dir="ltr" [(ngModel)]="detailsForm.trackingNumber" name="edit-tracking" />
+                </ui-form-field>
+              </div>
+              <div class="flex justify-end gap-2 pt-1">
+                <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="cancelEditDetails()">{{ t('cancel') }}</button>
+                <button type="submit" class="ui-btn-primary ui-btn-sm" [disabled]="busy()">{{ t('saveChanges') }}</button>
+              </div>
+            </form>
           }
         </ui-card>
 
         <ui-card [heading]="t('payment')">
-          <p class="text-sm font-medium text-ink-900">{{ labelStatus(o.paymentStatus) }}</p>
-          @if (o.paymentMethod) {
-            <p class="mt-1 text-sm text-ink-600">{{ o.paymentMethod }}</p>
-          }
-          @if (o.promoCodeText) {
-            <p class="mt-2 text-sm text-ink-600">{{ t('promoCode') }}: {{ o.promoCodeText }}</p>
-          }
-        </ui-card>
-
-        <ui-card [heading]="t('actions')">
-          @if (actionMessage()) {
-            <p class="mb-3 text-sm" [class.text-danger]="actionError()" [class.text-success-fg]="!actionError()">
-              {{ actionMessage() }}
-            </p>
-          }
-
-          <div class="space-y-3">
-            @if (canStartProcessing(o)) {
-              <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="runAction('processing')" [disabled]="busy()">
-                {{ t('startProcessing') }}
-              </button>
+          <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+            <dt class="text-ink-500">{{ t('paymentStatus') }}</dt>
+            <dd class="m-0"><ui-badge [variant]="statusVariant(o.paymentStatus)">{{ labelStatus(o.paymentStatus) }}</ui-badge></dd>
+            @if (o.paymentMethod) {
+              <dt class="text-ink-500">{{ t('paymentMethod') }}</dt>
+              <dd class="m-0 text-ink-900">{{ o.paymentMethod }}</dd>
             }
-
-            @if (canShip(o)) {
-              <div class="space-y-3 rounded-xl border border-ink-200 p-3">
-                <ui-form-field [label]="t('carrier')">
-                  <input class="ui-input" [(ngModel)]="carrier" name="carrier" />
-                </ui-form-field>
-                <ui-form-field [label]="t('trackingNumber')">
-                  <input class="ui-input" [(ngModel)]="trackingNumber" name="tracking" />
-                </ui-form-field>
-                <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="runAction('ship')" [disabled]="busy()">
-                  {{ t('markShipped') }}
-                </button>
-              </div>
+            @if (o.promoCodeText) {
+              <dt class="text-ink-500">{{ t('promoCode') }}</dt>
+              <dd class="m-0 font-mono text-ink-900">{{ o.promoCodeText }}</dd>
             }
+          </dl>
 
-            @if (canDeliver(o)) {
-              <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="runAction('deliver')" [disabled]="busy()">
-                {{ t('markDelivered') }}
-              </button>
-            }
-
-            @if (canCancel(o)) {
-              <button type="button" class="ui-btn-danger ui-btn-sm w-full" (click)="runAction('cancel')" [disabled]="busy()">
-                {{ t('cancelOrder') }}
-              </button>
-            }
-
-            @if (canRecheckPayment(o)) {
-              <button type="button" class="ui-btn-secondary ui-btn-sm w-full" (click)="runAction('recheckPayment')" [disabled]="busy()">
-                {{ t('recheckPayment') }}
-              </button>
-            }
-
-            <div class="space-y-3 rounded-xl border border-ink-200 p-3">
-              <ui-form-field [label]="t('reason')">
-                <input class="ui-input" [(ngModel)]="forceReason" name="forceReason" />
-              </ui-form-field>
-              @if (canForceComplete(o)) {
-                <button type="button" class="ui-btn-secondary ui-btn-sm w-full" (click)="runAction('forceComplete')" [disabled]="busy()">
-                  {{ t('forceComplete') }}
-                </button>
-              }
-              @if (canForceCancel(o)) {
-                <button type="button" class="ui-btn-danger ui-btn-sm w-full" (click)="runAction('forceCancel')" [disabled]="busy()">
-                  {{ t('forceCancel') }}
-                </button>
-              }
-            </div>
-
-            @if (canRefund(o)) {
-              <div class="space-y-3 rounded-xl border border-ink-200 p-3">
-                <p class="text-sm font-semibold text-ink-900">{{ t('refund') }}</p>
+          @if (canRefund(o)) {
+            <form class="mt-4 space-y-3 border-t border-ink-100 pt-4" (ngSubmit)="refundOrder()">
+              <p class="m-0 text-sm font-semibold text-ink-900">{{ t('refund') }}</p>
+              <div class="grid grid-cols-2 gap-3">
                 <ui-form-field [label]="t('amountAed')">
                   <input type="number" min="0" step="0.01" class="ui-input" [(ngModel)]="refundAmount" name="refundAmount" />
                 </ui-form-field>
                 <ui-form-field [label]="t('reason')">
                   <input class="ui-input" [(ngModel)]="refundReason" name="refundReason" />
                 </ui-form-field>
-                <button type="button" class="ui-btn-primary ui-btn-sm w-full" (click)="refundOrder()" [disabled]="busy()">
-                  {{ t('processRefund') }}
-                </button>
               </div>
-            }
-          </div>
+              <button type="submit" class="ui-btn-secondary ui-btn-sm w-full" [disabled]="busy() || refundAmount <= 0">
+                <span class="material-icons !text-[18px]" aria-hidden="true">currency_exchange</span>
+                {{ t('processRefund') }}
+              </button>
+            </form>
+          }
         </ui-card>
+
+        @if (canForceComplete(o) || canForceCancel(o)) {
+          <section class="ui-card border-danger/30">
+            <header class="border-b border-ink-100 px-5 py-4 sm:px-6">
+              <h3 class="m-0 text-[15px] font-semibold text-danger">{{ t('dangerZone') }}</h3>
+            </header>
+            <div class="ui-card-pad space-y-4">
+              <input class="ui-input" [(ngModel)]="forceReason" name="forceReason" [placeholder]="t('forceReasonPlaceholder')" [attr.aria-label]="t('reason')" />
+              @if (canForceComplete(o)) {
+                <div class="flex items-center gap-3">
+                  <div class="min-w-0 flex-1">
+                    <p class="m-0 text-sm font-semibold text-ink-900">{{ t('forceComplete') }}</p>
+                    <p class="m-0 text-xs text-ink-500">{{ t('forceCompleteHint') }}</p>
+                  </div>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm shrink-0 !text-danger" (click)="runAction('forceComplete')" [disabled]="busy()">
+                    {{ t('forceComplete') }}
+                  </button>
+                </div>
+              }
+              @if (canForceCancel(o)) {
+                <div class="flex items-center gap-3 border-t border-ink-100 pt-4">
+                  <div class="min-w-0 flex-1">
+                    <p class="m-0 text-sm font-semibold text-ink-900">{{ t('forceCancel') }}</p>
+                    <p class="m-0 text-xs text-ink-500">{{ t('forceCancelHint') }}</p>
+                  </div>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm shrink-0 !text-danger" (click)="runAction('forceCancel')" [disabled]="busy()">
+                    {{ t('forceCancel') }}
+                  </button>
+                </div>
+              }
+            </div>
+          </section>
+        }
       </div>
     </div>
   }

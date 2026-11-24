@@ -26,6 +26,14 @@ export interface ShippingQuoteResponse {
   total: number;
   cityName: string;
   areaName?: string;
+  /** Delivery charge before free-delivery rules (city or remote-area charge). */
+  baseShipping?: number;
+  isFreeDelivery?: boolean;
+  /** Every cart item allows free delivery, so a threshold applies. */
+  freeDeliveryAvailable?: boolean;
+  /** Subtotal (before promo discount) needed for free delivery. */
+  freeDeliveryThreshold?: number | null;
+  amountRemainingForFreeDelivery?: number;
 }
 
 export interface CreateOrderRequest {

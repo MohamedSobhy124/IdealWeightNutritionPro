@@ -3,51 +3,34 @@
 @if (data(); as d) {
   <section class="mt-2" [attr.aria-label]="t('needsAttention')">
     <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-400">{{ t('needsAttention') }}</h2>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <a routerLink="/admin/orders" class="block">
-        <ui-stat-card
-          [label]="t('filterPending')"
-          [value]="d.ordersPending"
-          icon="receipt_long"
-          [hint]="d.ordersTotal + ' ' + t('ordersAll')"
-          [loading]="loading()"
-        />
-      </a>
-      <a routerLink="/admin/returns" class="block">
-        <ui-stat-card
-          [label]="t('pendingReturns')"
-          [value]="d.pendingReturns"
-          icon="assignment_return"
-          [hint]="d.activeReturns + ' ' + t('activeReturns')"
-          [loading]="loading()"
-        />
-      </a>
-      <a routerLink="/admin/stock-notifications" class="block">
-        <ui-stat-card
-          [label]="t('pendingStockNotifications')"
-          [value]="d.pendingStockNotifications"
-          icon="notifications_active"
-          [loading]="loading()"
-        />
-      </a>
-      @if (isAdmin()) {
-        <a [routerLink]="['/admin/products']" [queryParams]="{ filter: 'lowstock' }" class="block admin-attention--citrus">
-          <ui-stat-card
-            [label]="t('lowStockProducts')"
-            [value]="d.lowStockProducts"
-            icon="inventory_2"
-            [hint]="d.outOfStockProducts + ' ' + t('outOfStockProducts')"
-            [loading]="loading()"
-          />
-        </a>
-        <a routerLink="/admin/service-purchases" class="block">
-          <ui-stat-card
-            [label]="t('servicePurchasesTotal')"
-            [value]="d.servicePurchasesPending"
-            icon="shopping_bag"
-            [hint]="t('filterPending')"
-            [loading]="loading()"
-          />
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      @for (tile of attention(d); track tile.link) {
+        <a
+          [routerLink]="tile.link"
+          [queryParams]="tile.params"
+          class="ui-card group flex items-center gap-3.5 p-4 no-underline transition-shadow hover:shadow-card"
+        >
+          <span
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            [class.bg-warning-soft]="tile.tone === 'warning'"
+            [class.text-warning-fg]="tile.tone === 'warning'"
+            [class.bg-info-soft]="tile.tone === 'info'"
+            [class.text-info-fg]="tile.tone === 'info'"
+            [class.bg-brand-50]="tile.tone === 'brand'"
+            [class.text-brand-700]="tile.tone === 'brand'"
+            [class.bg-danger-soft]="tile.tone === 'danger'"
+            [class.text-danger-fg]="tile.tone === 'danger'"
+            [class.bg-ink-100]="tile.tone === 'neutral'"
+            [class.text-ink-600]="tile.tone === 'neutral'"
+          >
+            <span class="material-icons !text-[20px]" aria-hidden="true">{{ tile.icon }}</span>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="display-title block text-xl leading-tight text-ink-900 tabular-nums">{{ tile.value }}</span>
+            <span class="block truncate text-[13px] font-medium text-ink-700">{{ tile.label }}</span>
+            <span class="block truncate text-xs text-ink-400">{{ tile.sub }}</span>
+          </span>
+          <span class="material-icons !text-[18px] text-ink-300 transition-colors group-hover:text-ink-600 rtl:rotate-180" aria-hidden="true">chevron_right</span>
         </a>
       }
     </div>
@@ -56,7 +39,7 @@
   <section class="mt-8" [attr.aria-label]="t('salesOverview')">
     <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-400">{{ t('salesOverview') }}</h2>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <a routerLink="/admin/orders" class="block">
+      <a routerLink="/admin/orders" class="block no-underline">
         <ui-stat-card
           [label]="t('ordersToday')"
           [value]="d.ordersToday"
@@ -65,7 +48,7 @@
           [loading]="loading()"
         />
       </a>
-      <a routerLink="/admin/orders" class="block">
+      <a routerLink="/admin/orders" class="block no-underline">
         <ui-stat-card
           [label]="t('ordersAll')"
           [value]="d.ordersTotal"
@@ -80,14 +63,14 @@
       <ui-card class="lg:col-span-1" [heading]="t('ordersAll')">
         <ui-chart type="doughnut" [data]="orderStatusChart()" [options]="doughnutOptions" height="280px" />
       </ui-card>
-      <ui-card class="lg:col-span-2" [heading]="t('groupOverview')">
+      <ui-card class="lg:col-span-2" [heading]="t('workQueue')">
         <ui-chart type="bar" [data]="operationsChart()" [options]="barOptions" height="280px" />
       </ui-card>
     </div>
 
     @if (isAdmin()) {
       <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <a routerLink="/admin/flash-sales" class="block admin-attention--citrus">
+        <a routerLink="/admin/flash-sales" class="block no-underline admin-attention--citrus">
           <ui-stat-card
             [label]="t('activeFlashSales')"
             [value]="d.activeFlashSales"
@@ -95,7 +78,7 @@
             [hint]="d.activeComboOffers + ' ' + t('activeComboOffers')"
           />
         </a>
-        <a routerLink="/admin/services" class="block">
+        <a routerLink="/admin/services" class="block no-underline">
           <ui-stat-card
             [label]="t('activeServices')"
             [value]="d.activeServices"
@@ -103,7 +86,7 @@
             [hint]="d.activeCities + ' ' + t('activeCities')"
           />
         </a>
-        <a routerLink="/admin/blog" class="block">
+        <a routerLink="/admin/blog" class="block no-underline">
           <ui-stat-card
             [label]="t('publishedBlogPosts')"
             [value]="d.publishedBlogPosts"
@@ -111,7 +94,7 @@
             [hint]="d.hiddenBlogPosts + ' ' + t('hiddenBlogPosts')"
           />
         </a>
-        <a routerLink="/admin/service-purchases" class="block">
+        <a routerLink="/admin/service-purchases" class="block no-underline">
           <ui-stat-card
             [label]="t('servicePurchasesTotal')"
             [value]="d.servicePurchasesTotal"
@@ -156,7 +139,10 @@
       [columns]="recentOrderCols"
       [rows]="$any(d.recentOrders)"
       [loading]="loading()"
+      rowLinkBase="/admin/orders"
       [searchable]="false"
+      [columnMenu]="false"
+      [pageSizeSelector]="false"
       [pageSize]="10"
       [emptyTitle]="t('noOrders')"
       [ofLabel]="t('of')"
@@ -165,8 +151,8 @@
     >
       <ng-template uiCell="id" let-row>
         @let r = $any(row);
-        <a [routerLink]="['/admin/orders', r.id]" class="font-medium text-brand-700 hover:underline">#{{ r.id }}</a>
-        <span class="block text-xs text-ink-400">{{ r.orderDate | date: 'medium' }}</span>
+        <a [routerLink]="['/admin/orders', r.id]" class="font-semibold text-ink-900 no-underline hover:text-brand-700">#{{ r.id }}</a>
+        <span class="block whitespace-nowrap text-xs text-ink-400"><bdi>{{ r.orderDate | date: 'd MMM, HH:mm' }}</bdi></span>
       </ng-template>
 
       <ng-template uiCell="customerName" let-row>
@@ -187,7 +173,7 @@
     </ui-data-table>
   </section>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <ui-alert variant="danger" [message]="error()" />
 } @else {
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     @for (s of [1, 2, 3, 4]; track s) {

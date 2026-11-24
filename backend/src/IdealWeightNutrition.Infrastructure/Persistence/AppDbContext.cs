@@ -32,6 +32,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<FlashSaleItem> FlashSaleItems => Set<FlashSaleItem>();
     public DbSet<ComboOffer> ComboOffers => Set<ComboOffer>();
     public DbSet<ComboOfferItem> ComboOfferItems => Set<ComboOfferItem>();
+    public DbSet<ComboOfferImage> ComboOfferImages => Set<ComboOfferImage>();
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<ServiceSubscription> ServiceSubscriptions => Set<ServiceSubscription>();
     public DbSet<ServiceImage> ServiceImages => Set<ServiceImage>();

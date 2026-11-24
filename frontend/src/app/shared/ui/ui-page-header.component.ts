@@ -30,11 +30,24 @@ export interface UiBreadcrumb {
       }
       <div [class]="compact() ? 'flex items-start justify-between gap-2' : 'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'">
         <div class="min-w-0">
-          @if (titleTag() === 'p') {
-            <p class="display-title m-0 text-balance text-xl text-ink-900 sm:text-2xl lg:text-[1.75rem]">{{ title() }}</p>
-          } @else {
-            <h1 class="display-title m-0 text-balance text-xl text-ink-900 sm:text-2xl lg:text-[1.75rem]">{{ title() }}</h1>
+          @if (backLink()) {
+            <a
+              [routerLink]="backLink()"
+              [queryParams]="backQueryParams()"
+              class="mb-1 inline-flex min-h-8 items-center gap-1 rounded text-[13px] font-medium text-ink-500 no-underline hover:text-ink-900"
+            >
+              <span class="material-icons !text-[18px] rtl:rotate-180" aria-hidden="true">arrow_back</span>
+              {{ backLabel() }}
+            </a>
           }
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            @if (titleTag() === 'p') {
+              <p class="display-title m-0 text-balance text-xl text-ink-900 sm:text-2xl lg:text-[1.75rem]">{{ title() }}</p>
+            } @else {
+              <h1 class="display-title m-0 text-balance text-xl text-ink-900 sm:text-2xl lg:text-[1.75rem]">{{ title() }}</h1>
+            }
+            <ng-content select="[header-status]"></ng-content>
+          </div>
           @if (subtitle()) {
             <p class="mt-1.5 text-sm leading-relaxed text-ink-500">{{ subtitle() }}</p>
           }
@@ -52,6 +65,10 @@ export class UiPageHeaderComponent {
   readonly breadcrumbs = input<UiBreadcrumb[]>([]);
   readonly breadcrumbLabel = input('Breadcrumb');
   readonly compact = input(false);
+  /** Detail/form pages: "← Products" link above the title. */
+  readonly backLink = input<string | (string | number)[] | null>(null);
+  readonly backLabel = input('');
+  readonly backQueryParams = input<Record<string, string | number | boolean | null | undefined> | null>(null);
   /** Product pages pass `p` so the buy box keeps the only h1. */
   readonly titleTag = input<'h1' | 'p'>('h1');
 }

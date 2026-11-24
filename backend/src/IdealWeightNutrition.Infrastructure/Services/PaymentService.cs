@@ -8,6 +8,7 @@ using IdealWeightNutrition.Domain.Checkout;
 using IdealWeightNutrition.Domain.Constants;
 using IdealWeightNutrition.Domain.Services;
 using IdealWeightNutrition.Infrastructure.Options;
+using IdealWeightNutrition.Infrastructure.Payments;
 using IdealWeightNutrition.Infrastructure.Persistence;
 using IdealWeightNutrition.Utility;
 using Microsoft.EntityFrameworkCore;
@@ -240,7 +241,7 @@ internal sealed class PaymentService : IPaymentService
         };
     }
 
-    public Task<CompletePaymentResponse> HandleTamaraReturnAsync(
+    public async Task<CompletePaymentResponse> HandleTamaraReturnAsync(
         int orderId,
         string status,
         string? tamaraOrderId,
@@ -250,17 +251,46 @@ internal sealed class PaymentService : IPaymentService
     {
         if (!status.Equals("success", StringComparison.OrdinalIgnoreCase))
         {
-            return Task.FromResult(new CompletePaymentResponse
+            // The URL is public, so never trust its status on its own: only close the
+            // order now when Tamara itself reports it declined, cancelled or expired.
+            var failedOrder = await _db.OrderHeaders.FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+            if (failedOrder is { PaymentMethod: PaymentMethods.Tamara }
+                && !IsPaid(failedOrder)
+                && !string.IsNullOrEmpty(failedOrder.PaymentIntentId ?? tamaraOrderId))
+            {
+                try
+                {
+                    var state = await new TamaraHelper(_tamara)
+                        .GetOrderDetailsAsync(failedOrder.PaymentIntentId ?? tamaraOrderId!);
+                    var reported = state.Status ?? string.Empty;
+                    if (state.Success
+                        && (reported.Contains("declin", StringComparison.OrdinalIgnoreCase)
+                            || reported.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+                            || reported.Contains("expire", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        await CancelUnpaidOrderAsync(
+                            failedOrder,
+                            cancellationToken,
+                            $"Tamara reports the payment as \"{reported}\".");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not verify failed Tamara return for order #{OrderId}", orderId);
+                }
+            }
+
+            return new CompletePaymentResponse
             {
                 OrderId = orderId,
-                OrderStatus = OrderStatuses.Pending,
-                PaymentStatus = PaymentStatuses.Pending,
+                OrderStatus = failedOrder?.OrderStatus ?? OrderStatuses.Pending,
+                PaymentStatus = failedOrder?.PaymentStatus ?? PaymentStatuses.Pending,
                 IsPaid = false,
                 Message = "Payment was not completed."
-            });
+            };
         }
 
-        return CompleteTamaraReturnAsync(orderId, tamaraOrderId, userId, guestCartId, cancellationToken);
+        return await CompleteTamaraReturnAsync(orderId, tamaraOrderId, userId, guestCartId, cancellationToken);
     }
 
     public Task<CompletePaymentResponse> HandleTabbyReturnAsync(
@@ -278,16 +308,36 @@ internal sealed class PaymentService : IPaymentService
         if (order is null || IsPaid(order))
             return;
 
-        var verified = await VerifyGeideaAsync(order, cancellationToken);
-        if (!verified.IsPaid)
+        // The callback itself is unauthenticated (only an order id in the query), so it is
+        // treated purely as a "go check now" signal: Geidea is asked server to server, and the
+        // order is cancelled only when Geidea reports a definite failure. Anything else is left
+        // pending for the background reconciliation, so a forged callback can neither mark an
+        // order paid nor cancel one while the customer is still paying.
+        var result = await new GeideaHelper(_geidea).VerifyPaymentAsync(order.Id.ToString());
+
+        if (result is { Success: true, IsPaid: true })
         {
-            order.PaymentStatus = PaymentStatuses.Rejected;
-            order.OrderStatus = OrderStatuses.Cancelled;
-            await _db.SaveChangesAsync(cancellationToken);
+            var amountCheck = ValidateGeideaPaidAmount((decimal)order.OrderTotal, result.PaidAmount, order.Id, "order");
+            if (!amountCheck.Ok)
+                return;
+
+            await MarkPaidAndFulfillAsync(order, order.ApplicationUserId, null, cancellationToken);
             return;
         }
 
-        await MarkPaidAndFulfillAsync(order, order.ApplicationUserId, null, cancellationToken);
+        if (PaymentVerificationRules.GeideaIndicatesDefiniteFailure(result))
+        {
+            await CancelUnpaidOrderAsync(
+                order,
+                cancellationToken,
+                $"Geidea callback: payment was not completed. {result.Message}");
+            return;
+        }
+
+        _logger.LogInformation(
+            "Geidea callback for order {OrderId}: not paid yet ({Status}); left pending for reconciliation.",
+            order.Id,
+            result.Status);
     }
 
     public async Task<TamaraWebhookAckResponse> HandleTamaraWebhookAsync(
@@ -381,21 +431,15 @@ internal sealed class PaymentService : IPaymentService
             return await ProcessTamaraWebhookForServicePurchaseAsync(purchase!, notification.OrderId, cancellationToken);
         }
 
-        if (TamaraStatusIndicatesCancelled(
-                notification.OrderStatus,
-                notification.PaymentStatus,
-                orderDetails.Status,
-                orderDetails.PaymentStatus))
+        // Cancel only when Tamara's API confirms it; the webhook body alone is not trusted.
+        if (PaymentVerificationRules.TamaraApiIndicatesCancelled(orderDetails.Success, orderDetails.Status))
         {
             if (order is not null)
             {
-                if (!IsPaid(order) && order.OrderStatus != OrderStatuses.Cancelled)
-                {
-                    order.OrderStatus = OrderStatuses.Cancelled;
-                    order.PaymentStatus = PaymentStatuses.Cancelled;
-                    await _db.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("Tamara webhook marked product order {OrderId} as cancelled.", order.Id);
-                }
+                await CancelUnpaidOrderAsync(
+                    order,
+                    cancellationToken,
+                    $"Tamara reports the order as \"{orderDetails.Status}\" (webhook, confirmed with the Tamara API).");
 
                 return new TamaraWebhookAckResponse
                 {
@@ -508,24 +552,17 @@ internal sealed class PaymentService : IPaymentService
     private bool ValidateTamaraWebhookAuthorization(string? authorizationHeader)
     {
         if (string.IsNullOrWhiteSpace(_tamara.NotificationToken))
-            return true;
-
-        if (string.IsNullOrWhiteSpace(authorizationHeader)
-            || !authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogError("Tamara webhook rejected: Tamara:NotificationToken is not configured.");
             return false;
+        }
 
-        var token = authorizationHeader["Bearer ".Length..].Trim();
-        var expected = _tamara.NotificationToken;
-        if (token.Length != expected.Length)
-            return false;
-
-        return CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(token),
-            Encoding.UTF8.GetBytes(expected));
+        var token = PaymentVerificationRules.ExtractTamaraToken(authorizationHeader, queryToken: null);
+        return PaymentVerificationRules.IsValidTamaraWebhookToken(token, _tamara.NotificationToken);
     }
 
-    private static bool AmountsMatch(decimal expected, decimal actual, decimal tolerance = 0.02m) =>
-        Math.Abs(expected - actual) <= tolerance;
+    private static bool AmountsMatch(decimal expected, decimal actual) =>
+        PaymentVerificationRules.AmountsMatch(expected, actual);
 
     private (bool Ok, string? Error) ValidateGeideaPaidAmount(decimal expected, decimal? paidAmount, int entityId, string entityType)
     {
@@ -576,18 +613,6 @@ internal sealed class PaymentService : IPaymentService
         || ContainsTamaraKeyword(apiPaymentStatus, "approved")
         || ContainsTamaraKeyword(apiOrderStatus, "authorised")
         || ContainsTamaraKeyword(apiPaymentStatus, "authorised");
-
-    private static bool TamaraStatusIndicatesCancelled(
-        string? notificationOrderStatus,
-        string? notificationPaymentStatus,
-        string? apiOrderStatus,
-        string? apiPaymentStatus) =>
-        ContainsTamaraKeyword(notificationOrderStatus, "cancelled")
-        || ContainsTamaraKeyword(notificationOrderStatus, "canceled")
-        || ContainsTamaraKeyword(notificationPaymentStatus, "cancelled")
-        || ContainsTamaraKeyword(notificationPaymentStatus, "canceled")
-        || ContainsTamaraKeyword(apiOrderStatus, "cancelled")
-        || ContainsTamaraKeyword(apiOrderStatus, "canceled");
 
     private static bool ContainsTamaraKeyword(string? value, string keyword) =>
         value?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true;
@@ -801,13 +826,29 @@ internal sealed class PaymentService : IPaymentService
         var order = await _db.OrderHeaders.FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
             ?? throw new InvalidOperationException("Order not found.");
 
-        if (!string.IsNullOrEmpty(tamaraOrderId) && order.PaymentIntentId != tamaraOrderId)
+        // The Tamara order id in the return URL can be edited by the customer. The id we
+        // stored when the checkout was created wins; a URL id is only used when we have none,
+        // and then only if Tamara confirms it was created for this order.
+        string? effectiveTamaraOrderId = null;
+        var fromQuery = false;
+        if (!string.IsNullOrEmpty(tamaraOrderId) && tamaraOrderId != order.PaymentIntentId)
         {
-            order.PaymentIntentId = tamaraOrderId;
-            await _db.SaveChangesAsync(cancellationToken);
+            if (string.IsNullOrEmpty(order.PaymentIntentId))
+            {
+                effectiveTamaraOrderId = tamaraOrderId;
+                fromQuery = true;
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Tamara return for order #{OrderId} carried Tamara order {QueryId}, but {StoredId} is stored; using the stored id.",
+                    order.Id,
+                    tamaraOrderId,
+                    order.PaymentIntentId);
+            }
         }
 
-        var verified = await VerifyTamaraAsync(order, tamaraOrderId, cancellationToken);
+        var verified = await VerifyTamaraAsync(order, effectiveTamaraOrderId, cancellationToken, requireReference: fromQuery);
         if (!verified.IsPaid)
         {
             return new CompletePaymentResponse
@@ -842,25 +883,54 @@ internal sealed class PaymentService : IPaymentService
         var order = await _db.OrderHeaders.FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
             ?? throw new InvalidOperationException("Order not found.");
 
-        if (!string.IsNullOrEmpty(paymentId))
-        {
-            order.SessionId = paymentId;
-            order.PaymentIntentId = paymentId;
-            await _db.SaveChangesAsync(cancellationToken);
-        }
+        // The status in the return URL is only a hint and is never trusted: anyone can edit
+        // it. The payment is always verified with Tabby, server to server, and must belong
+        // to this order and match its total.
+        var storedPaymentId = order.SessionId;
+        var candidatePaymentId = !string.IsNullOrEmpty(paymentId) ? paymentId : storedPaymentId;
+        var fromQuery = !string.Equals(candidatePaymentId, storedPaymentId, StringComparison.Ordinal);
 
-        var normalized = status.ToLowerInvariant();
-        var likelyPaid = normalized is "authorized" or "created" or "approved" or "success" or "paid";
-
-        if (!likelyPaid && !string.IsNullOrEmpty(order.SessionId))
+        TappyPaymentStatusResponse? tabbyVerdict = null;
+        var isPaid = false;
+        var belongsToOrder = false;
+        if (!string.IsNullOrEmpty(candidatePaymentId))
         {
             var helper = new TappyHelper(_tabby);
-            var verification = await helper.VerifyPaymentAsync(order.SessionId);
-            likelyPaid = verification.Success && verification.IsPaid;
+            tabbyVerdict = await helper.VerifyPaymentAsync(candidatePaymentId);
+            belongsToOrder = TabbyPaymentBelongsTo(tabbyVerdict, order.Id.ToString(), requireReference: fromQuery);
+            isPaid = belongsToOrder
+                && EvaluateTabbyVerdict(tabbyVerdict, (decimal)order.OrderTotal, order.Id.ToString(), "order", order.Id).IsPaid;
+
+            if (isPaid && fromQuery)
+            {
+                order.SessionId = candidatePaymentId;
+                order.PaymentIntentId = candidatePaymentId;
+                await _db.SaveChangesAsync(cancellationToken);
+            }
         }
 
-        if (!likelyPaid)
+        _logger.LogInformation(
+            "Tabby return for order {OrderId}: return status {ReturnStatus}, Tabby status {TabbyStatus}, verified paid {IsPaid}",
+            order.Id,
+            status,
+            tabbyVerdict?.Status,
+            isPaid);
+
+        if (!isPaid)
         {
+            // Close the order now only when Tabby itself says this order's payment failed.
+            // (Tabby's CLOSED means captured, so it is deliberately not treated as a failure.)
+            var reported = tabbyVerdict?.Status ?? string.Empty;
+            if (tabbyVerdict is { Success: true }
+                && belongsToOrder
+                && !IsPaid(order)
+                && (reported.Contains("reject", StringComparison.OrdinalIgnoreCase)
+                    || reported.Contains("expire", StringComparison.OrdinalIgnoreCase)
+                    || reported.Contains("cancel", StringComparison.OrdinalIgnoreCase)))
+            {
+                await CancelUnpaidOrderAsync(order, cancellationToken, $"Tabby reports the payment as \"{reported}\".");
+            }
+
             return new CompletePaymentResponse
             {
                 OrderId = order.Id,
@@ -905,10 +975,16 @@ internal sealed class PaymentService : IPaymentService
         return (result.IsPaid, result.Message);
     }
 
+    /// <param name="requireReference">
+    /// True when <paramref name="tamaraOrderIdOverride"/> came from the customer (return URL)
+    /// rather than from us: the Tamara order must then report this order as its reference,
+    /// and nothing is authorised unless that is confirmed.
+    /// </param>
     private async Task<(bool IsPaid, string? Message)> VerifyTamaraAsync(
         OrderHeader order,
         string? tamaraOrderIdOverride,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requireReference = false)
     {
         var helper = new TamaraHelper(_tamara);
         var tamaraOrderId = tamaraOrderIdOverride
@@ -919,6 +995,18 @@ internal sealed class PaymentService : IPaymentService
             return (false, "Tamara payment reference not found.");
 
         var details = await helper.GetOrderDetailsAsync(tamaraOrderId);
+
+        if (requireReference
+            && !PaymentVerificationRules.TamaraOrderBelongsTo(details.Success, details.OrderReferenceId, order.Id.ToString()))
+        {
+            _logger.LogWarning(
+                "Tamara order {TamaraOrderId} from the return URL was not accepted for order #{OrderId}: reference {Reference}.",
+                tamaraOrderId,
+                order.Id,
+                details.OrderReferenceId);
+            return (false, "Tamara order could not be matched to this order.");
+        }
+
         if (details.Success)
         {
             var status = details.Status?.ToLowerInvariant() ?? string.Empty;
@@ -966,10 +1054,40 @@ internal sealed class PaymentService : IPaymentService
 
         var helper = new TappyHelper(_tabby);
         var result = await helper.VerifyPaymentAsync(order.SessionId);
-        return (result.Success && result.IsPaid, result.Message);
+        return EvaluateTabbyVerdict(result, (decimal)order.OrderTotal, order.Id.ToString(), "order", order.Id);
     }
 
-    private async Task MarkPaidAndFulfillAsync(
+    private static bool TabbyPaymentBelongsTo(
+        TappyPaymentStatusResponse result,
+        string expectedReference,
+        bool requireReference) =>
+        PaymentVerificationRules.TabbyPaymentBelongsTo(result, expectedReference, requireReference);
+
+    private (bool IsPaid, string? Message) EvaluateTabbyVerdict(
+        TappyPaymentStatusResponse result,
+        decimal expectedAmount,
+        string expectedReference,
+        string entityType,
+        int entityId)
+    {
+        var verdict = PaymentVerificationRules.CheckTabbyVerdict(result, expectedAmount, expectedReference);
+        if (!verdict.IsPaid && result is { Success: true, IsPaid: true })
+        {
+            _logger.LogWarning(
+                "Tabby payment {PaymentId} rejected for {EntityType} {EntityId}: {Reason} (reference {Reference}, amount {Amount}, expected {Expected})",
+                result.TransactionId,
+                entityType,
+                entityId,
+                verdict.Message,
+                result.OrderReferenceId,
+                result.Amount,
+                expectedAmount);
+        }
+
+        return verdict;
+    }
+
+    internal async Task MarkPaidAndFulfillAsync(
         OrderHeader order,
         string? userId,
         string? guestCartId,
@@ -978,21 +1096,74 @@ internal sealed class PaymentService : IPaymentService
         if (IsPaid(order))
             return;
 
-        order.PaymentStatus = PaymentStatuses.Paid;
-        order.OrderStatus = OrderStatuses.Paid;
-        order.PaymentDate = _clock.Now;
+        // Persist anything the verification step changed (e.g. the gateway order id) first.
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _inventory.DeductStockForOrderAsync(order.Id, cancellationToken);
+        var oldOrderStatus = order.OrderStatus;
+        var oldPaymentStatus = order.PaymentStatus;
+        var now = _clock.Now;
 
-        if (order.PromoCodeId is > 0 && !string.IsNullOrEmpty(order.ApplicationUserId))
+        // The return page, the webhook and the background job can all confirm the same
+        // order at the same moment. The status change is therefore an atomic conditional
+        // UPDATE ("claim"): only the caller whose UPDATE hits the row does the side effects,
+        // and stock + promo run in the same transaction so a failure rolls the claim back
+        // and a later attempt can retry cleanly.
+        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
         {
-            await _promoCodes.RecordUsageAsync(
-                order.PromoCodeId.Value,
-                order.ApplicationUserId,
-                order.Id,
-                cancellationToken);
+            var claimed = await _db.OrderHeaders
+                .Where(o => o.Id == order.Id
+                    && (o.PaymentStatus == null || PaymentClaimableStatuses.Contains(o.PaymentStatus)))
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.PaymentStatus, PaymentStatuses.Paid)
+                    .SetProperty(o => o.OrderStatus, OrderStatuses.Paid)
+                    .SetProperty(o => o.PaymentDate, now),
+                    cancellationToken);
+
+            if (claimed == 0)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                await _db.Entry(order).ReloadAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Order #{OrderId} payment confirmation skipped: already handled (payment status {PaymentStatus}).",
+                    order.Id,
+                    order.PaymentStatus);
+                return;
+            }
+
+            SyncTrackedStatus(order, PaymentStatuses.Paid, OrderStatuses.Paid, now);
+
+            await _inventory.DeductStockForOrderAsync(order.Id, cancellationToken);
+
+            if (order.PromoCodeId is > 0 && !string.IsNullOrEmpty(order.ApplicationUserId))
+            {
+                await _promoCodes.RecordUsageAsync(
+                    order.PromoCodeId.Value,
+                    order.ApplicationUserId,
+                    order.Id,
+                    cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
         }
+
+        if (oldOrderStatus == OrderStatuses.Cancelled)
+        {
+            _logger.LogWarning(
+                "Order #{OrderId} was paid after it had been cancelled automatically; it has been reopened as Paid.",
+                order.Id);
+        }
+
+        await AuditSystemAsync(
+            order.Id,
+            "Payment Confirmed",
+            oldOrderStatus == OrderStatuses.Cancelled
+                ? $"{order.PaymentMethod} payment confirmed by the gateway after the order had been cancelled automatically. Please review stock and fulfilment."
+                : $"{order.PaymentMethod} payment confirmed by the gateway.",
+            oldOrderStatus,
+            order.OrderStatus,
+            oldPaymentStatus,
+            order.PaymentStatus,
+            cancellationToken);
 
         await _cart.ClearCartAsync(userId ?? order.ApplicationUserId, guestCartId, cancellationToken);
 
@@ -1080,16 +1251,23 @@ internal sealed class PaymentService : IPaymentService
         if (purchase is null || IsServicePaid(purchase))
             return;
 
-        var verified = await VerifyServiceGeideaAsync(purchase, cancellationToken);
-        if (!verified.IsPaid)
+        // Same rule as product orders: unauthenticated callback = "check now" only.
+        var result = await new GeideaHelper(_geidea).VerifyPaymentAsync(purchase.Id.ToString());
+
+        if (result is { Success: true, IsPaid: true })
+        {
+            var amountCheck = ValidateGeideaPaidAmount(purchase.AmountPaid, result.PaidAmount, purchase.Id, "service purchase");
+            if (amountCheck.Ok)
+                await MarkServicePurchasePaidAsync(purchase, cancellationToken);
+            return;
+        }
+
+        if (PaymentVerificationRules.GeideaIndicatesDefiniteFailure(result))
         {
             purchase.PaymentStatus = PaymentStatuses.Rejected;
             purchase.Status = "Cancelled";
             await _db.SaveChangesAsync(cancellationToken);
-            return;
         }
-
-        await MarkServicePurchasePaidAsync(purchase, cancellationToken);
     }
 
     public Task<CompleteServicePaymentResponse> HandleServiceTamaraReturnAsync(
@@ -1322,10 +1500,17 @@ internal sealed class PaymentService : IPaymentService
             .FirstOrDefaultAsync(p => p.Id == purchaseId, cancellationToken)
             ?? throw new InvalidOperationException("Service purchase not found.");
 
-        if (!string.IsNullOrEmpty(tamaraOrderId))
-            purchase.SessionId = tamaraOrderId;
+        // A Tamara order id from the return URL that differs from the stored one is only
+        // accepted if Tamara confirms it was created for this purchase.
+        var fromQuery = !string.IsNullOrEmpty(tamaraOrderId) && tamaraOrderId != purchase.SessionId;
+        var verified = await VerifyServiceTamaraAsync(
+            purchase,
+            fromQuery ? tamaraOrderId : null,
+            cancellationToken,
+            requireReference: fromQuery);
 
-        var verified = await VerifyServiceTamaraAsync(purchase, tamaraOrderId, cancellationToken);
+        if (verified.IsPaid && fromQuery)
+            purchase.SessionId = tamaraOrderId;
         if (!verified.IsPaid)
         {
             return new CompleteServicePaymentResponse
@@ -1358,20 +1543,31 @@ internal sealed class PaymentService : IPaymentService
             .FirstOrDefaultAsync(p => p.Id == purchaseId, cancellationToken)
             ?? throw new InvalidOperationException("Service purchase not found.");
 
-        if (!string.IsNullOrEmpty(paymentId))
-            purchase.SessionId = paymentId;
+        // Never trust the status in the return URL; always verify with Tabby (see the
+        // product-order return for the reasoning).
+        var storedPaymentId = purchase.SessionId;
+        var candidatePaymentId = !string.IsNullOrEmpty(paymentId) ? paymentId : storedPaymentId;
+        var fromQuery = !string.Equals(candidatePaymentId, storedPaymentId, StringComparison.Ordinal);
 
-        var normalized = status.ToLowerInvariant();
-        var likelyPaid = normalized is "authorized" or "created" or "approved" or "success" or "paid";
-
-        if (!likelyPaid && !string.IsNullOrEmpty(purchase.SessionId))
+        var isPaid = false;
+        if (!string.IsNullOrEmpty(candidatePaymentId))
         {
             var helper = new TappyHelper(_tabby);
-            var verification = await helper.VerifyPaymentAsync(purchase.SessionId);
-            likelyPaid = verification.Success && verification.IsPaid;
+            var verification = await helper.VerifyPaymentAsync(candidatePaymentId);
+            isPaid = TabbyPaymentBelongsTo(verification, purchase.Id.ToString(), requireReference: fromQuery)
+                && EvaluateTabbyVerdict(verification, purchase.AmountPaid, purchase.Id.ToString(), "service purchase", purchase.Id).IsPaid;
+
+            if (isPaid && fromQuery)
+                purchase.SessionId = candidatePaymentId;
         }
 
-        if (!likelyPaid)
+        _logger.LogInformation(
+            "Tabby return for service purchase {PurchaseId}: return status {ReturnStatus}, verified paid {IsPaid}",
+            purchase.Id,
+            status,
+            isPaid);
+
+        if (!isPaid)
         {
             return new CompleteServicePaymentResponse
             {
@@ -1418,7 +1614,8 @@ internal sealed class PaymentService : IPaymentService
     private async Task<(bool IsPaid, string? Message)> VerifyServiceTamaraAsync(
         ServicePurchase purchase,
         string? tamaraOrderIdOverride,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requireReference = false)
     {
         var helper = new TamaraHelper(_tamara);
         var tamaraOrderId = tamaraOrderIdOverride ?? purchase.SessionId;
@@ -1427,6 +1624,18 @@ internal sealed class PaymentService : IPaymentService
             return (false, "Tamara payment reference not found.");
 
         var details = await helper.GetOrderDetailsAsync(tamaraOrderId);
+
+        if (requireReference
+            && !PaymentVerificationRules.TamaraOrderBelongsTo(details.Success, details.OrderReferenceId, purchase.Id.ToString()))
+        {
+            _logger.LogWarning(
+                "Tamara order {TamaraOrderId} from the return URL was not accepted for service purchase {PurchaseId}: reference {Reference}.",
+                tamaraOrderId,
+                purchase.Id,
+                details.OrderReferenceId);
+            return (false, "Tamara order could not be matched to this purchase.");
+        }
+
         if (details.Success)
         {
             var status = details.Status?.ToLowerInvariant() ?? string.Empty;
@@ -1471,19 +1680,41 @@ internal sealed class PaymentService : IPaymentService
 
         var helper = new TappyHelper(_tabby);
         var result = await helper.VerifyPaymentAsync(purchase.SessionId);
-        return (result.Success && result.IsPaid, result.Message);
+        return EvaluateTabbyVerdict(result, purchase.AmountPaid, purchase.Id.ToString(), "service purchase", purchase.Id);
     }
 
-    private async Task MarkServicePurchasePaidAsync(
+    internal async Task MarkServicePurchasePaidAsync(
         ServicePurchase purchase,
         CancellationToken cancellationToken)
     {
         if (IsServicePaid(purchase))
             return;
 
-        purchase.PaymentStatus = ServicePaymentApproved;
-        purchase.PurchaseDate = _clock.Now;
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Atomic claim, so concurrent confirmations approve the purchase exactly once.
+        var now = _clock.Now;
+        var claimed = await _db.ServicePurchases
+            .Where(p => p.Id == purchase.Id
+                && p.PaymentStatus != ServicePaymentApproved
+                && p.PaymentStatus != PaymentStatuses.Paid
+                && p.PaymentStatus != PaymentStatuses.Refunded)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.PaymentStatus, ServicePaymentApproved)
+                .SetProperty(p => p.PurchaseDate, now),
+                cancellationToken);
+
+        if (claimed == 0)
+        {
+            await _db.Entry(purchase).ReloadAsync(cancellationToken);
+            return;
+        }
+
+        var entry = _db.Entry(purchase);
+        entry.Property(p => p.PaymentStatus).CurrentValue = ServicePaymentApproved;
+        entry.Property(p => p.PaymentStatus).OriginalValue = ServicePaymentApproved;
+        entry.Property(p => p.PurchaseDate).CurrentValue = now;
+        entry.Property(p => p.PurchaseDate).OriginalValue = now;
     }
 
     private static bool IsServicePaid(ServicePurchase purchase) =>
@@ -1834,15 +2065,133 @@ internal sealed class PaymentService : IPaymentService
             result.Message ?? verified.Message);
     }
 
-    private async Task CancelUnpaidOrderAsync(OrderHeader order, CancellationToken cancellationToken)
+    /// <summary>Payment states from which an order may be claimed as Paid.</summary>
+    /// <remarks>
+    /// Rejected = cancelled automatically because the payment did not complete; a late
+    /// payment may still arrive. Cancelled (by an admin), Refunded and the paid states are
+    /// deliberately excluded so a replayed return/webhook can never re-open them.
+    /// </remarks>
+    private static readonly string[] PaymentClaimableStatuses =
+    [
+        PaymentStatuses.Pending,
+        PaymentStatuses.Rejected,
+        PaymentStatuses.Authorized
+    ];
+
+    /// <summary>Payment states from which an unpaid order may be cancelled automatically.</summary>
+    private static readonly string[] PaymentCancellableStatuses =
+    [
+        PaymentStatuses.Pending,
+        PaymentStatuses.Rejected
+    ];
+
+    /// <summary>
+    /// Mirrors a status change made with ExecuteUpdate onto the tracked entity without
+    /// marking it modified (the database already has these values).
+    /// </summary>
+    private void SyncTrackedStatus(OrderHeader order, string paymentStatus, string orderStatus, DateTime paymentDate)
+    {
+        var entry = _db.Entry(order);
+        entry.Property(o => o.PaymentStatus).CurrentValue = paymentStatus;
+        entry.Property(o => o.PaymentStatus).OriginalValue = paymentStatus;
+        entry.Property(o => o.OrderStatus).CurrentValue = orderStatus;
+        entry.Property(o => o.OrderStatus).OriginalValue = orderStatus;
+        entry.Property(o => o.PaymentDate).CurrentValue = paymentDate;
+        entry.Property(o => o.PaymentDate).OriginalValue = paymentDate;
+    }
+
+    internal async Task CancelUnpaidOrderAsync(
+        OrderHeader order,
+        CancellationToken cancellationToken,
+        string? reason = null,
+        string paymentStatus = PaymentStatuses.Rejected)
     {
         if (IsPaid(order) || order.OrderStatus == OrderStatuses.Cancelled)
             return;
 
-        order.OrderStatus = OrderStatuses.Cancelled;
-        order.PaymentStatus = PaymentStatuses.Rejected;
-        order.PaymentDate = _clock.Now;
         await _db.SaveChangesAsync(cancellationToken);
+
+        var oldOrderStatus = order.OrderStatus;
+        var oldPaymentStatus = order.PaymentStatus;
+        var now = _clock.Now;
+
+        // Atomic and conditional, like the paid claim: if a confirmation won the race a
+        // moment ago this UPDATE matches nothing, so a paid order is never cancelled.
+        var cancelled = await _db.OrderHeaders
+            .Where(o => o.Id == order.Id
+                && o.OrderStatus != OrderStatuses.Cancelled
+                && (o.PaymentStatus == null || PaymentCancellableStatuses.Contains(o.PaymentStatus)))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.OrderStatus, OrderStatuses.Cancelled)
+                .SetProperty(o => o.PaymentStatus, paymentStatus)
+                .SetProperty(o => o.PaymentDate, now),
+                cancellationToken);
+
+        if (cancelled == 0)
+        {
+            await _db.Entry(order).ReloadAsync(cancellationToken);
+            _logger.LogInformation(
+                "Order #{OrderId} not cancelled: its status changed meanwhile (payment status {PaymentStatus}).",
+                order.Id,
+                order.PaymentStatus);
+            return;
+        }
+
+        SyncTrackedStatus(order, paymentStatus, OrderStatuses.Cancelled, now);
+
+        // Online orders record promo usage only once paid, so there is normally nothing to
+        // release; this covers any usage recorded earlier.
+        await _promoCodes.ReleaseUsageForOrderAsync(order.Id, cancellationToken);
+
+        await AuditSystemAsync(
+            order.Id,
+            "Payment Not Completed",
+            reason ?? $"{order.PaymentMethod} payment was not completed; order cancelled automatically.",
+            oldOrderStatus,
+            order.OrderStatus,
+            oldPaymentStatus,
+            order.PaymentStatus,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a status change made by the system (gateway callback, webhook or background
+    /// job) in the same audit trail admins see. Never throws.
+    /// </summary>
+    private async Task AuditSystemAsync(
+        int orderId,
+        string action,
+        string? details,
+        string? oldOrderStatus,
+        string? newOrderStatus,
+        string? oldPaymentStatus,
+        string? newPaymentStatus,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var now = _clock.Now;
+            _db.OrderAuditLogs.Add(new OrderAuditLog
+            {
+                OrderHeaderId = orderId,
+                Action = action,
+                ActionDetails = details is { Length: > 500 } ? details[..500] : details,
+                PerformedByUserEmail = "system",
+                OldOrderStatus = oldOrderStatus,
+                NewOrderStatus = newOrderStatus,
+                OldPaymentStatus = oldPaymentStatus,
+                NewPaymentStatus = newPaymentStatus,
+                ActionDate = now,
+                CreatedBy = "system",
+                CreatedDate = now,
+                IsDeleted = false
+            });
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not write audit entry '{Action}' for order #{OrderId}", action, orderId);
+        }
     }
 
     private async Task CancelUnpaidServicePurchaseAsync(

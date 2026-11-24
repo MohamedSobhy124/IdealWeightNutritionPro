@@ -18,7 +18,7 @@
 
 @if (message()) {
 
-  <p class="mb-4 text-sm text-success-fg">{{ message() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
 
 }
 
@@ -26,7 +26,7 @@
 
 @if (error()) {
 
-  <p class="mb-4 text-danger">{{ error() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 
 }
 
@@ -112,33 +112,18 @@
 
 
   <ng-template uiCell="actions" let-row>
-
     @let item = $any(row);
-
-    <div class="flex flex-wrap gap-1.5">
-
-      <a [routerLink]="['/admin/blog', item.id]" class="ui-btn-secondary ui-btn-sm">{{ t('edit') }}</a>
-
-      @if (item.isDeleted) {
-
-        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="restore(item)" [disabled]="busyId() === item.id">
-
-          {{ t('restoreBlogPost') }}
-
-        </button>
-
-      } @else {
-
-        <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">
-
-          {{ t('remove') }}
-
-        </button>
-
-      }
-
-    </div>
-
+    <ui-action-menu
+      [label]="t('moreActions')"
+      [disabled]="busyId() === item.id"
+      [items]="[
+        { id: 'edit', label: t('edit'), icon: 'edit', link: ['/admin/blog', item.id] },
+        item.isDeleted
+          ? { id: 'restore', label: t('restoreBlogPost'), icon: 'restore_from_trash', dividerBefore: true }
+          : { id: 'delete', label: t('remove'), icon: 'delete_outline', danger: true, dividerBefore: true }
+      ]"
+      (select)="$event === 'restore' ? restore(item) : $event === 'delete' ? remove(item) : null"
+    />
   </ng-template>
 
 </ui-data-table>

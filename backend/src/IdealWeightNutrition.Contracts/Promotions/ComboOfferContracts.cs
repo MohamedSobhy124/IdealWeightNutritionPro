@@ -14,6 +14,8 @@ public sealed class ComboOfferSummaryDto
     public required DateTime EndDate { get; init; }
     public required int ProductCount { get; init; }
     public required bool InStock { get; init; }
+    public bool AllowFreeDelivery { get; init; }
+    public double FreeDeliveryMinimumAmount { get; init; }
 }
 
 public sealed class ComboOfferLineItemDto
@@ -41,5 +43,14 @@ public sealed class ComboOfferDetailDto
     public required DateTime EndDate { get; init; }
     public required int MaxQuantity { get; init; }
     public required bool InStock { get; init; }
+    public bool AllowFreeDelivery { get; init; }
+    public double FreeDeliveryMinimumAmount { get; init; }
     public required IReadOnlyList<ComboOfferLineItemDto> Items { get; init; }
+    public IReadOnlyList<ComboOfferImageDto> Images { get; init; } = [];
+}
+
+public sealed class ComboOfferImageDto
+{
+    public required string ImageUrl { get; init; }
+    public string? ImageInfo { get; init; }
 }

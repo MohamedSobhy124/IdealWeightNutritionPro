@@ -26,6 +26,7 @@ public sealed class AdminProductListItemDto
     public string? CategoryName { get; init; }
     public string? BrandName { get; init; }
     public required bool IsDeleted { get; init; }
+    public DateTime? ExpiryDate { get; init; }
     public required bool InStock { get; init; }
     public required bool IsNew { get; init; }
     public required bool IsTrending { get; init; }
@@ -74,6 +75,7 @@ public sealed class AdminProductDetailDto
     public string? CategoryName { get; init; }
     public string? BrandName { get; init; }
     public required bool IsDeleted { get; init; }
+    public DateTime? ExpiryDate { get; init; }
     public required IReadOnlyList<AdminProductVariantDto> Variants { get; init; }
     public required IReadOnlyList<AdminProductImageDto> Images { get; init; }
     public required IReadOnlyList<AdminProductOptionDto> Options { get; init; }
@@ -100,6 +102,7 @@ public sealed class UpdateAdminProductRequest
     public bool AllowFreeDelivery { get; init; }
     public double FreeDeliveryMinimumAmount { get; init; }
     public bool IsDeleted { get; init; }
+    public DateTime? ExpiryDate { get; init; }
     public IReadOnlyList<UpdateAdminProductVariantRequest>? Variants { get; init; }
 }
 
@@ -130,4 +133,14 @@ public sealed class RegenerateProductSlugsResponse
     public required string Message { get; init; }
     public int UpdatedCount { get; init; }
     public int TotalProducts { get; init; }
+}
+
+public sealed class AdminProductStatisticsDto
+{
+    public required int Total { get; init; }
+    public required int Active { get; init; }
+    public required int LowStock { get; init; }
+    public required int OutOfStock { get; init; }
+    public required int Deleted { get; init; }
+    public required int Expiring { get; init; }
 }

@@ -6,6 +6,7 @@ import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminCity, UpsertAdminCityRequest } from '../../../core/models/admin-delivery.models';
 import { AdminDeliveryService } from '../../../core/services/admin-delivery.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
@@ -15,12 +16,16 @@ import {
   UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
+  UiActionMenuComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiActionMenuComponent,
+    UiAlertComponent,
     FormsModule,
     RouterLink,
     IwnCurrencyPipe,
@@ -37,6 +42,7 @@ import {
 export class AdminCitiesComponent implements OnInit {
   private readonly deliveryApi = inject(AdminDeliveryService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
   private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminCity[]>([]);
@@ -98,7 +104,7 @@ export class AdminCitiesComponent implements OnInit {
         mobile: 'secondary',
         value: (row) => ((row as unknown as AdminCity).isActive ? this.t('active') : this.t('inactive')),
       },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
   }
 
@@ -186,7 +192,7 @@ export class AdminCitiesComponent implements OnInit {
         this.showForm.set(false);
         this.editingId.set(null);
         this.busyId.set(null);
-        this.message.set(this.t('saved'));
+        this.toast.success(this.t('saved'));
         this.load();
       },
       error: () => {
@@ -202,7 +208,7 @@ export class AdminCitiesComponent implements OnInit {
     this.message.set(null);
     this.deliveryApi.deleteCity(item.id).subscribe({
       next: () => {
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
         this.load();
       },

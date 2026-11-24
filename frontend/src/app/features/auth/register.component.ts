@@ -5,14 +5,15 @@ import { AuthService } from '../../core/services/auth.service';
 import { CartService } from '../../core/services/cart.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { UI, UiKey } from '../../core/i18n/ui-text';
-import { UiFormFieldComponent, UiOtpInputComponent, UiPageHeaderComponent, UiPasswordFieldComponent } from '../../shared/ui';
+import { UiFormFieldComponent, UiOtpInputComponent, UiPasswordFieldComponent } from '../../shared/ui';
+import { AUTH_COPY, AuthCopyKey, authBenefits } from './login.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, RouterLink, UiFormFieldComponent, UiPageHeaderComponent, UiPasswordFieldComponent, UiOtpInputComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, UiFormFieldComponent, UiPasswordFieldComponent, UiOtpInputComponent],
   templateUrl: './register.component.html',
-  styleUrl: './register.component.css',
+  styleUrls: ['./login.component.css', './register.component.css'],
 })
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
@@ -38,6 +39,17 @@ export class RegisterComponent {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  /* View-only helpers for the redesigned layout. */
+  readonly stars = [1, 2, 3, 4, 5];
+  readonly benefits = authBenefits(
+    (k) => this.t(k),
+    (k) => this.c(k),
+  );
+
+  c(key: AuthCopyKey): string {
+    return this.locale.pick(AUTH_COPY[key].en, AUTH_COPY[key].ar);
   }
 
   sendOtp(): void {

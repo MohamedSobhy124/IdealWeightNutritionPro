@@ -18,11 +18,23 @@ export interface AdminComboOfferItem {
   id: number;
   productId: number;
   productVariantId?: number;
-  title: string;
-  slug: string;
+  productTitle: string;
   quantity: number;
   isRequired: boolean;
-  inStock: boolean;
+  displayOrder: number;
+}
+
+export interface AdminComboOfferImage {
+  id: number;
+  imageUrl: string;
+  displayOrder: number;
+  imageInfo?: string;
+}
+
+export interface UpdateAdminComboOfferItemRequest {
+  quantity: number;
+  displayOrder: number;
+  isRequired: boolean;
 }
 
 export interface AdminComboOfferDetail {
@@ -40,9 +52,12 @@ export interface AdminComboOfferDetail {
   minimumQuantity: number;
   maximumQuantity?: number;
   displayOrder: number;
+  allowFreeDelivery?: boolean;
+  freeDeliveryMinimumAmount?: number;
   inStock: boolean;
   isActive: boolean;
   items: AdminComboOfferItem[];
+  images: AdminComboOfferImage[];
 }
 
 export interface UpsertAdminComboOfferRequest {
@@ -57,6 +72,8 @@ export interface UpsertAdminComboOfferRequest {
   minimumQuantity?: number;
   maximumQuantity?: number;
   displayOrder?: number;
+  allowFreeDelivery?: boolean;
+  freeDeliveryMinimumAmount?: number;
   notifySubscribers?: boolean;
   isActive: boolean;
 }

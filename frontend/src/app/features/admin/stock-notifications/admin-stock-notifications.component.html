@@ -1,117 +1,38 @@
 <ui-page-header [title]="t('stockNotificationsTitle')" />
 
-
-
-@if (message()) {
-
-  <p class="mb-4 text-sm text-ink-600">{{ message() }}</p>
-
-}
-
-
-
 @if (error()) {
-
-  <p class="mb-4 text-danger">{{ error() }}</p>
-
+  <ui-alert class="mb-4" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 }
-
-
 
 <ui-data-table
-
   [columns]="cols"
-
   [rows]="$any(items())"
-
   [loading]="loading()"
-
-  [searchable]="false"
-
+  [serverSearch]="true"
+  [initialSearch]="search"
+  [searchPlaceholder]="t('stockNotificationSearchPlaceholder')"
+  [tabs]="tabs()"
+  [activeTab]="view()"
   [serverTotal]="totalCount()"
   [serverPage]="page()"
   [pageSize]="pageSize()"
   [pageSizeOptions]="[25, 50, 100]"
   storageKey="admin-stock-notifications"
-
+  emptyIcon="notifications_none"
   [emptyTitle]="t('noStockNotifications')"
-
   [ofLabel]="t('of')"
   [previousPageLabel]="t('prevPage')"
   [nextPageLabel]="t('nextPage')"
+  (tabChange)="onTab($event)"
+  (searchChange)="onSearch($event)"
   (pageChange)="goToPage($event)"
   (pageSizeChange)="changePageSize($event)"
-  >
-
-  <div table-toolbar>
-
-    <ui-filter-bar>
-
-      <form class="flex flex-wrap items-end gap-3" (ngSubmit)="applyFilters()">
-
-        <label class="flex items-center gap-2 text-sm text-ink-600">
-
-          <input type="checkbox" class="accent-brand-600" [(ngModel)]="activeOnly" name="activeOnly" />
-
-          {{ t('activeOnly') }}
-
-        </label>
-
-
-
-        <label class="flex items-center gap-2 text-sm text-ink-600">
-
-          <input type="checkbox" class="accent-brand-600" [(ngModel)]="pendingOnly" name="pendingOnly" />
-
-          {{ t('pendingOnly') }}
-
-        </label>
-
-
-
-        <label class="flex flex-col gap-1">
-
-          <span class="ui-label">{{ t('search') }}</span>
-
-          <input
-
-            type="search"
-
-            class="ui-input"
-
-            [(ngModel)]="search"
-
-            name="search"
-
-            [placeholder]="t('stockNotificationSearchPlaceholder')"
-
-          />
-
-        </label>
-
-
-
-        <div class="flex gap-2">
-
-          <button type="submit" class="ui-btn-primary ui-btn-sm">{{ t('search') }}</button>
-
-          <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearFilters()">{{ t('clearFilter') }}</button>
-
-        </div>
-
-      </form>
-
-    </ui-filter-bar>
-
-  </div>
-
-
-
+>
   <ng-template uiCell="product" let-row>
 
     @let item = $any(row);
 
-    <a [routerLink]="['/admin/products', item.productId]" class="font-medium text-brand-600 hover:underline">{{ item.productTitle }}</a>
+    <a [routerLink]="['/admin/products', item.productId]" class="font-semibold text-ink-900 no-underline hover:text-brand-700">{{ item.productTitle }}</a>
 
     @if (item.variantSku) {
 
@@ -141,7 +62,7 @@
 
   <ng-template uiCell="createdDate" let-row>
 
-    {{ $any(row).createdDate | date: 'medium' }}
+    <bdi class="whitespace-nowrap text-ink-600">{{ $any(row).createdDate | date: 'd MMM y' }}</bdi>
 
   </ng-template>
 
@@ -170,34 +91,7 @@
 
 
   <ng-template uiCell="actions" let-row>
-
     @let item = $any(row);
-
-    @if (item.isActive) {
-
-      <button
-
-        type="button"
-
-        class="ui-btn-secondary ui-btn-sm"
-
-        (click)="deactivate(item)"
-
-        [disabled]="deactivatingId() === item.id"
-
-      >
-
-        {{ t('deactivate') }}
-
-      </button>
-
-    }
-
+    <ui-action-menu [label]="t('moreActions')" [items]="rowMenu(item)" [disabled]="deactivatingId() === item.id" (select)="onRowAction($event, item)" />
   </ng-template>
-
 </ui-data-table>
-
-
-
-
-

@@ -27,6 +27,13 @@ html[dir='rtl'] body {
   letter-spacing: 0;
 }
 
+/* Google's icon font CSS sets `direction: ltr` on .material-icons, which makes
+   logical positioning (inset-inline-start/end) on an icon resolve to the wrong
+   side in Arabic. Ligatures still render because the icon names are Latin. */
+html[dir='rtl'] .material-icons {
+  direction: rtl;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

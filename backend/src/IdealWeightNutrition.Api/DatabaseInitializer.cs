@@ -1,5 +1,6 @@
 using IdealWeightNutrition.Domain.Constants;
 using IdealWeightNutrition.Infrastructure.Persistence;
+using IdealWeightNutrition.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +8,7 @@ namespace IdealWeightNutrition.Api;
 
 internal static class DatabaseInitializer
 {
-    public static async Task InitializeAsync(IServiceProvider services, ILogger logger)
+    public static async Task InitializeAsync(IServiceProvider services, ILogger logger, IConfiguration configuration)
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -19,8 +20,15 @@ internal static class DatabaseInitializer
         {
             if (await db.Database.CanConnectAsync(connectTimeout.Token))
             {
+                if (configuration.GetValue<bool>("Database:MigrateOnStartup"))
+                {
+                    await db.Database.MigrateAsync();
+                    logger.LogInformation("Database migrations applied.");
+                }
+
                 await EnsureRefreshTokensTableAsync(db);
                 await SeedRolesAsync(roleManager);
+                await SeedAdminAsync(scope.ServiceProvider, configuration, logger);
             }
             else
             {
@@ -64,5 +72,34 @@ internal static class DatabaseInitializer
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
+    }
+
+    private static async Task SeedAdminAsync(IServiceProvider services, IConfiguration configuration, ILogger logger)
+    {
+        var email = configuration["Seed:AdminEmail"];
+        var password = configuration["Seed:AdminPassword"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            return;
+
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        if ((await userManager.GetUsersInRoleAsync(Roles.Admin)).Count > 0)
+            return;
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            Name = "Administrator"
+        };
+        var created = await userManager.CreateAsync(user, password);
+        if (!created.Succeeded)
+        {
+            logger.LogWarning("Admin seed failed: {Errors}", string.Join("; ", created.Errors.Select(e => e.Description)));
+            return;
+        }
+
+        await userManager.AddToRoleAsync(user, Roles.Admin);
+        logger.LogInformation("Seeded initial admin user {Email}.", email);
     }
 }

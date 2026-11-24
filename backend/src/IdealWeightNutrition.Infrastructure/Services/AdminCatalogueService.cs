@@ -2,6 +2,7 @@ using IdealWeightNutrition.Application.Abstractions;
 using IdealWeightNutrition.Contracts.Admin;
 using IdealWeightNutrition.Domain.Catalogue;
 using IdealWeightNutrition.Infrastructure.Persistence;
+using IdealWeightNutrition.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 
 namespace IdealWeightNutrition.Infrastructure.Services;
@@ -9,8 +10,59 @@ namespace IdealWeightNutrition.Infrastructure.Services;
 internal sealed class AdminCatalogueService : IAdminCatalogueService
 {
     private readonly AppDbContext _db;
+    private readonly LegacyImageStorage _images;
 
-    public AdminCatalogueService(AppDbContext db) => _db = db;
+    public AdminCatalogueService(AppDbContext db, LegacyImageStorage images)
+    {
+        _db = db;
+        _images = images;
+    }
+
+    public async Task<AdminImageUploadResultDto> UploadCategoryImageAsync(
+        int id,
+        Stream fileStream,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken)
+            ?? throw new InvalidOperationException("Category not found.");
+
+        var previous = category.ImageUrl;
+        var imageUrl = await _images.SaveAsync(LegacyMediaFolder.Categories, fileStream, fileName, cancellationToken);
+        category.ImageUrl = imageUrl;
+        await _db.SaveChangesAsync(cancellationToken);
+        TryDeletePrevious(previous, imageUrl);
+        return new AdminImageUploadResultDto { ImageUrl = imageUrl };
+    }
+
+    public async Task<AdminImageUploadResultDto> UploadBrandImageAsync(
+        int id,
+        Stream fileStream,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        var brand = await _db.Brands.FirstOrDefaultAsync(b => b.Id == id, cancellationToken)
+            ?? throw new InvalidOperationException("Brand not found.");
+
+        var previous = brand.ImageUrl;
+        var imageUrl = await _images.SaveAsync(LegacyMediaFolder.Brands, fileStream, fileName, cancellationToken);
+        brand.ImageUrl = imageUrl;
+        await _db.SaveChangesAsync(cancellationToken);
+        TryDeletePrevious(previous, imageUrl);
+        return new AdminImageUploadResultDto { ImageUrl = imageUrl };
+    }
+
+    // Only remove files this uploader created; URLs pasted by admins may point at shared assets.
+    private void TryDeletePrevious(string? previous, string current)
+    {
+        if (string.IsNullOrWhiteSpace(previous) || string.Equals(previous, current, StringComparison.OrdinalIgnoreCase))
+            return;
+        var normalized = previous.Replace('/', '\\');
+        if (!normalized.StartsWith(@"\images\categories\", StringComparison.OrdinalIgnoreCase) &&
+            !normalized.StartsWith(@"\images\brands\", StringComparison.OrdinalIgnoreCase))
+            return;
+        try { _images.DeleteIfExists(previous); } catch { /* best effort */ }
+    }
 
     public async Task<IReadOnlyList<AdminCategoryDto>> ListCategoriesAsync(
         bool includeDeleted,

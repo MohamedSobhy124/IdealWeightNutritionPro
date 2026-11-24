@@ -1,6 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, OnInit, PLATFORM_ID, signal, untracked } from '@angular/core';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet, Scroll } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { UI, UiKey } from './core/i18n/ui-text';
 import { AuthService } from './core/services/auth.service';
@@ -82,6 +82,12 @@ export class AppComponent implements OnInit {
       if (this.auth.isAuthenticated() && !this.auth.profile()) {
         this.auth.loadProfile().subscribe();
       }
+      this.router.events.pipe(filter((event): event is Scroll => event instanceof Scroll)).subscribe((event) => {
+        if (event.position || !event.anchor) {
+          // Override the global smooth-scroll behavior for page transitions.
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        }
+      });
     }
     this.applyRouteSeo();
     this.router.events

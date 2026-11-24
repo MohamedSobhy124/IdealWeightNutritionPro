@@ -11,22 +11,34 @@ import { AuthService } from '../../../core/services/auth.service';
 import { LocaleService } from '../../../core/services/locale.service';
 import { statusLabel } from '../../../core/utils/status-label';
 import {
+  statusVariant,
+  UiAlertComponent,
   UiBadgeComponent,
   UiBadgeVariant,
   UiCardComponent,
   UiChartComponent,
   UiCellDirective,
   UiDataTableComponent,
-  UiEmptyStateComponent,
   UiPageHeaderComponent,
   UiStatCardComponent,
   type UiTableColumn,
 } from '../../../shared/ui';
 
+interface AttentionTile {
+  label: string;
+  sub: string;
+  value: number;
+  icon: string;
+  tone: 'warning' | 'info' | 'brand' | 'danger' | 'neutral';
+  link: string;
+  params: Record<string, string> | null;
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiAlertComponent,
     RouterLink,
     DatePipe,
     IwnCurrencyPipe,
@@ -35,7 +47,6 @@ import {
     UiCardComponent,
     UiChartComponent,
     UiBadgeComponent,
-    UiEmptyStateComponent,
     UiDataTableComponent,
     UiCellDirective,
   ],
@@ -80,7 +91,7 @@ export class AdminDashboardComponent implements OnInit {
             ? [d.ordersPending, d.ordersProcessing, d.ordersShipped, d.ordersDelivered, d.ordersCancelled]
             : [],
           // Chart.js needs HEX (not CSS vars). Nutrition brand chart palette.
-          backgroundColor: ['#B45309', '#175CD3', '#C8F04E', '#0B6A56', '#B42318'],
+          backgroundColor: ['#B45309', '#175CD3', '#6BBA98', '#0B6A56', '#B42318'],
           borderWidth: 0,
         },
       ],
@@ -102,7 +113,7 @@ export class AdminDashboardComponent implements OnInit {
           data: d
             ? [d.pendingReturns, d.lowStockProducts, d.pendingStockNotifications, d.servicePurchasesPending]
             : [],
-          backgroundColor: '#0B6A56',
+          backgroundColor: 'rgb(11 106 86 / 0.85)',
           borderRadius: 8,
           maxBarThickness: 48,
         },
@@ -138,14 +149,22 @@ export class AdminDashboardComponent implements OnInit {
     ];
   }
 
-  statusVariant(status: string): UiBadgeVariant {
-    const s = (status || '').toLowerCase();
-    if (s.includes('deliver') || s.includes('paid') || s.includes('approve') || s.includes('complete')) return 'success';
-    if (s.includes('cancel') || s.includes('fail') || s.includes('reject') || s.includes('refund')) return 'danger';
-    if (s.includes('ship')) return 'info';
-    if (s.includes('process')) return 'brand';
-    if (s.includes('pending')) return 'warning';
-    return 'neutral';
+  readonly statusVariant: (status: string) => UiBadgeVariant = statusVariant;
+
+  /** "Needs attention" tiles: each links to the list already filtered to that work. */
+  attention(d: AdminDashboard): AttentionTile[] {
+    const items: AttentionTile[] = [
+      { label: this.t('filterPending'), sub: this.t('navOrders'), value: d.ordersPending, icon: 'pending_actions', tone: 'warning', link: '/admin/orders', params: { status: 'Pending' } },
+      { label: this.t('pendingReturns'), sub: this.t('navReturns'), value: d.pendingReturns, icon: 'assignment_return', tone: 'info', link: '/admin/returns', params: null },
+      { label: this.t('pendingStockNotifications'), sub: this.t('navStockNotifications'), value: d.pendingStockNotifications, icon: 'notifications_active', tone: 'brand', link: '/admin/stock-notifications', params: null },
+    ];
+    if (this.isAdmin()) {
+      items.push(
+        { label: this.t('lowStockProducts'), sub: d.outOfStockProducts + ' ' + this.t('outOfStockProducts'), value: d.lowStockProducts, icon: 'inventory', tone: 'danger', link: '/admin/products', params: { filter: 'lowstock' } },
+        { label: this.t('servicePurchasesTotal'), sub: this.t('filterPending'), value: d.servicePurchasesPending, icon: 'shopping_bag', tone: 'neutral', link: '/admin/service-purchases', params: null },
+      );
+    }
+    return items;
   }
 
   ngOnInit(): void {

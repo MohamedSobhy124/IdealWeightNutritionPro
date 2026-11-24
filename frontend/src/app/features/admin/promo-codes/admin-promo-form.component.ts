@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   UiCardComponent,
@@ -7,10 +9,14 @@ import {
   UiFormFieldComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
+  UiAlertComponent,
+  UiErrorSummaryComponent,
+  UiFormBarComponent,
 } from '../../../shared/ui';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 import {
+  AdminPromoCodeUsage,
   PromoCodeExclusions,
   PromoExcludedComboOffer,
   PromoExcludedProduct,
@@ -24,13 +30,19 @@ import { AdminProductService } from '../../../core/services/admin-product.servic
 import { AdminPromoService } from '../../../core/services/admin-promo.service';
 import { ComboOfferService } from '../../../core/services/combo-offer.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { ServiceSubscriptionService } from '../../../core/services/service-subscription.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiAlertComponent,
+    UiErrorSummaryComponent,
+    UiFormBarComponent,
     RouterLink,
+    DatePipe,
+    IwnCurrencyPipe,
     FormsModule,
     UiPageHeaderComponent,
     UiCardComponent,
@@ -49,6 +61,7 @@ export class AdminPromoFormComponent extends UnsavedChangesForm implements OnIni
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
   readonly loading = signal(true);
   readonly submitting = signal(false);
@@ -59,6 +72,7 @@ export class AdminPromoFormComponent extends UnsavedChangesForm implements OnIni
   readonly isEdit = signal(false);
 
   readonly exclusions = signal<PromoCodeExclusions | null>(null);
+  readonly usages = signal<AdminPromoCodeUsage[]>([]);
   readonly productResults = signal<AdminProductListItem[]>([]);
   readonly comboResults = signal<ComboOfferSummary[]>([]);
   readonly serviceResults = signal<ServiceSubscriptionSummary[]>([]);
@@ -106,6 +120,7 @@ export class AdminPromoFormComponent extends UnsavedChangesForm implements OnIni
         next: (promo) => {
           this.applyPromo(promo);
           this.loadExclusions();
+          this.loadUsages();
           this.loading.set(false);
         },
         error: () => {
@@ -152,6 +167,11 @@ export class AdminPromoFormComponent extends UnsavedChangesForm implements OnIni
     this.isActive = promo.isActive;
     this.excludeDiscountedItems = promo.excludeDiscountedItems;
     this.excludeAllServices = promo.excludeAllServices;
+  }
+
+  loadUsages(): void {
+    if (!this.promoId) return;
+    this.promoApi.getUsages(this.promoId).subscribe({ next: (u) => this.usages.set(u) });
   }
 
   loadExclusions(): void {
@@ -332,6 +352,7 @@ export class AdminPromoFormComponent extends UnsavedChangesForm implements OnIni
       next: (promo) => {
         this.submitting.set(false);
         this.markSaved();
+        this.toast.success(this.t('saved'));
         if (!this.isEdit()) {
           void this.router.navigate(['/admin/promo-codes', promo.id]);
         }
@@ -345,5 +366,9 @@ export class AdminPromoFormComponent extends UnsavedChangesForm implements OnIni
 
   private toDateInput(iso: string): string {
     return iso.slice(0, 10);
+  }
+
+  cancel(): void {
+    void this.router.navigate(['/admin/promo-codes']);
   }
 }

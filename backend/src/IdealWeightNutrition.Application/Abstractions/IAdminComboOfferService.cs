@@ -30,6 +30,21 @@ public interface IAdminComboOfferService
 
     Task RemoveItemAsync(int itemId, CancellationToken cancellationToken = default);
 
+    Task<AdminComboOfferItemDto> UpdateItemAsync(
+        int comboOfferId,
+        int itemId,
+        UpdateAdminComboOfferItemRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminComboOfferImageDto> AddImageAsync(
+        int comboOfferId,
+        Stream fileStream,
+        string fileName,
+        string? imageInfo,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteImageAsync(int comboOfferId, int imageId, CancellationToken cancellationToken = default);
+
     Task<AdminImageUploadResultDto> UploadImageAsync(
         int id,
         Stream fileStream,

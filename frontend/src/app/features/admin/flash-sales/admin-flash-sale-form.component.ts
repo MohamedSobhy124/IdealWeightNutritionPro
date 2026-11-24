@@ -10,6 +10,9 @@ import {
   UiFormFieldComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
+  UiAlertComponent,
+  UiErrorSummaryComponent,
+  UiFormBarComponent,
 } from '../../../shared/ui';
 
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
@@ -30,11 +33,15 @@ import { AdminMediaService } from '../../../core/services/admin-service.service'
 import { AdminProductService } from '../../../core/services/admin-product.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiAlertComponent,
+    UiErrorSummaryComponent,
+    UiFormBarComponent,
     RouterLink,
     FormsModule,
     IwnCurrencyPipe,
@@ -59,6 +66,7 @@ export class AdminFlashSaleFormComponent extends UnsavedChangesForm implements O
   private readonly router = inject(Router);
 
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
 
 
@@ -395,6 +403,7 @@ export class AdminFlashSaleFormComponent extends UnsavedChangesForm implements O
 
         this.submitting.set(false);
         this.markSaved();
+        this.toast.success(this.t('saved'));
 
         if (!this.isEdit()) {
 
@@ -439,6 +448,8 @@ export class AdminFlashSaleFormComponent extends UnsavedChangesForm implements O
     });
     (event.target as HTMLInputElement).value = '';
   }
+
+  cancel(): void {
+    void this.router.navigate(['/admin/flash-sales']);
+  }
 }
-
-

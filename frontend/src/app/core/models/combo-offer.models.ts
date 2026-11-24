@@ -11,6 +11,8 @@ export interface ComboOfferSummary {
   endDate: string;
   productCount: number;
   inStock: boolean;
+  allowFreeDelivery?: boolean;
+  freeDeliveryMinimumAmount?: number;
 }
 
 export interface ComboOfferLineItem {
@@ -36,5 +38,8 @@ export interface ComboOfferDetail {
   endDate: string;
   maxQuantity: number;
   inStock: boolean;
+  allowFreeDelivery?: boolean;
+  freeDeliveryMinimumAmount?: number;
   items: ComboOfferLineItem[];
+  images?: { imageUrl: string; imageInfo?: string }[];
 }

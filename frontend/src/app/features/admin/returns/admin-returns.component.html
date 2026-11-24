@@ -1,7 +1,7 @@
-<ui-page-header [title]="t('returnsTitle')" />
+<ui-page-header [title]="t('returnsTitle')" [subtitle]="items().length + ' ' + t('returnsTitle')" />
 
 @if (error()) {
-  <p class="mb-4 text-danger">{{ error() }}</p>
+  <ui-alert class="mb-4" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 }
 
 <ui-data-table
@@ -13,48 +13,42 @@
   [searchable]="true"
   [exportable]="true"
   [pageSize]="20"
+  [tabs]="tabs()"
+  [activeTab]="status()"
+  (tabChange)="onTab($event)"
   [searchPlaceholder]="t('search')"
+  emptyIcon="assignment_return"
   [emptyTitle]="t('noReturns')"
-  [exportLabel]="t('exportOrders')"
   [ofLabel]="t('of')"
   [previousPageLabel]="t('prevPage')"
   [nextPageLabel]="t('nextPage')"
-  >
-  <div table-toolbar>
-    <ui-segmented
-      [label]="t('productStatus')"
-      [options]="statusOptions()"
-      [value]="status"
-      (valueChange)="status = $event; load()"
-    />
-  </div>
-
+>
   <ng-template uiCell="id" let-row>
-    <a [routerLink]="['/admin/returns', $any(row).id]" class="font-semibold text-brand-600 hover:underline">#{{ $any(row).id }}</a>
+    <a [routerLink]="['/admin/returns', $any(row).id]" class="font-semibold text-ink-900 no-underline hover:text-brand-700">#{{ $any(row).id }}</a>
   </ng-template>
 
   <ng-template uiCell="orderId" let-row>
-    #{{ $any(row).orderId }}
+    <a [routerLink]="['/admin/orders', $any(row).orderId]" class="text-ink-700 no-underline hover:text-brand-700">#{{ $any(row).orderId }}</a>
   </ng-template>
 
   <ng-template uiCell="status" let-row>
-    <ui-badge [variant]="statusVariant($any(row).status)" [dot]="true">{{ $any(row).status }}</ui-badge>
+    <ui-badge [variant]="statusVariant($any(row).status)" [dot]="true">{{ statusText($any(row).status) }}</ui-badge>
   </ng-template>
 
   <ng-template uiCell="customerEmail" let-row>
-    {{ $any(row).customerEmail ?? '—' }}
+    <span class="text-ink-700">{{ $any(row).customerEmail ?? '—' }}</span>
   </ng-template>
 
   <ng-template uiCell="refundAmount" let-row>
     @let r = $any(row);
     @if (r.refundAmount != null) {
-      <span class="font-semibold text-ink-900">{{ r.refundAmount | iwnCurrency }}</span>
+      <span class="whitespace-nowrap font-semibold text-ink-900">{{ r.refundAmount | iwnCurrency }}</span>
     } @else {
-      —
+      <span class="text-ink-400">—</span>
     }
   </ng-template>
 
   <ng-template uiCell="requestDate" let-row>
-    {{ $any(row).requestDate | date: 'medium' }}
+    <bdi class="whitespace-nowrap text-ink-600">{{ $any(row).requestDate | date: 'd MMM y' }}</bdi>
   </ng-template>
 </ui-data-table>

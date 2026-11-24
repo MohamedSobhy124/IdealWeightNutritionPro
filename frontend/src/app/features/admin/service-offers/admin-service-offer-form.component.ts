@@ -10,18 +10,23 @@ import { AdminPromoService } from '../../../core/services/admin-promo.service';
 import { AdminServiceService } from '../../../core/services/admin-service.service';
 import { AdminServiceOfferService } from '../../../core/services/admin-service-offer.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import {
   UiCardComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
+  UiErrorSummaryComponent,
+  UiFormBarComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiErrorSummaryComponent,
+    UiFormBarComponent,
     RouterLink,
     FormsModule,
     UiPageHeaderComponent,
@@ -40,6 +45,7 @@ export class AdminServiceOfferFormComponent extends UnsavedChangesForm implement
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
   readonly loading = signal(true);
   readonly submitting = signal(false);
@@ -159,6 +165,7 @@ export class AdminServiceOfferFormComponent extends UnsavedChangesForm implement
       next: (offer) => {
         this.submitting.set(false);
         this.markSaved();
+        this.toast.success(this.t('saved'));
         if (!this.isEdit()) {
           void this.router.navigate(['/admin/service-offers', offer.id]);
         }
@@ -172,5 +179,9 @@ export class AdminServiceOfferFormComponent extends UnsavedChangesForm implement
 
   private toDateInput(iso: string): string {
     return iso.slice(0, 10);
+  }
+
+  cancel(): void {
+    void this.router.navigate(['/admin/service-offers']);
   }
 }

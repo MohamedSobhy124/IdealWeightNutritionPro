@@ -62,6 +62,7 @@ public sealed class ListCategoriesEndpoint : EndpointWithoutRequest<IReadOnlyLis
     {
         Get("categories");
         AllowAnonymous();
+        Options(x => x.CacheOutput(p => p.Expire(TimeSpan.FromMinutes(5)).SetVaryByQuery("*")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -81,6 +82,7 @@ public sealed class ListBrandsEndpoint : EndpointWithoutRequest<IReadOnlyList<Br
     {
         Get("brands");
         AllowAnonymous();
+        Options(x => x.CacheOutput(p => p.Expire(TimeSpan.FromMinutes(5)).SetVaryByQuery("*")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

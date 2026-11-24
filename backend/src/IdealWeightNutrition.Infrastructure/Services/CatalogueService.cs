@@ -431,6 +431,8 @@ internal sealed class CatalogueService : ICatalogueService
                 : p.Variants.Where(v => !v.IsDeleted).Sum(v => v.StockQuantity),
             ProductType = p.ProductType.ToString(),
             ImageUrls = images,
+            AllowFreeDelivery = p.AllowFreeDelivery,
+            FreeDeliveryMinimumAmount = p.FreeDeliveryMinimumAmount,
             Category = p.Category is null
                 ? null
                 : new CategoryDto

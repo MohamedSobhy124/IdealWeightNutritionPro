@@ -167,6 +167,24 @@ internal sealed class OrderNotificationService : IOrderNotificationService
         if (!await CanAccessOrderAsync(order, userId, guestEmail, cancellationToken))
             return null;
 
+        return await BuildInvoicePdfAsync(order, cancellationToken);
+    }
+
+    public async Task<byte[]?> GenerateInvoicePdfForAdminAsync(
+        int orderId,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await _db.OrderHeaders
+            .AsNoTracking()
+            .Include(o => o.Details)
+            .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+
+        return order is null ? null : await BuildInvoicePdfAsync(order, cancellationToken);
+    }
+
+    private async Task<byte[]?> BuildInvoicePdfAsync(OrderHeader order, CancellationToken cancellationToken)
+    {
+        var orderId = order.Id;
         var productIds = order.Details.Select(d => d.ProductId).Distinct().ToList();
         var products = await _db.Products.AsNoTracking()
             .Where(p => productIds.Contains(p.Id))

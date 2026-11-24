@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+<style>
+:root {
+  --brand-50: #e3f6ed; --brand-100: #cdecde; --brand-300: #6bba98; --brand-600: #0b6a56; --brand-700: #085243;
+  --ink-50: #f2f6f3; --ink-100: #e8eeea; --ink-200: #d7e2db; --ink-400: #9aa59f; --ink-500: #5e6962; --ink-700: #2c3833; --ink-900: #141c18;
+  --canvas: #f7f9f8; --card: #ffffff; --border: var(--ink-200); --divider: var(--ink-100); --hover: var(--ink-50);
+  --text: var(--ink-900); --muted: var(--ink-500); --faint: var(--ink-400);
+  --brand-text: var(--brand-700); --brand-soft: var(--brand-50);
+  --success-soft: #e3f6ed; --success-fg: #0b6a56;
+  --warning-soft: #fef6e8; --warning-fg: #92400e;
+  --danger: #b42318; --danger-soft: #fef3f2; --danger-fg: #911c13;
+  --info-soft: #eff4ff; --info-fg: #154aa6;
+  --citrus-fg: #9a3412;
+  --topbar: rgb(255 255 255 / 0.9);
+  --shadow-card: 0 1px 2px rgb(10 28 22 / 0.05), 0 10px 24px -8px rgb(10 28 22 / 0.08);
+  --radius: 14px;
+}
+:root[data-theme="dark"] {
+  --canvas: #141c18; --card: #1c2823; --border: rgb(255 255 255 / 0.08); --divider: rgb(255 255 255 / 0.06); --hover: rgb(255 255 255 / 0.04);
+  --text: #eef3f0; --muted: #a3b0a9; --faint: #7d8a83;
+  --brand-text: #7dcea0; --brand-soft: rgb(125 206 160 / 0.12);
+  --success-soft: rgb(125 206 160 / 0.14); --success-fg: #7dcea0;
+  --warning-soft: rgb(245 158 11 / 0.14); --warning-fg: #fbbf24;
+  --danger: #f87171; --danger-soft: rgb(248 113 113 / 0.14); --danger-fg: #fca5a5;
+  --info-soft: rgb(96 165 250 / 0.14); --info-fg: #93c5fd;
+  --citrus-fg: #fb923c;
+  --topbar: rgb(28 40 35 / 0.9);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 4px 16px -4px rgb(0 0 0 / 0.3);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Manrope, system-ui, sans-serif; font-size: 14px; color: var(--text); background: var(--canvas); -webkit-font-smoothing: antialiased; }
+.mi { font-family: 'Material Icons Outlined'; font-size: 20px; line-height: 1; font-style: normal; display: inline-block; direction: ltr; width: 1em; height: 1em; overflow: hidden; white-space: nowrap; flex-shrink: 0; vertical-align: middle; -webkit-font-feature-settings: 'liga'; font-feature-settings: 'liga'; }
+[dir="rtl"] .flip { transform: scaleX(-1); }
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+
+/* Mockup switcher (not part of the design) */
+.switcher { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: #0c3d32; color: #fff; font-size: 13px; }
+.switcher strong { margin-inline-end: 8px; }
+.switcher button { border: 1px solid rgb(255 255 255 / 0.25); background: transparent; border-radius: 999px; padding: 5px 12px; color: #fff; }
+.switcher button[aria-pressed="true"] { background: #fff; color: #0c3d32; border-color: #fff; }
+.switcher .sp { flex: 1; }
+
+/* Shell */
+.shell { display: grid; grid-template-columns: 248px 1fr; min-height: calc(100vh - 48px); }
+.side { background: var(--card); border-inline-end: 1px solid var(--border); display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 18px; }
+.mark { width: 34px; height: 34px; border-radius: 10px; background: var(--brand-600); color: #fff; display: grid; place-items: center; }
+.brand b { display: block; font-size: 14px; }
+.brand small { color: var(--muted); font-size: 12px; }
+.nav { padding: 8px 12px; flex: 1; overflow-y: auto; }
+.nav h6 { margin: 18px 10px 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.nav a { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; color: var(--muted); font-weight: 500; }
+.nav a:hover { background: var(--hover); color: var(--text); }
+.nav a.active { background: var(--brand-soft); color: var(--brand-text); font-weight: 600; }
+.nav a.active::before { content: ""; position: absolute; inset-inline-start: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-600); }
+[dir="rtl"] .nav a.active::before { border-radius: 3px 0 0 3px; }
+.nav .count { margin-inline-start: auto; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--warning-soft); color: var(--warning-fg); }
+.main { min-width: 0; display: flex; flex-direction: column; }
+.top { position: sticky; top: 48px; z-index: 20; height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 24px; background: var(--topbar); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.crumbs { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; }
+.crumbs b { color: var(--text); font-weight: 600; }
+.search { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; width: 320px; height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--faint); background: var(--card); }
+.search kbd { margin-inline-start: auto; font: 600 10px Manrope; border: 1px solid var(--border); border-radius: 5px; padding: 2px 5px; }
+.ibtn { width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; border-radius: 10px; color: var(--muted); position: relative; }
+.ibtn:hover { background: var(--hover); }
+.dotn::after { content: ""; position: absolute; top: 9px; inset-inline-end: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-text); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.content { padding: 24px; max-width: 1440px; width: 100%; margin: 0 auto; }
+
+/* Page header */
+.ph { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; margin-bottom: 24px; }
+.ph h1 { margin: 0; font: 700 24px/1.2 Outfit, Manrope, sans-serif; letter-spacing: -.01em; }
+.ph p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.ph .actions { margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.back { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+.titleline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); font-weight: 600; font-size: 13px; }
+.btn:hover { background: var(--hover); }
+.btn .mi { font-size: 18px; }
+.btn-primary { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+.btn-primary:hover { background: var(--brand-700); }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); background: transparent; }
+.btn-danger:hover { background: var(--danger-soft); }
+.btn-sq { width: 36px; padding: 0; justify-content: center; }
+
+/* Cards */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.card-h { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.card-h h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.card-h p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.card-h .end { margin-inline-start: auto; }
+.card-b { padding: 20px; }
+.grid { display: grid; gap: 24px; }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g3 { grid-template-columns: 2fr 1fr; }
+.link { color: var(--brand-text); font-weight: 600; font-size: 13px; }
+
+/* KPI */
+.kpi { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow .15s ease-out; }
+.kpi:hover { box-shadow: var(--shadow-card); }
+.kpi .lbl { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.kpi .lbl .mi { font-size: 18px; color: var(--faint); }
+.kpi .val { font: 700 28px/1 Outfit, Manrope, sans-serif; font-variant-numeric: tabular-nums; }
+.kpi .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kpi svg { width: 84px; height: 28px; }
+.attn { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+.attn .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; }
+.attn b { display: block; font: 700 20px Outfit, Manrope; }
+.attn span { color: var(--muted); font-size: 13px; }
+.attn .go { margin-inline-start: auto; color: var(--faint); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge.dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.b-success { background: var(--success-soft); color: var(--success-fg); }
+.b-warning { background: var(--warning-soft); color: var(--warning-fg); }
+.b-danger { background: var(--danger-soft); color: var(--danger-fg); }
+.b-info { background: var(--info-soft); color: var(--info-fg); }
+.b-neutral { background: var(--hover); color: var(--muted); border: 1px solid var(--border); }
+.delta { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+
+/* Tabs + toolbar + table */
+.tabs { display: flex; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--divider); overflow-x: auto; }
+.tabs button { border: 0; background: none; padding: 14px 10px 12px; font-weight: 600; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; }
+.tabs button.on { color: var(--text); border-bottom-color: var(--brand-600); }
+.tabs .n { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--hover); color: var(--muted); border: 1px solid var(--border); }
+.tabs button.on .n { background: var(--brand-soft); color: var(--brand-text); border-color: transparent; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; }
+.field { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--faint); min-width: 280px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 6px 0 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-text); font-size: 12px; font-weight: 600; }
+.chip .mi { font-size: 16px; }
+.bulk { display: flex; align-items: center; gap: 8px; margin: 0 16px 12px; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--ink-900); color: #fff; font-size: 13px; }
+:root[data-theme="dark"] .bulk { background: #eef3f0; color: #141c18; }
+.bulk .btn { height: 30px; background: transparent; border-color: rgb(127 127 127 / 0.4); color: inherit; }
+.bulk .sp { flex: 1; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: start; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 10px 16px; background: var(--hover); border-block: 1px solid var(--divider); white-space: nowrap; }
+td { padding: 10px 16px; border-bottom: 1px solid var(--divider); vertical-align: middle; height: 56px; }
+tr:hover td { background: var(--hover); }
+tr.sel td { background: var(--brand-soft); }
+.num { text-align: end; font-variant-numeric: tabular-nums; }
+.prod { display: flex; align-items: center; gap: 12px; }
+.thumb { width: 40px; height: 40px; border-radius: 10px; background: var(--hover); border: 1px solid var(--border); display: grid; place-items: center; color: var(--faint); flex-shrink: 0; }
+.prod b { display: block; font-weight: 600; }
+.prod small { color: var(--muted); font-size: 12px; }
+.strike { color: var(--faint); text-decoration: line-through; font-size: 12px; margin-inline-start: 4px; }
+.cb { width: 16px; height: 16px; accent-color: var(--brand-600); }
+.foot { display: flex; align-items: center; gap: 8px; padding: 12px 16px; color: var(--muted); font-size: 13px; }
+.foot .sp { flex: 1; }
+.menu-wrap { position: relative; display: inline-block; }
+.menu { position: absolute; inset-inline-end: 0; top: 40px; z-index: 5; width: 190px; padding: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 40px -14px rgb(10 28 22 / 0.25); }
+.menu a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.menu a:hover { background: var(--hover); }
+.menu a .mi { font-size: 18px; color: var(--muted); }
+.menu hr { border: 0; border-top: 1px solid var(--divider); margin: 6px 0; }
+.menu .danger, .menu .danger .mi { color: var(--danger); }
+
+/* Form */
+.form-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; align-items: start; }
+.secnav { position: sticky; top: 136px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.secnav a { padding: 7px 12px; border-radius: 8px; color: var(--muted); border-inline-start: 2px solid var(--border); border-radius: 0; }
+.secnav a.on { color: var(--brand-text); border-inline-start-color: var(--brand-600); font-weight: 600; }
+.secnav a.err { color: var(--danger); }
+.stack { display: flex; flex-direction: column; gap: 24px; }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
+.full { grid-column: 1 / -1; }
+.f label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.f .req { color: var(--danger); }
+.inp { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font: inherit; display: flex; align-items: center; }
+.inp.area { height: 88px; align-items: flex-start; padding-top: 10px; color: var(--muted); }
+.inp.bad { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+.f .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.f .errt { font-size: 12px; color: var(--danger); margin-top: 6px; display: flex; gap: 4px; align-items: center; }
+.f .errt .mi { font-size: 15px; }
+.affix { display: flex; }
+.affix span { display: grid; place-items: center; padding: 0 12px; border: 1px solid var(--border); border-inline-end: 0; border-radius: 10px 0 0 10px; color: var(--muted); background: var(--hover); font-size: 13px; font-weight: 600; }
+[dir="rtl"] .affix span { border-radius: 0 10px 10px 0; border-inline-end: 0; border-inline-start: 1px solid var(--border); }
+.affix .inp { border-radius: 0 10px 10px 0; }
+[dir="rtl"] .affix .inp { border-radius: 10px 0 0 10px; }
+.preview { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--hover); font-size: 13px; color: var(--muted); }
+.toggle-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--divider); }
+.toggle-row:last-child { border-bottom: 0; }
+.toggle-row div { flex: 1; }
+.toggle-row b { display: block; font-size: 13px; }
+.toggle-row small { color: var(--muted); font-size: 12px; }
+.sw { width: 36px; height: 20px; border-radius: 999px; background: var(--ink-200); position: relative; flex-shrink: 0; }
+.sw::after { content: ""; position: absolute; top: 2px; inset-inline-start: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.sw.on { background: var(--brand-600); }
+.sw.on::after { inset-inline-start: 18px; }
+.drop { border: 1.5px dashed var(--border); border-radius: 12px; padding: 20px; text-align: center; color: var(--muted); font-size: 13px; }
+.imgs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 14px; }
+.img { aspect-ratio: 1; border-radius: 12px; background: var(--hover); border: 1px solid var(--border); display: grid; place-items: center; color: var(--faint); position: relative; }
+.img.main { border: 2px solid var(--brand-600); }
+.img .tag { position: absolute; top: 6px; inset-inline-start: 6px; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: var(--brand-600); color: #fff; }
+.errsum { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--danger-soft); color: var(--danger-fg); font-size: 13px; }
+.errsum ul { margin: 6px 0 0; padding-inline-start: 18px; }
+.errsum a { text-decoration: underline; }
+.savebar { position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; gap: 10px; margin: 24px -24px -24px; padding: 12px 24px; background: var(--topbar); backdrop-filter: blur(8px); border-top: 1px solid var(--border); }
+.savebar .dirty { display: flex; align-items: center; gap: 8px; color: var(--warning-fg); font-size: 13px; font-weight: 600; }
+.savebar .dirty::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.savebar .sp { flex: 1; }
+.savebar kbd { font: 600 11px Manrope; color: var(--faint); }
+
+/* Order */
+.steps { display: flex; align-items: center; gap: 0; padding: 18px 20px; }
+.step { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--faint); white-space: nowrap; }
+.step .c { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--border); font-size: 14px; }
+.step.done { color: var(--text); }
+.step.done .c { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+.step.now { color: var(--brand-text); }
+.step.now .c { border-color: var(--brand-600); color: var(--brand-text); }
+.line { flex: 1; height: 2px; background: var(--border); margin: 0 10px; min-width: 20px; }
+.line.done { background: var(--brand-600); }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.copy { font-size: 16px; color: var(--faint); cursor: pointer; }
+.totals { display: grid; gap: 8px; padding: 16px 20px; font-size: 13px; border-top: 1px solid var(--divider); }
+.totals div { display: flex; justify-content: space-between; }
+.totals .grand { font-size: 15px; font-weight: 700; padding-top: 8px; border-top: 1px solid var(--divider); }
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl li { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+.tl li::before { content: ""; position: absolute; inset-inline-start: 7px; top: 18px; bottom: 0; width: 2px; background: var(--divider); }
+.tl li:last-child::before { display: none; }
+.tl .d { width: 16px; height: 16px; border-radius: 50%; border: 3px solid var(--brand-600); background: var(--card); flex-shrink: 0; margin-top: 2px; }
+.tl li.old .d { border-color: var(--ink-200); }
+.tl b { display: block; font-size: 13px; }
+.tl small { color: var(--muted); font-size: 12px; }
+.danger-zone { border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+.danger-zone .card-h h3 { color: var(--danger); }
+.dz-row { display: flex; align-items: center; gap: 12px; font-size: 13px; padding: 10px 0; }
+.dz-row + .dz-row { border-top: 1px solid var(--divider); }
+.dz-row div { flex: 1; }
+.dz-row small { display: block; color: var(--muted); }
+
+.screen { display: none; }
+.screen.on { display: block; }
+.note { margin-top: 32px; padding: 14px 16px; border-radius: 12px; border: 1px dashed var(--border); color: var(--muted); font-size: 13px; }
+.note b { color: var(--text); }
+
+@media (max-width: 1100px) {
+  .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3, .form-layout { grid-template-columns: 1fr; }
+  .secnav { display: none; }
+  .search { width: auto; flex: 1; max-width: 320px; }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { display: none; }
+  .content { padding: 16px; }
+  .top { padding: 0 16px; }
+  .search, .crumbs { display: none; }
+  .g4, .fgrid { grid-template-columns: 1fr; }
+  .imgs { grid-template-columns: repeat(3, 1fr); }
+  .hide-sm { display: none; }
+  .field { min-width: 0; flex: 1; }
+  .savebar { margin: 24px -16px -16px; padding: 12px 16px; }
+  .steps { overflow-x: auto; }
+  .table-scroll { overflow-x: auto; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="switcher" role="toolbar" aria-label="Mockup controls">
+  <strong>Admin mockups</strong>
+  <button data-screen="dash" aria-pressed="true">Dashboard</button>
+  <button data-screen="list" aria-pressed="false">Products list</button>
+  <button data-screen="form" aria-pressed="false">Product form</button>
+  <button data-screen="order" aria-pressed="false">Order detail</button>
+  <span class="sp"></span>
+  <button id="themeBtn" aria-pressed="false">Dark</button>
+  <button id="dirBtn" aria-pressed="false">RTL</button>
+</div>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="mark"><i class="mi">eco</i></div><div><b>Ideal Weight</b><small>Admin</small></div></div>
+    <nav class="nav">
+      <h6>Overview</h6>
+      <a href="#" data-nav="dash"><i class="mi">space_dashboard</i>Dashboard</a>
+      <h6>Catalogue</h6>
+      <a href="#" data-nav="list"><i class="mi">inventory_2</i>Products</a>
+      <a href="#"><i class="mi">category</i>Categories</a>
+      <a href="#"><i class="mi">sell</i>Brands</a>
+      <h6>Sales</h6>
+      <a href="#" data-nav="order"><i class="mi">receipt_long</i>Orders<span class="count">12</span></a>
+      <a href="#"><i class="mi">assignment_return</i>Returns<span class="count">3</span></a>
+      <a href="#"><i class="mi">notifications_active</i>Stock alerts<span class="count">8</span></a>
+      <a href="#"><i class="mi">star_outline</i>Reviews<span class="count">5</span></a>
+      <h6>Marketing</h6>
+      <a href="#"><i class="mi">confirmation_number</i>Promo codes</a>
+      <a href="#"><i class="mi">bolt</i>Flash sales</a>
+      <a href="#"><i class="mi">redeem</i>Combo offers</a>
+      <h6>Settings</h6>
+      <a href="#"><i class="mi">location_city</i>Cities</a>
+      <a href="#"><i class="mi">group</i>Users</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumbs" id="crumbs"><span>Admin</span><i class="mi flip" style="font-size:16px">chevron_right</i><b>Dashboard</b></div>
+      <div class="search"><i class="mi">search</i>Search pages, orders, products<kbd>Ctrl K</kbd></div>
+      <button class="ibtn" aria-label="Notifications"><i class="mi">notifications</i></button>
+      <button class="ibtn dotn hide-sm" aria-label="Help"><i class="mi">help_outline</i></button>
+      <div class="avatar">MS</div>
+    </header>
+
+    <main class="content">
+
+      <!-- ================= DASHBOARD ================= -->
+      <section class="screen on" id="dash">
+        <div class="ph">
+          <div><h1>Good morning</h1><p>Here's what needs your attention today.</p></div>
+          <div class="actions">
+            <div class="btn"><i class="mi">calendar_today</i>Last 7 days<i class="mi">expand_more</i></div>
+            <a class="btn btn-primary" href="#"><i class="mi">add</i>New product</a>
+          </div>
+        </div>
+
+        <div class="grid g4" style="margin-bottom:24px">
+          <a class="card attn" href="#"><div class="ic b-warning"><i class="mi">pending_actions</i></div><div><b>12</b><span>Orders to process</span></div><i class="mi go flip">chevron_right</i></a>
+          <a class="card attn" href="#"><div class="ic b-danger"><i class="mi">inventory</i></div><div><b>7</b><span>Low or out of stock</span></div><i class="mi go flip">chevron_right</i></a>
+          <a class="card attn" href="#"><div class="ic b-info"><i class="mi">assignment_return</i></div><div><b>3</b><span>Returns to review</span></div><i class="mi go flip">chevron_right</i></a>
+          <a class="card attn" href="#"><div class="ic b-neutral"><i class="mi">rate_review</i></div><div><b>5</b><span>Reviews to approve</span></div><i class="mi go flip">chevron_right</i></a>
+        </div>
+
+        <div class="grid g4" style="margin-bottom:24px">
+          <div class="card kpi"><div class="lbl"><i class="mi">payments</i>Revenue</div><div class="row"><div class="val">48,920 <small style="font-size:14px;color:var(--muted)">AED</small></div><svg viewBox="0 0 84 28"><polyline fill="none" stroke="var(--brand-300)" stroke-width="2" points="0,22 12,18 24,20 36,12 48,14 60,8 72,10 84,4"/></svg></div><span class="delta b-success">▲ 12% vs last week</span></div>
+          <div class="card kpi"><div class="lbl"><i class="mi">shopping_cart</i>Orders</div><div class="row"><div class="val">214</div><svg viewBox="0 0 84 28"><polyline fill="none" stroke="var(--brand-300)" stroke-width="2" points="0,18 12,20 24,14 36,16 48,10 60,12 72,6 84,8"/></svg></div><span class="delta b-success">▲ 8%</span></div>
+          <div class="card kpi"><div class="lbl"><i class="mi">receipt</i>Avg. order value</div><div class="row"><div class="val">228 <small style="font-size:14px;color:var(--muted)">AED</small></div><svg viewBox="0 0 84 28"><polyline fill="none" stroke="var(--brand-300)" stroke-width="2" points="0,10 12,12 24,10 36,14 48,16 60,14 72,18 84,16"/></svg></div><span class="delta b-danger">▼ 3%</span></div>
+          <div class="card kpi"><div class="lbl"><i class="mi">person_add</i>New customers</div><div class="row"><div class="val">37</div><svg viewBox="0 0 84 28"><polyline fill="none" stroke="var(--brand-300)" stroke-width="2" points="0,20 12,16 24,18 36,12 48,12 60,10 72,8 84,6"/></svg></div><span class="delta b-success">▲ 15%</span></div>
+        </div>
+
+        <div class="grid g3">
+          <div class="card">
+            <div class="card-h"><div><h3>Revenue by day</h3><p>Last 7 days compared with the week before</p></div></div>
+            <div class="card-b">
+              <svg viewBox="0 0 600 220" width="100%" role="img" aria-label="Bar chart of daily revenue">
+                <g stroke="var(--divider)"><line x1="0" y1="20" x2="600" y2="20"/><line x1="0" y1="80" x2="600" y2="80"/><line x1="0" y1="140" x2="600" y2="140"/><line x1="0" y1="200" x2="600" y2="200"/></g>
+                <g fill="var(--ink-200)"><rect x="30" y="110" width="22" height="90" rx="4"/><rect x="110" y="90" width="22" height="110" rx="4"/><rect x="190" y="120" width="22" height="80" rx="4"/><rect x="270" y="80" width="22" height="120" rx="4"/><rect x="350" y="100" width="22" height="100" rx="4"/><rect x="430" y="70" width="22" height="130" rx="4"/><rect x="510" y="95" width="22" height="105" rx="4"/></g>
+                <g fill="var(--brand-600)"><rect x="56" y="90" width="22" height="110" rx="4"/><rect x="136" y="70" width="22" height="130" rx="4"/><rect x="216" y="100" width="22" height="100" rx="4"/><rect x="296" y="50" width="22" height="150" rx="4"/><rect x="376" y="75" width="22" height="125" rx="4"/><rect x="456" y="40" width="22" height="160" rx="4"/><rect x="536" y="60" width="22" height="140" rx="4"/></g>
+                <g fill="var(--muted)" font-size="11" text-anchor="middle"><text x="54" y="216">Mon</text><text x="134" y="216">Tue</text><text x="214" y="216">Wed</text><text x="294" y="216">Thu</text><text x="374" y="216">Fri</text><text x="454" y="216">Sat</text><text x="534" y="216">Sun</text></g>
+              </svg>
+              <div style="display:flex;gap:16px;font-size:12px;color:var(--muted)"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--brand-600)"></i> This week</span><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--ink-200)"></i> Last week</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>Recent orders</h3><a class="link end" href="#">View all</a></div>
+            <table>
+              <tbody>
+                <tr><td><b>#1042</b><br><small style="color:var(--muted)">Sara A. · 2m ago</small></td><td><span class="badge dot b-warning">Pending</span></td><td class="num">412 AED</td></tr>
+                <tr><td><b>#1041</b><br><small style="color:var(--muted)">Omar K. · 18m ago</small></td><td><span class="badge dot b-info">Processing</span></td><td class="num">186 AED</td></tr>
+                <tr><td><b>#1040</b><br><small style="color:var(--muted)">Lina M. · 1h ago</small></td><td><span class="badge b-success">Delivered</span></td><td class="num">95 AED</td></tr>
+                <tr><td><b>#1039</b><br><small style="color:var(--muted)">Yousef H. · 3h ago</small></td><td><span class="badge b-neutral">Cancelled</span></td><td class="num">240 AED</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="note"><b>What changed:</b> "Needs attention" cards go straight to the filtered list. KPIs show change vs the previous period. Charts use one brand colour plus grey for comparison, and have real titles. A date range applies to the whole page.</p>
+      </section>
+
+      <!-- ================= PRODUCTS LIST ================= -->
+      <section class="screen" id="list">
+        <div class="ph">
+          <div><h1>Products</h1><p>128 products · 3 out of stock</p></div>
+          <div class="actions">
+            <button class="btn"><i class="mi">download</i>Export</button>
+            <div class="menu-wrap"><button class="btn btn-sq" aria-label="More actions"><i class="mi">more_horiz</i></button></div>
+            <a class="btn btn-primary" href="#"><i class="mi">add</i>New product</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tabs" role="tablist">
+            <button class="on" role="tab">All <span class="n">128</span></button>
+            <button role="tab">Active <span class="n">112</span></button>
+            <button role="tab">Low stock <span class="n">7</span></button>
+            <button role="tab">Out of stock <span class="n">3</span></button>
+            <button role="tab">Expiring soon <span class="n">4</span></button>
+            <button role="tab">Deleted <span class="n">2</span></button>
+          </div>
+          <div class="toolbar">
+            <div class="field"><i class="mi">search</i>Search by name, SKU or ID</div>
+            <button class="btn"><i class="mi">tune</i>Filters</button>
+            <span class="chip">Category: Protein <i class="mi">close</i></span>
+            <span class="chip">Brand: Optimum <i class="mi">close</i></span>
+            <button class="btn btn-ghost">Clear all</button>
+          </div>
+          <div class="bulk"><b>2 selected</b><span class="sp"></span><button class="btn">Mark as trending</button><button class="btn">Set category</button><button class="btn"><i class="mi">delete_outline</i>Delete</button></div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th style="width:40px"><input type="checkbox" class="cb" aria-label="Select all"></th><th>Product</th><th class="hide-sm">Category</th><th class="num">Price</th><th class="num">Stock</th><th>Status</th><th style="width:56px"></th></tr></thead>
+            <tbody>
+              <tr class="sel"><td><input type="checkbox" class="cb" checked aria-label="Select"></td><td><div class="prod"><div class="thumb"><i class="mi">fitness_center</i></div><div><b>Gold Standard Whey 2.27kg</b><small>#1203 · SKU ON-GSW-227</small></div></div></td><td class="hide-sm">Protein</td><td class="num"><b>289</b> AED<span class="strike">329</span></td><td class="num">46</td><td><span class="badge dot b-success">Active</span> <span class="badge b-info">New</span></td><td>
+                <div class="menu-wrap"><button class="ibtn" aria-label="Row actions"><i class="mi">more_vert</i></button>
+                  <div class="menu"><a href="#"><i class="mi">edit</i>Edit</a><a href="#"><i class="mi">content_copy</i>Duplicate</a><a href="#"><i class="mi">open_in_new</i>View in store</a><hr><a href="#" class="danger"><i class="mi">delete_outline</i>Delete</a></div>
+                </div></td></tr>
+              <tr class="sel"><td><input type="checkbox" class="cb" checked aria-label="Select"></td><td><div class="prod"><div class="thumb"><i class="mi">fitness_center</i></div><div><b>Platinum Hydrowhey 1.6kg</b><small>#1198 · SKU ON-PHW-16</small></div></div></td><td class="hide-sm">Protein</td><td class="num"><b>345</b> AED</td><td class="num" style="color:var(--warning-fg);font-weight:700">4</td><td><span class="badge dot b-warning">Low stock</span></td><td><button class="ibtn" aria-label="Row actions"><i class="mi">more_vert</i></button></td></tr>
+              <tr><td><input type="checkbox" class="cb" aria-label="Select"></td><td><div class="prod"><div class="thumb"><i class="mi">local_drink</i></div><div><b>Micronized Creatine 300g</b><small>#1187 · SKU ON-CRE-300</small></div></div></td><td class="hide-sm">Creatine</td><td class="num"><b>119</b> AED</td><td class="num" style="color:var(--danger);font-weight:700">0</td><td><span class="badge b-danger">Out of stock</span></td><td><button class="ibtn" aria-label="Row actions"><i class="mi">more_vert</i></button></td></tr>
+              <tr><td><input type="checkbox" class="cb" aria-label="Select"></td><td><div class="prod"><div class="thumb"><i class="mi">spa</i></div><div><b>Opti-Women Multivitamin</b><small>#1176 · SKU ON-OPW-60</small></div></div></td><td class="hide-sm">Vitamins</td><td class="num"><b>95</b> AED</td><td class="num">83</td><td><span class="badge dot b-success">Active</span></td><td><button class="ibtn" aria-label="Row actions"><i class="mi">more_vert</i></button></td></tr>
+              <tr><td><input type="checkbox" class="cb" aria-label="Select"></td><td><div class="prod"><div class="thumb"><i class="mi">bolt</i></div><div><b>Gold Standard Pre-Workout</b><small>#1165 · SKU ON-PRE-300</small></div></div></td><td class="hide-sm">Pre-workout</td><td class="num"><b>139</b> AED<span class="strike">159</span></td><td class="num">21</td><td><span class="badge dot b-success">Active</span> <span class="badge b-success" style="background:var(--brand-soft)">Trending</span></td><td><button class="ibtn" aria-label="Row actions"><i class="mi">more_vert</i></button></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div class="foot"><span>Showing 1–20 of 128</span><span class="sp"></span><span class="hide-sm">Rows per page</span><div class="btn hide-sm" style="height:32px">20<i class="mi">expand_more</i></div><button class="btn btn-sq" style="height:32px;width:32px" aria-label="Previous"><i class="mi flip">chevron_left</i></button><button class="btn btn-sq" style="height:32px;width:32px" aria-label="Next"><i class="mi flip">chevron_right</i></button></div>
+        </div>
+        <p class="note"><b>What changed:</b> status tabs replace both the stat chips and the status dropdown. Search runs as you type (no Search button). Filters show as removable chips. Edit/Delete moved into a ⋮ menu per row. Selecting rows shows a bulk bar. "Regenerate slugs" moves to the header's ⋯ menu.</p>
+      </section>
+
+      <!-- ================= PRODUCT FORM ================= -->
+      <section class="screen" id="form">
+        <div class="ph">
+          <div>
+            <a class="back" href="#"><i class="mi flip" style="font-size:18px">arrow_back</i>Products</a>
+            <div class="titleline"><h1>Gold Standard Whey 2.27kg</h1><span class="badge dot b-success">Active</span></div>
+            <p>#1203 · Last updated 2 hours ago by Mohamed</p>
+          </div>
+          <div class="actions">
+            <button class="btn"><i class="mi">open_in_new</i>View in store</button>
+            <button class="btn btn-sq" aria-label="More"><i class="mi">more_horiz</i></button>
+          </div>
+        </div>
+
+        <div class="form-layout">
+          <nav class="secnav" aria-label="Form sections">
+            <a href="#" class="on">Basic info</a>
+            <a href="#" class="err">Pricing · 1 error</a>
+            <a href="#">Status &amp; visibility</a>
+            <a href="#">Options</a>
+            <a href="#">Variants</a>
+            <a href="#">Images</a>
+            <a href="#">SEO</a>
+          </nav>
+
+          <div class="stack">
+            <div class="errsum" role="alert"><i class="mi">error_outline</i><div><b>Fix 1 problem before saving</b><ul><li><a href="#">Sale price must be lower than the list price</a></li></ul></div></div>
+
+            <div class="card">
+              <div class="card-h"><div><h3>Basic info</h3><p>Name and description shown to customers</p></div></div>
+              <div class="card-b fgrid">
+                <div class="f full"><label>Product name <span class="req">*</span></label><div class="inp">Gold Standard Whey 2.27kg</div></div>
+                <div class="f"><label>Category <span class="req">*</span></label><div class="inp" style="justify-content:space-between">Protein<i class="mi" style="color:var(--faint)">expand_more</i></div></div>
+                <div class="f"><label>Brand</label><div class="inp" style="justify-content:space-between">Optimum Nutrition<i class="mi" style="color:var(--faint)">expand_more</i></div></div>
+                <div class="f full"><label>Short description</label><div class="inp area">24g of protein per serving with 5.5g of BCAAs…</div><div class="hint">Shown under the title on the product page. 160 characters max.</div></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-h"><div><h3>Pricing</h3><p>Prices in AED, including VAT</p></div></div>
+              <div class="card-b fgrid">
+                <div class="f"><label>List price <span class="req">*</span></label><div class="affix"><span>AED</span><div class="inp">329.00</div></div></div>
+                <div class="f"><label>Sale price</label><div class="affix"><span>AED</span><div class="inp bad">349.00</div></div><div class="errt"><i class="mi">error_outline</i>Must be lower than the list price (329.00)</div></div>
+                <div class="f"><label>Stock quantity</label><div class="inp">46</div><div class="hint">Shown as "Low stock" below 5.</div></div>
+                <div class="f"><label>Expiry date</label><div class="inp" style="justify-content:space-between">30 Jun 2027<i class="mi" style="color:var(--faint)">event</i></div></div>
+                <div class="full preview"><i class="mi">visibility</i>Customers see: <b style="color:var(--text)">289 AED</b> <span class="strike">329 AED</span> <span class="badge b-success" style="color:var(--citrus-fg);background:var(--warning-soft)">−12%</span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-h"><div><h3>Status &amp; visibility</h3></div></div>
+              <div class="card-b" style="padding-block:8px">
+                <div class="toggle-row"><div><b>Visible in store</b><small>Turn off to hide the product without deleting it</small></div><span class="sw on"></span></div>
+                <div class="toggle-row"><div><b>Mark as new</b><small>Adds a "New" badge for 30 days</small></div><span class="sw on"></span></div>
+                <div class="toggle-row"><div><b>Trending</b><small>Show in the Trending section on the home page</small></div><span class="sw"></span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-h"><div><h3>Images</h3><p>Drag to reorder. The first image is the main one.</p></div></div>
+              <div class="card-b">
+                <div class="drop"><i class="mi" style="font-size:28px;color:var(--faint)">cloud_upload</i><br>Drop images here or <span class="link">browse</span> · JPG, PNG or WebP, up to 5 MB</div>
+                <div class="imgs">
+                  <div class="img main"><span class="tag">Main</span><i class="mi">image</i></div>
+                  <div class="img"><i class="mi">image</i></div>
+                  <div class="img"><i class="mi">image</i></div>
+                  <div class="img"><i class="mi">image</i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="savebar">
+          <span class="dirty">Unsaved changes</span>
+          <span class="sp"></span>
+          <kbd class="hide-sm">Ctrl S</kbd>
+          <button class="btn">Cancel</button>
+          <button class="btn btn-primary"><i class="mi">check</i>Save changes</button>
+        </div>
+      </section>
+
+      <!-- ================= ORDER DETAIL ================= -->
+      <section class="screen" id="order">
+        <div class="ph">
+          <div>
+            <a class="back" href="#"><i class="mi flip" style="font-size:18px">arrow_back</i>Orders</a>
+            <div class="titleline"><h1>Order #1042</h1><span class="badge dot b-warning">Pending</span><span class="badge b-success">Paid</span></div>
+            <p>Placed today at 09:41 · 3 items · Card payment</p>
+          </div>
+          <div class="actions">
+            <button class="btn"><i class="mi">print</i>Invoice</button>
+            <div class="menu-wrap"><button class="btn btn-sq" aria-label="More actions"><i class="mi">more_horiz</i></button>
+              <div class="menu"><a href="#"><i class="mi">refresh</i>Recheck payment</a><a href="#"><i class="mi">edit_location_alt</i>Edit delivery details</a><hr><a href="#" class="danger"><i class="mi">cancel</i>Cancel order</a></div>
+            </div>
+            <button class="btn btn-primary"><i class="mi">inventory</i>Mark as processing</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:24px">
+          <div class="steps">
+            <div class="step done"><span class="c"><i class="mi" style="font-size:16px">check</i></span>Placed</div><div class="line done"></div>
+            <div class="step now"><span class="c">2</span>Processing</div><div class="line"></div>
+            <div class="step"><span class="c">3</span>Shipped</div><div class="line"></div>
+            <div class="step"><span class="c">4</span>Delivered</div>
+          </div>
+        </div>
+
+        <div class="grid g3">
+          <div class="stack">
+            <div class="card">
+              <div class="tabs"><button class="on">Items <span class="n">3</span></button><button>Timeline</button><button>Audit log</button></div>
+              <table>
+                <thead><tr><th>Product</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="prod"><div class="thumb"><i class="mi">fitness_center</i></div><div><b>Gold Standard Whey 2.27kg</b><small>Chocolate</small></div></div></td><td class="num">1</td><td class="num">289</td><td class="num"><b>289</b></td></tr>
+                  <tr><td><div class="prod"><div class="thumb"><i class="mi">local_drink</i></div><div><b>Micronized Creatine 300g</b><small>Unflavoured</small></div></div></td><td class="num">1</td><td class="num">119</td><td class="num"><b>119</b></td></tr>
+                  <tr><td><div class="prod"><div class="thumb"><i class="mi">spa</i></div><div><b>Shaker bottle</b><small>Free gift</small></div></div></td><td class="num">1</td><td class="num">0</td><td class="num"><b>0</b></td></tr>
+                </tbody>
+              </table>
+              <div class="totals">
+                <div><span style="color:var(--muted)">Subtotal</span><span>408.00 AED</span></div>
+                <div><span style="color:var(--muted)">Promo WELCOME10</span><span style="color:var(--success-fg)">−21.00 AED</span></div>
+                <div><span style="color:var(--muted)">Delivery (Dubai)</span><span>25.00 AED</span></div>
+                <div class="grand"><span>Total</span><span>412.00 AED</span></div>
+              </div>
+            </div>
+
+            <div class="card danger-zone">
+              <div class="card-h"><h3>Danger zone</h3></div>
+              <div class="card-b" style="padding-block:6px">
+                <div class="dz-row"><div><b>Force complete</b><small>Mark delivered without courier confirmation</small></div><button class="btn btn-danger">Force complete</button></div>
+                <div class="dz-row"><div><b>Force cancel</b><small>Cancel even after payment. Stock is returned; refund is manual.</small></div><button class="btn btn-danger">Force cancel</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="card">
+              <div class="card-h"><h3>Customer</h3><a class="link end" href="#">View profile</a></div>
+              <div class="card-b"><dl class="kv"><dt>Name</dt><dd>Sara Ahmed</dd><dt>Phone</dt><dd>+971 50 123 4567 <i class="mi copy">content_copy</i></dd><dt>Email</dt><dd>sara@example.com</dd><dt>Orders</dt><dd>6 orders · 1,840 AED</dd></dl></div>
+            </div>
+            <div class="card">
+              <div class="card-h"><h3>Delivery</h3><button class="btn btn-ghost end" style="height:30px">Edit</button></div>
+              <div class="card-b"><dl class="kv"><dt>Address</dt><dd>Villa 12, Street 4, Al Barsha 2 <i class="mi copy">content_copy</i></dd><dt>City</dt><dd>Dubai</dd><dt>Company</dt><dd>Aramex</dd><dt>Tracking</dt><dd style="color:var(--faint)">Added when shipped</dd></dl></div>
+            </div>
+            <div class="card">
+              <div class="card-h"><h3>Activity</h3></div>
+              <div class="card-b"><ul class="tl"><li><span class="d"></span><div><b>Payment confirmed</b><small>09:42 · Card ending 4242</small></div></li><li class="old"><span class="d"></span><div><b>Order placed</b><small>09:41 · Website</small></div></li></ul></div>
+            </div>
+          </div>
+        </div>
+        <p class="note"><b>What changed:</b> the single next step ("Mark as processing") is the header's primary button and changes with the status. A progress bar shows where the order is. Everyday extras sit in the ⋯ menu. Force actions are separated into a Danger zone and always confirm. Phone and address have copy buttons.</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  const crumbs = { dash: ['Dashboard'], list: ['Catalogue', 'Products'], form: ['Products', 'Gold Standard Whey'], order: ['Orders', '#1042'] };
+  const navFor = { dash: 'dash', list: 'list', form: 'list', order: 'order' };
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+    document.querySelectorAll('[data-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.screen === id)));
+    document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === navFor[id]));
+    const c = document.getElementById('crumbs');
+    c.innerHTML = '<span>Admin</span>' + crumbs[id].map((p, i, arr) =>
+      '<i class="mi flip" style="font-size:16px">chevron_right</i>' + (i === arr.length - 1 ? '<b>' + p + '</b>' : '<span>' + p + '</span>')).join('');
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('[data-screen]').forEach(b => b.addEventListener('click', () => show(b.dataset.screen)));
+  document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.nav); }));
+  const root = document.documentElement;
+  document.getElementById('themeBtn').addEventListener('click', e => {
+    const dark = root.getAttribute('data-theme') !== 'dark';
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    e.currentTarget.setAttribute('aria-pressed', String(dark));
+  });
+  document.getElementById('dirBtn').addEventListener('click', e => {
+    const rtl = root.dir !== 'rtl';
+    root.dir = rtl ? 'rtl' : 'ltr';
+    e.currentTarget.setAttribute('aria-pressed', String(rtl));
+  });
+  show('dash');
+</script>
+</body>
+</html>

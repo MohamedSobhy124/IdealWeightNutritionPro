@@ -6,6 +6,8 @@ const scale = (name) =>
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{html,ts}'],
+  // ui-badge builds `ui-badge-${variant}` at runtime, so the scanner never sees these names.
+  safelist: [{ pattern: /^ui-badge-(neutral|success|warning|danger|info|brand|citrus|lime)$/ }],
   darkMode: 'class',
   // Preflight is disabled so Tailwind's base resets never clobber Angular Material
   // (MDC) components or the existing legacy global styles during the incremental migration.

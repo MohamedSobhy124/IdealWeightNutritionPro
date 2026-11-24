@@ -9,6 +9,7 @@ import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
 
 import {
 
+  AdminComboOfferImage,
   AdminComboOfferItem,
 
   UpsertAdminComboOfferRequest,
@@ -22,12 +23,16 @@ import { AdminMediaService } from '../../../core/services/admin-service.service'
 import { AdminProductService } from '../../../core/services/admin-product.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import {
   UiCardComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
+  UiAlertComponent,
+  UiErrorSummaryComponent,
+  UiFormBarComponent,
 } from '../../../shared/ui';
 
 
@@ -39,6 +44,9 @@ import {
   standalone: true,
 
   imports: [
+    UiAlertComponent,
+    UiErrorSummaryComponent,
+    UiFormBarComponent,
     RouterLink,
     FormsModule,
     UiPageHeaderComponent,
@@ -66,6 +74,7 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
   private readonly router = inject(Router);
 
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
 
 
@@ -88,6 +97,9 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
   readonly productResults = signal<AdminProductListItem[]>([]);
 
   readonly busyItemId = signal<number | null>(null);
+  readonly images = signal<AdminComboOfferImage[]>([]);
+  readonly uploadingGallery = signal(false);
+  galleryCaption = '';
   readonly uploadingImage = signal(false);
 
 
@@ -117,6 +129,9 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
   minimumQuantity = 1;
   maximumQuantity: number | null = null;
   displayOrder = 0;
+  allowFreeDelivery = false;
+  freeDeliveryMinimumAmount: number | null = 0;
+  freeDeliveryError: string | null = null;
 
   startDate = '';
 
@@ -164,6 +179,7 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
           this.applyCombo(combo);
 
           this.items.set(combo.items);
+          this.images.set(combo.images ?? []);
 
           this.loading.set(false);
 
@@ -216,6 +232,8 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
     minimumQuantity: number;
     maximumQuantity?: number;
     displayOrder: number;
+    allowFreeDelivery?: boolean;
+    freeDeliveryMinimumAmount?: number;
 
     startDate: string;
 
@@ -240,6 +258,8 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
     this.minimumQuantity = combo.minimumQuantity || 1;
     this.maximumQuantity = combo.maximumQuantity || null;
     this.displayOrder = combo.displayOrder ?? 0;
+    this.allowFreeDelivery = combo.allowFreeDelivery ?? false;
+    this.freeDeliveryMinimumAmount = combo.freeDeliveryMinimumAmount ?? 0;
 
     this.startDate = this.toDateInput(combo.startDate);
 
@@ -303,7 +323,7 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
 
         next: (combo) => {
 
-          this.items.set(combo.items);
+          this.items.update((list) => [...list, combo]);
 
           this.itemMessage.set(this.t('comboItemAdded'));
 
@@ -365,7 +385,72 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
 
 
 
+  saveItem(item: AdminComboOfferItem): void {
+    if (!this.comboOfferId || item.quantity < 1) {
+      this.itemMessage.set(this.t('comboItemFieldsRequired'));
+      this.itemError.set(true);
+      return;
+    }
+    this.busyItemId.set(item.id);
+    this.comboApi
+      .updateItem(this.comboOfferId, item.id, {
+        quantity: item.quantity,
+        displayOrder: item.displayOrder,
+        isRequired: item.isRequired,
+      })
+      .subscribe({
+        next: () => {
+          this.items.update((list) => [...list].sort((a, b) => a.displayOrder - b.displayOrder));
+          this.itemMessage.set(this.t('comboItemSaved'));
+          this.itemError.set(false);
+          this.busyItemId.set(null);
+        },
+        error: (err) => {
+          this.itemMessage.set(err?.error?.errors?.[0] ?? this.t('actionFailed'));
+          this.itemError.set(true);
+          this.busyItemId.set(null);
+        },
+      });
+  }
+
+  onGallerySelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.comboOfferId) return;
+    this.uploadingGallery.set(true);
+    this.comboApi.addImage(this.comboOfferId, file, this.galleryCaption).subscribe({
+      next: (img) => {
+        this.images.update((list) => [...list, img]);
+        if (!this.imageUrl) this.imageUrl = img.imageUrl;
+        this.galleryCaption = '';
+        this.uploadingGallery.set(false);
+      },
+      error: (err) => {
+        this.saveError.set(err?.error?.errors?.[0] ?? this.t('uploadFailed'));
+        this.uploadingGallery.set(false);
+      },
+    });
+    input.value = '';
+  }
+
+  deleteGalleryImage(img: AdminComboOfferImage): void {
+    if (!this.comboOfferId) return;
+    this.comboApi.deleteImage(this.comboOfferId, img.id).subscribe({
+      next: () => {
+        this.images.update((list) => list.filter((i) => i.id !== img.id));
+        if (this.imageUrl === img.imageUrl) this.imageUrl = this.images()[0]?.imageUrl ?? '';
+      },
+      error: () => this.saveError.set(this.t('deleteFailed')),
+    });
+  }
+
   submit(): void {
+    this.freeDeliveryError = null;
+    if (this.allowFreeDelivery && !isValidMinimum(this.freeDeliveryMinimumAmount)) {
+      this.freeDeliveryError = this.t('freeDeliveryMinimumInvalid');
+      this.saveError.set(this.freeDeliveryError);
+      return;
+    }
 
     if (!this.name.trim() || !this.nameAr.trim() || !this.startDate || !this.endDate || this.comboPrice <= 0) {
 
@@ -398,6 +483,8 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
       minimumQuantity: this.minimumQuantity || 1,
       maximumQuantity: this.maximumQuantity ?? undefined,
       displayOrder: this.displayOrder || 0,
+      allowFreeDelivery: this.allowFreeDelivery,
+      freeDeliveryMinimumAmount: this.allowFreeDelivery ? Number(this.freeDeliveryMinimumAmount) : 0,
       notifySubscribers: this.notifySubscribers,
 
       isActive: this.isActive,
@@ -428,6 +515,7 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
 
         this.submitting.set(false);
         this.markSaved();
+        this.toast.success(this.t('saved'));
 
         if (!this.isEdit()) {
 
@@ -472,6 +560,13 @@ export class AdminComboOfferFormComponent extends UnsavedChangesForm implements 
     });
     (event.target as HTMLInputElement).value = '';
   }
+
+  cancel(): void {
+    void this.router.navigate(['/admin/combo-offers']);
+  }
 }
 
-
+/** A free-delivery minimum is a number of 0 or more (0 = always free). */
+function isValidMinimum(value: unknown): boolean {
+  return value !== null && value !== undefined && value !== '' && !Number.isNaN(Number(value)) && Number(value) >= 0;
+}

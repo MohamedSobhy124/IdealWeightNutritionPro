@@ -86,3 +86,14 @@ public sealed class PromoExcludedServiceDto
     public required string Title { get; init; }
     public string? TitleAr { get; init; }
 }
+
+public sealed class AdminPromoCodeUsageDto
+{
+    public required int Id { get; init; }
+    public required string UserId { get; init; }
+    public string? UserName { get; init; }
+    public string? UserEmail { get; init; }
+    public required int OrderId { get; init; }
+    public required DateTime UsedDate { get; init; }
+    public decimal? DiscountAmount { get; init; }
+}

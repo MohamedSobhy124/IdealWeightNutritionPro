@@ -410,3 +410,34 @@ public sealed class RemoveAdminPromoExcludedServiceEndpoint : EndpointWithoutReq
         }
     }
 }
+
+public sealed class ListAdminPromoCodeUsagesEndpoint : EndpointWithoutRequest<IReadOnlyList<AdminPromoCodeUsageDto>>
+{
+    private readonly IAdminPromoCodeService _promos;
+
+    public ListAdminPromoCodeUsagesEndpoint(IAdminPromoCodeService promos) => _promos = promos;
+
+    public override void Configure()
+    {
+        Get("admin/promo-codes/{promoId}/usages");
+        Policies(AuthPolicies.Admin);
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("promoId"), out var id) || id <= 0)
+        {
+            ThrowError("Invalid promo id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            await Send.OkAsync(await _promos.GetUsagesAsync(id, ct), ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status404NotFound);
+        }
+    }
+}

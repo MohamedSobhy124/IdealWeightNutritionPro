@@ -5,6 +5,7 @@ import {
   AdminProductDetail,
   AdminProductImage,
   AdminProductListResponse,
+  AdminProductStatistics,
   AdminProductFilter,
   RegenerateProductSlugsResponse,
   AddAdminProductOptionRequest,
@@ -34,6 +35,20 @@ export class AdminProductService {
       params,
       withCredentials: true,
     });
+  }
+
+  statistics() {
+    return this.http.get<AdminProductStatistics>(`${this.baseUrl}/admin/products/statistics`, {
+      withCredentials: true,
+    });
+  }
+
+  softDelete(id: number) {
+    return this.http.post<void>(`${this.baseUrl}/admin/products/${id}/delete`, {}, { withCredentials: true });
+  }
+
+  restore(id: number) {
+    return this.http.post<void>(`${this.baseUrl}/admin/products/${id}/restore`, {}, { withCredentials: true });
   }
 
   get(id: number) {

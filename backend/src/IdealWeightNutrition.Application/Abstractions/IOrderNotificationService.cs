@@ -11,4 +11,9 @@ public interface IOrderNotificationService
         string? userId,
         string? guestEmail,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Invoice for any order; callers must already be authorised as staff.</summary>
+    Task<byte[]?> GenerateInvoicePdfForAdminAsync(
+        int orderId,
+        CancellationToken cancellationToken = default);
 }

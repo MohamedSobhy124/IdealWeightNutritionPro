@@ -29,10 +29,10 @@
 }
 
 @if (message()) {
-  <p class="mb-4 text-danger">{{ message() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
 }
 @if (error()) {
-  <p class="mb-4 text-danger">{{ error() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 }
 
 <ui-data-table

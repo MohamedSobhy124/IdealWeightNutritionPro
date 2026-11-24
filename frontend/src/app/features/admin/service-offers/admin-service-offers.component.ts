@@ -5,6 +5,7 @@ import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminServiceOfferListItem } from '../../../core/models/admin-service-offer.models';
 import { AdminServiceOfferService } from '../../../core/services/admin-service-offer.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import { formatIwnCurrency } from '../../../core/utils/iwn-currency';
 import {
@@ -13,12 +14,16 @@ import {
   UiDataTableComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
+  UiActionMenuComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiActionMenuComponent,
+    UiAlertComponent,
     RouterLink,
     DatePipe,
     UiPageHeaderComponent,
@@ -33,6 +38,7 @@ export class AdminServiceOffersComponent implements OnInit {
   private readonly offersApi = inject(AdminServiceOfferService);
   private readonly route = inject(ActivatedRoute);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
   private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminServiceOfferListItem[]>([]);
@@ -53,7 +59,7 @@ export class AdminServiceOffersComponent implements OnInit {
       { key: 'discount', header: this.t('promoDiscount') },
       { key: 'dates', header: this.t('promoDates'), hideOnMobile: true },
       { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
   }
 
@@ -102,7 +108,7 @@ export class AdminServiceOffersComponent implements OnInit {
         this.items.update((list) =>
           list.map((o) => (o.id === item.id ? { ...o, isActive: !o.isActive } : o))
         );
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
       },
       error: () => {
@@ -119,7 +125,7 @@ export class AdminServiceOffersComponent implements OnInit {
     this.offersApi.delete(item.id).subscribe({
       next: () => {
         this.items.update((list) => list.filter((o) => o.id !== item.id));
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
       },
       error: () => {

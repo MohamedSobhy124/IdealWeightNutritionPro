@@ -1,15 +1,7 @@
 <ui-page-header [title]="t('videoBannerTitle')" [subtitle]="t('videoBannerLead')" />
 
 @if (message()) {
-  <div
-    class="mb-4 rounded-xl px-4 py-3 text-sm"
-    [class.bg-danger-soft]="error()"
-    [class.text-danger]="error()"
-    [class.bg-success-soft]="!error()"
-    [class.text-success-fg]="!error()"
-  >
-    {{ message() }}
-  </div>
+  <ui-alert class="mb-4 block" [variant]="error() ? 'danger' : 'success'" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
 }
 
 @if (loading()) {

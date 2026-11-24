@@ -32,4 +32,8 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="IdealWeightNutrition.Application.Tests" />
+  </ItemGroup>
+
 </Project>

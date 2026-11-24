@@ -17,10 +17,11 @@ export function statusVariant(status: string): UiBadgeVariant {
     x.includes('reject') ||
     x.includes('refund') ||
     x.includes('deleted') ||
-    x.includes('out')
+    x.includes('outofstock') ||
+    x.includes('out of stock')
   )
     return 'danger';
-  if (x.includes('ship')) return 'info';
+  if (x.includes('ship') || x.includes('outfordelivery')) return 'info';
   if (x.includes('process')) return 'brand';
   if (x.includes('pending') || x.includes('low')) return 'warning';
   return 'neutral';

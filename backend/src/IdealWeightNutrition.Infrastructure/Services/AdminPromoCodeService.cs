@@ -299,6 +299,43 @@ internal sealed class AdminPromoCodeService : IAdminPromoCodeService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<AdminPromoCodeUsageDto>> GetUsagesAsync(
+        int promoId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsurePromoExistsAsync(promoId, cancellationToken);
+
+        var rows = await (
+            from u in _db.PromoCodeUsages.AsNoTracking()
+            where u.PromoCodeId == promoId
+            join o in _db.OrderHeaders.AsNoTracking() on u.OrderId equals o.Id into orders
+            from o in orders.DefaultIfEmpty()
+            join usr in _db.Users.AsNoTracking() on u.UserId equals usr.Id into users
+            from usr in users.DefaultIfEmpty()
+            orderby u.UsedDate descending
+            select new
+            {
+                u.Id,
+                u.UserId,
+                UserName = usr != null ? usr.Name : null,
+                UserEmail = usr != null ? usr.Email : (o != null ? o.Email : null),
+                u.OrderId,
+                u.UsedDate,
+                Discount = o != null ? o.DiscountAmount : null
+            }).ToListAsync(cancellationToken);
+
+        return rows.Select(r => new AdminPromoCodeUsageDto
+        {
+            Id = r.Id,
+            UserId = r.UserId,
+            UserName = r.UserName,
+            UserEmail = r.UserEmail,
+            OrderId = r.OrderId,
+            UsedDate = r.UsedDate,
+            DiscountAmount = r.Discount is null ? null : (decimal)r.Discount.Value
+        }).ToList();
+    }
+
     private async Task EnsurePromoExistsAsync(int promoId, CancellationToken cancellationToken)
     {
         if (!await _db.PromoCodes.AnyAsync(p => p.Id == promoId, cancellationToken))

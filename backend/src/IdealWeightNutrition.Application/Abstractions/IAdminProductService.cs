@@ -44,6 +44,10 @@ public interface IAdminProductService
         string? imageInfo,
         CancellationToken cancellationToken = default);
 
+    Task SetProductDeletedAsync(int productId, bool isDeleted, CancellationToken cancellationToken = default);
+
+    Task<AdminProductStatisticsDto> GetStatisticsAsync(CancellationToken cancellationToken = default);
+
     Task<byte[]> ExportProductsCsvAsync(
         string filter = "all",
         string? search = null,

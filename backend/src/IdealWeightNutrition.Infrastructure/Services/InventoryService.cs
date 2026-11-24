@@ -220,6 +220,9 @@ internal sealed class InventoryService : IInventoryService
                 products[pair.Key] = pair.Value;
         }
 
+        var productsToCheck = new HashSet<int>();
+        var variantsToCheck = new HashSet<int>();
+
         foreach (var detail in details)
         {
             if (detail.ComboOfferId is > 0
@@ -235,12 +238,17 @@ internal sealed class InventoryService : IInventoryService
                     {
                         var variant = comboProduct.Variants.FirstOrDefault(v => v.Id == comboItem.ProductVariantId);
                         if (variant is not null)
+                        {
                             variant.StockQuantity = Math.Max(0, variant.StockQuantity - totalNeeded);
+                            variantsToCheck.Add(variant.Id);
+                        }
                     }
                     else
                     {
                         comboProduct.StockQuantity = Math.Max(0, comboProduct.StockQuantity - totalNeeded);
                     }
+
+                    productsToCheck.Add(comboProduct.Id);
                 }
 
                 continue;
@@ -259,13 +267,24 @@ internal sealed class InventoryService : IInventoryService
             {
                 var variant = product.Variants.FirstOrDefault(v => v.Id == detail.ProductVariantId);
                 if (variant is not null)
+                {
                     variant.StockQuantity = Math.Max(0, variant.StockQuantity - detail.Count);
+                    variantsToCheck.Add(variant.Id);
+                }
             }
 
             product.StockQuantity = Math.Max(0, product.StockQuantity - detail.Count);
+            productsToCheck.Add(product.Id);
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Tell admins right away when an order pushes stock to or below the alert level.
+        foreach (var productId in productsToCheck)
+            await _adminNotifications.CheckProductStockLevelsAsync(productId, cancellationToken);
+
+        foreach (var variantId in variantsToCheck)
+            await _adminNotifications.CheckVariantStockLevelsAsync(variantId, cancellationToken);
     }
 
     public async Task RestoreStockForReturnAsync(int returnRequestId, CancellationToken cancellationToken = default)
@@ -278,7 +297,31 @@ internal sealed class InventoryService : IInventoryService
         if (returnRequest?.Items is null || returnRequest.Items.Count == 0)
             return;
 
-        var detailIds = returnRequest.Items.Select(i => i.OrderDetailId).ToList();
+        await RestoreLinesAsync(
+            returnRequest.Items.Select(i => (i.OrderDetailId, i.Quantity)).ToList(),
+            cancellationToken);
+    }
+
+    /// <summary>Gives back every line of an order (used when an order is cancelled).</summary>
+    public async Task RestoreStockForOrderAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        var lines = await _db.OrderDetails
+            .AsNoTracking()
+            .Where(d => d.OrderHeaderId == orderId)
+            .Select(d => new { d.Id, d.Count })
+            .ToListAsync(cancellationToken);
+
+        if (lines.Count == 0)
+            return;
+
+        await RestoreLinesAsync(lines.Select(l => (l.Id, l.Count)).ToList(), cancellationToken);
+    }
+
+    private async Task RestoreLinesAsync(
+        IReadOnlyList<(int OrderDetailId, int Quantity)> lines,
+        CancellationToken cancellationToken)
+    {
+        var detailIds = lines.Select(l => l.OrderDetailId).ToList();
         var orderDetails = await _db.OrderDetails
             .Where(d => detailIds.Contains(d.Id))
             .ToDictionaryAsync(d => d.Id, cancellationToken);
@@ -337,12 +380,12 @@ internal sealed class InventoryService : IInventoryService
         var productsToCheck = new HashSet<int>();
         var variantsToCheck = new HashSet<int>();
 
-        foreach (var returnItem in returnRequest.Items)
+        foreach (var line in lines)
         {
-            if (!orderDetails.TryGetValue(returnItem.OrderDetailId, out var detail))
+            if (!orderDetails.TryGetValue(line.OrderDetailId, out var detail))
                 continue;
 
-            var qty = returnItem.Quantity;
+            var qty = line.Quantity;
             if (qty <= 0)
                 continue;
 

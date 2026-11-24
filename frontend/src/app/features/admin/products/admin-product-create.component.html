@@ -1,8 +1,9 @@
 <ui-page-header
   [title]="t('newProductTitle')"
   [subtitle]="t('newProductHint')"
-  [breadcrumbs]="[{ label: t('productsTitle'), link: '/admin/products' }]"
-></ui-page-header>
+  backLink="/admin/products"
+  [backLabel]="t('productsTitle')"
+/>
 
 @if (loading()) {
   <div class="ui-card ui-card-pad space-y-3">
@@ -11,101 +12,104 @@
     <ui-skeleton height="2.5rem" />
   </div>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <div class="ui-card">
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/admin/products" class="ui-btn-secondary ui-btn-sm">{{ t('productsTitle') }}</a>
+    </ui-empty-state>
+  </div>
 } @else {
-  <form class="admin-form" (ngSubmit)="submit()">
-    <ui-card>
-      <h3 class="mb-4 text-base font-semibold text-ink-900">{{ t('sectionBasicInfo') }}</h3>
+  <form class="admin-form" (ngSubmit)="submit()" novalidate>
+    <ui-error-summary class="admin-form-span" [errors]="formErrors()" />
+
+    <ui-card [heading]="t('sectionBasicInfo')">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ui-form-field [label]="t('titleEn')" [required]="true">
-          <input class="ui-input" [(ngModel)]="title" name="title" required />
+        <ui-form-field [label]="t('titleEn')" [required]="true" for="pc-title" [error]="fieldError('pc-title')">
+          <input id="pc-title" class="ui-input" [(ngModel)]="title" name="title" required />
         </ui-form-field>
-        <ui-form-field [label]="t('titleAr')">
-          <input class="ui-input" [(ngModel)]="titleAr" name="titleAr" />
+        <ui-form-field [label]="t('titleAr')" for="pc-title-ar">
+          <input id="pc-title-ar" class="ui-input" dir="rtl" [(ngModel)]="titleAr" name="titleAr" />
         </ui-form-field>
-        <ui-form-field [label]="t('description')" class="sm:col-span-2">
-          <textarea class="ui-textarea" [(ngModel)]="description" name="description" rows="3"></textarea>
+        <ui-form-field [label]="t('description')" for="pc-desc" class="sm:col-span-2">
+          <textarea id="pc-desc" class="ui-textarea" [(ngModel)]="description" name="description" rows="3"></textarea>
         </ui-form-field>
-        <ui-form-field [label]="t('slugOptional')">
-          <input class="ui-input" [(ngModel)]="slug" name="slug" [placeholder]="t('slugPlaceholder')" />
-        </ui-form-field>
-        <ui-form-field [label]="t('category')" [required]="true">
-          <select class="ui-select" [(ngModel)]="categoryId" name="categoryId" required>
+        <ui-form-field [label]="t('category')" [required]="true" for="pc-category" [error]="fieldError('pc-category')">
+          <select id="pc-category" class="ui-select" [(ngModel)]="categoryId" name="categoryId" required>
             @for (category of categories(); track category.id) {
               <option [ngValue]="category.id">{{ category.name }}</option>
             }
           </select>
         </ui-form-field>
-        <ui-form-field [label]="t('brandOptional')">
-          <select class="ui-select" [(ngModel)]="brandId" name="brandId">
+        <ui-form-field [label]="t('brandOptional')" for="pc-brand">
+          <select id="pc-brand" class="ui-select" [(ngModel)]="brandId" name="brandId">
             <option [ngValue]="null">{{ t('none') }}</option>
             @for (brand of brands(); track brand.id) {
               <option [ngValue]="brand.id">{{ brand.name }}</option>
             }
           </select>
         </ui-form-field>
+        <ui-form-field [label]="t('slugOptional')" for="pc-slug" class="sm:col-span-2">
+          <input id="pc-slug" class="ui-input" dir="ltr" [(ngModel)]="slug" name="slug" [placeholder]="t('slugPlaceholder')" />
+        </ui-form-field>
       </div>
     </ui-card>
 
-    <ui-card>
-      <h3 class="mb-4 text-base font-semibold text-ink-900">{{ t('sectionPricing') }}</h3>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ui-form-field [label]="t('salePrice')" [required]="true">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="price" name="price" required />
+    <ui-card [heading]="t('sectionPricing')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <ui-form-field [label]="t('salePrice')" [required]="true" for="pc-price" [error]="fieldError('pc-price')">
+          <input id="pc-price" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="price" name="price" required />
         </ui-form-field>
-        <ui-form-field [label]="t('listPrice')">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="listPrice" name="listPrice" />
+        <ui-form-field [label]="t('listPrice')" for="pc-list">
+          <input id="pc-list" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="listPrice" name="listPrice" />
         </ui-form-field>
-        <ui-form-field [label]="t('storeCost')">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="storeCost" name="storeCost" />
-        </ui-form-field>
-        <ui-form-field [label]="t('stockQuantity')" [required]="true">
-          <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="stockQuantity" name="stockQuantity" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('minStockAlert')">
-          <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="minimumStockAlert" name="minimumStockAlert" />
-        </ui-form-field>
-        <ui-form-field [label]="t('expiryDate')">
-          <input class="ui-input" type="date" [(ngModel)]="expiryDate" name="expiryDate" />
+        <ui-form-field [label]="t('storeCost')" for="pc-cost">
+          <input id="pc-cost" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="storeCost" name="storeCost" />
         </ui-form-field>
       </div>
-      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="isNew" name="isNew" />
-          {{ t('isNewProduct') }}
-        </label>
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="isTrending" name="isTrending" />
-          {{ t('isTrendingProduct') }}
-        </label>
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="allowFreeDelivery" name="allowFreeDelivery" />
-          {{ t('allowFreeDelivery') }}
-        </label>
-        @if (allowFreeDelivery) {
-          <ui-form-field [label]="t('freeDeliveryMinimum')">
-            <input
-              class="ui-input"
-              type="number"
-              min="0"
-              step="0.01"
-              [(ngModel)]="freeDeliveryMinimumAmount"
-              name="freeDeliveryMinimumAmount"
-            />
-          </ui-form-field>
-        }
+
+      <h4 class="mb-3 mt-6 text-sm font-semibold text-ink-900">{{ t('sectionInventory') }}</h4>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <ui-form-field [label]="t('stockQuantity')" [required]="true" for="pc-stock" [error]="fieldError('pc-stock')">
+          <input id="pc-stock" class="ui-input" type="number" min="0" step="1" [(ngModel)]="stockQuantity" name="stockQuantity" required />
+        </ui-form-field>
+        <ui-form-field [label]="t('minStockAlert')" for="pc-min">
+          <input id="pc-min" class="ui-input" type="number" min="0" step="1" [(ngModel)]="minimumStockAlert" name="minimumStockAlert" />
+        </ui-form-field>
+        <ui-form-field [label]="t('expiryDate')" for="pc-expiry">
+          <input id="pc-expiry" class="ui-input" type="date" [(ngModel)]="expiryDate" name="expiryDate" />
+        </ui-form-field>
       </div>
     </ui-card>
 
-    @if (saveError()) {
-      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
-    }
+    <ui-card [heading]="t('sectionVisibility')">
+      <div class="divide-y divide-ink-100">
+        <label class="flex cursor-pointer items-center justify-between gap-4 py-3 first:pt-0">
+          <span class="text-sm font-medium text-ink-800">{{ t('isNewProduct') }}</span>
+          <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="isNew" name="isNew" />
+        </label>
+        <label class="flex cursor-pointer items-center justify-between gap-4 py-3">
+          <span class="text-sm font-medium text-ink-800">{{ t('isTrendingProduct') }}</span>
+          <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="isTrending" name="isTrending" />
+        </label>
+        <div class="py-3 last:pb-0">
+          <label class="flex cursor-pointer items-center justify-between gap-4">
+            <span class="text-sm font-medium text-ink-800">{{ t('allowFreeDelivery') }}</span>
+            <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="allowFreeDelivery" name="allowFreeDelivery" />
+          </label>
+          @if (allowFreeDelivery) {
+            <ui-form-field [label]="t('freeDeliveryMinimum')" for="pc-free-min" [hint]="t('freeDeliveryMinimumHint')" [error]="fieldError('pc-free-min')" class="mt-3 block max-w-xs">
+              <input id="pc-free-min" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="freeDeliveryMinimumAmount" name="freeDeliveryMinimumAmount" />
+            </ui-form-field>
+          }
+        </div>
+      </div>
+    </ui-card>
 
-    <div class="admin-form-bar">
-      <a routerLink="/admin/products" class="ui-btn-secondary">{{ t('cancel') }}</a>
-      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
-        {{ submitting() ? t('creating') : t('createProduct') }}
-      </button>
-    </div>
+    <ui-form-bar
+      [dirty]="hasUnsavedChanges()"
+      [saving]="submitting()"
+      [saveLabel]="t('createProduct')"
+      [savingLabel]="t('creating')"
+      (cancel)="cancel()"
+    />
   </form>
 }

@@ -240,3 +240,111 @@ public sealed class RemoveAdminComboOfferItemEndpoint : EndpointWithoutRequest
         }
     }
 }
+
+public sealed class UpdateAdminComboOfferItemEndpoint : Endpoint<UpdateAdminComboOfferItemRequest, AdminComboOfferItemDto>
+{
+    private readonly IAdminComboOfferService _combos;
+
+    public UpdateAdminComboOfferItemEndpoint(IAdminComboOfferService combos) => _combos = combos;
+
+    public override void Configure()
+    {
+        Put("admin/combo-offers/{comboOfferId}/items/{itemId}");
+        Policies(AuthPolicies.Admin);
+    }
+
+    public override async Task HandleAsync(UpdateAdminComboOfferItemRequest req, CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("comboOfferId"), out var comboId) || comboId <= 0
+            || !int.TryParse(Route<string>("itemId"), out var itemId) || itemId <= 0)
+        {
+            ThrowError("Invalid combo offer or item id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            await Send.OkAsync(await _combos.UpdateItemAsync(comboId, itemId, req, ct), ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status400BadRequest);
+        }
+    }
+}
+
+public sealed class AddAdminComboOfferGalleryImageEndpoint : EndpointWithoutRequest<AdminComboOfferImageDto>
+{
+    private readonly IAdminComboOfferService _combos;
+
+    public AddAdminComboOfferGalleryImageEndpoint(IAdminComboOfferService combos) => _combos = combos;
+
+    public override void Configure()
+    {
+        Post("admin/combo-offers/{comboOfferId}/images");
+        Policies(AuthPolicies.Admin);
+        AllowFileUploads();
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("comboOfferId"), out var id) || id <= 0)
+        {
+            ThrowError("Invalid combo offer id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        var file = HttpContext.Request.Form.Files.FirstOrDefault();
+        if (file is null || file.Length == 0)
+        {
+            ThrowError("Image file is required.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            var info = HttpContext.Request.Form["imageInfo"].ToString();
+            await using var stream = file.OpenReadStream();
+            var image = await _combos.AddImageAsync(id, stream, file.FileName, info, ct);
+            HttpContext.Response.StatusCode = StatusCodes.Status201Created;
+            await Send.OkAsync(image, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status400BadRequest);
+        }
+    }
+}
+
+public sealed class DeleteAdminComboOfferGalleryImageEndpoint : EndpointWithoutRequest
+{
+    private readonly IAdminComboOfferService _combos;
+
+    public DeleteAdminComboOfferGalleryImageEndpoint(IAdminComboOfferService combos) => _combos = combos;
+
+    public override void Configure()
+    {
+        Delete("admin/combo-offers/{comboOfferId}/images/{imageId}");
+        Policies(AuthPolicies.Admin);
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("comboOfferId"), out var comboId) || comboId <= 0
+            || !int.TryParse(Route<string>("imageId"), out var imageId) || imageId <= 0)
+        {
+            ThrowError("Invalid combo offer or image id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            await _combos.DeleteImageAsync(comboId, imageId, ct);
+            await Send.NoContentAsync(ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status404NotFound);
+        }
+    }
+}

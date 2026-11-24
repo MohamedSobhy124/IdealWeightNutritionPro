@@ -8,17 +8,11 @@
 </ui-page-header>
 
 @if (message()) {
-  <p
-    class="mb-4 text-sm"
-    [class.text-success-fg]="message() === t('userCreated') || message() === t('saved')"
-    [class.text-danger]="message() !== t('userCreated') && message() !== t('saved')"
-  >
-    {{ message() }}
-  </p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
 }
 
 @if (error()) {
-  <div class="mb-4 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger-fg">{{ error() }}</div>
+  <ui-alert class="mb-4 block" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 }
 
 <ui-data-table

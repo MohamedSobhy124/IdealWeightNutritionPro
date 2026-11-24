@@ -29,6 +29,17 @@ export interface CartResponse {
   discount: number;
   total: number;
   appliedPromo?: CartPromo;
+  /** Free-delivery progress (does not depend on the delivery city). */
+  freeDelivery?: CartFreeDelivery | null;
+}
+
+export interface CartFreeDelivery {
+  /** Every item allows free delivery, so a threshold applies. */
+  available: boolean;
+  /** Subtotal (before promo discount) needed for free delivery. */
+  threshold?: number | null;
+  qualifies: boolean;
+  amountRemaining: number;
 }
 
 export interface AddCartItemRequest {

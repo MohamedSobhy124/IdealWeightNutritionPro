@@ -50,7 +50,7 @@ export class AdminDeliveryService {
 
   updateRemoteArea(cityId: number, areaId: number, request: UpsertAdminRemoteAreaRequest) {
     return this.http.put<AdminRemoteArea>(
-      `${this.baseUrl}/admin/cities/${cityId}/remote-areas/${areaId}`,
+      `${this.baseUrl}/admin/remote-areas/${areaId}`,
       request,
       { withCredentials: true }
     );

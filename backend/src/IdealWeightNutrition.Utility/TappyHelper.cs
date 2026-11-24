@@ -621,19 +621,40 @@ namespace IdealWeightNutrition.Utility
                     var status = root.TryGetProperty("status", out var statusProp) ? statusProp.GetString() : null;
                     var statusLower = status?.ToLowerInvariant() ?? "";
                     
-                    // Check if payment is authorized/paid
-                    // Tabby statuses: CLOSED, AUTHORIZED, CREATED, APPROVED indicate successful payment
-                    var isPaid = statusLower == "authorized" || 
-                                 statusLower == "created" || 
-                                 statusLower == "approved" ||
+                    // Tabby payment statuses: CREATED (customer has not approved yet), AUTHORIZED,
+                    // CLOSED (captured), REJECTED, EXPIRED. Only AUTHORIZED and CLOSED mean the
+                    // customer actually paid; CREATED must never be treated as paid.
+                    var isPaid = statusLower == "authorized" ||
                                  statusLower == "closed";
-                    
+
+                    decimal? amount = null;
+                    if (root.TryGetProperty("amount", out var amountProp))
+                    {
+                        var raw = amountProp.ValueKind == JsonValueKind.Number
+                            ? amountProp.GetRawText()
+                            : amountProp.GetString();
+                        if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+                            amount = parsed;
+                    }
+
+                    string referenceId = null;
+                    if (root.TryGetProperty("order", out var orderProp)
+                        && orderProp.ValueKind == JsonValueKind.Object
+                        && orderProp.TryGetProperty("reference_id", out var refProp))
+                    {
+                        referenceId = refProp.ValueKind == JsonValueKind.String
+                            ? refProp.GetString()
+                            : refProp.GetRawText();
+                    }
+
                     var statusResponse = new TappyPaymentStatusResponse
                     {
                         Success = true,
                         Status = status,
                         TransactionId = paymentId,
                         IsPaid = isPaid,
+                        Amount = amount,
+                        OrderReferenceId = referenceId,
                         Message = isPaid ? "Payment verified successfully" : $"Payment status: {status}"
                     };
 
@@ -956,6 +977,10 @@ namespace IdealWeightNutrition.Utility
         public string Status { get; set; }
         public string TransactionId { get; set; }
         public bool IsPaid { get; set; }
+        /// <summary>Payment amount reported by Tabby (major units, e.g. 18.50 AED). Null if missing.</summary>
+        public decimal? Amount { get; set; }
+        /// <summary>The merchant order reference (<c>order.reference_id</c>) the payment was created for.</summary>
+        public string OrderReferenceId { get; set; }
     }
 
     public class TappyCancelResponse

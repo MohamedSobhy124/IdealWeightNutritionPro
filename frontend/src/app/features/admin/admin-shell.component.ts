@@ -23,6 +23,7 @@ import {
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ADMIN_UI, AdminUiKey } from '../../core/i18n/admin-ui-text';
+import { AdminDashboardService } from '../../core/services/admin-dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { NotificationBellComponent } from '../../shared/notification-bell/notification-bell.component';
@@ -72,6 +73,7 @@ export class AdminShellComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly dashboardApi = inject(AdminDashboardService);
   readonly locale = inject(LocaleService);
 
   readonly isAdmin = computed(
@@ -87,6 +89,11 @@ export class AdminShellComponent implements OnInit {
   readonly paletteQuery = signal('');
   readonly paletteIndex = signal(0);
   readonly density = signal<'comfortable' | 'compact'>('comfortable');
+  /** Pending work per nav link, from the dashboard API (refreshed on navigation, at most once a minute). */
+  readonly navCounts = signal<Record<string, number>>({});
+  private countsLoadedAt = 0;
+  /** Last nav pages visited, newest first (stored per browser). */
+  readonly recentLinks = signal<string[]>([]);
   private readonly paletteInput = viewChild<ElementRef<HTMLInputElement>>('paletteInput');
 
   constructor() {
@@ -197,13 +204,76 @@ export class AdminShellComponent implements OnInit {
   });
 
   readonly paletteResults = computed(() => {
-    const query = this.paletteQuery().trim().toLowerCase();
+    const raw = this.paletteQuery().trim();
+    const query = raw.toLowerCase();
     const items = this.paletteItems();
-    const matched = query
-      ? items.filter((item) => item.label.toLowerCase().includes(query) || item.group.toLowerCase().includes(query))
-      : items;
-    return matched.slice(0, 12);
+    if (!query) {
+      const recentGroup = this.t('paletteRecent');
+      const recent = this.recentLinks()
+        .map((link) => items.find((i) => i.link === link))
+        .filter((i): i is PaletteItem => !!i)
+        .map((i) => ({ ...i, group: recentGroup }));
+      const rest = items.filter((i) => !recent.some((r) => r.link === i.link));
+      return [...recent, ...rest].slice(0, 12);
+    }
+    const extra: PaletteItem[] = [];
+    const id = raw.replace(/^#/, '');
+    if (/^\d+$/.test(id)) {
+      const g = this.t('paletteRecords');
+      extra.push({ label: `${this.t('orderNumber')} #${id}`, link: `/admin/orders/${id}`, icon: 'receipt_long', group: g });
+      extra.push({ label: `${this.t('returnNumber')} #${id}`, link: `/admin/returns/${id}`, icon: 'assignment_return', group: g });
+      if (this.isAdmin()) {
+        extra.push({ label: `${this.t('navProducts')} #${id}`, link: `/admin/products/${id}`, icon: 'inventory_2', group: g });
+      }
+    } else if (raw.length >= 2) {
+      const g = this.t('paletteSearchIn');
+      const q = encodeURIComponent(raw);
+      extra.push({ label: `${this.t('navOrders')}: “${raw}”`, link: `/admin/orders?q=${q}`, icon: 'search', group: g });
+      if (this.isAdmin()) {
+        extra.push({ label: `${this.t('navProducts')}: “${raw}”`, link: `/admin/products?q=${q}&filter=all`, icon: 'search', group: g });
+      }
+    }
+    const matched = items.filter((item) => item.label.toLowerCase().includes(query) || item.group.toLowerCase().includes(query));
+    return [...matched, ...extra].slice(0, 12);
   });
+
+  navCount(link: string): number {
+    return this.navCounts()[link] ?? 0;
+  }
+
+  private loadCounts(): void {
+    if (!isPlatformBrowser(this.platformId) || Date.now() - this.countsLoadedAt < 60_000) return;
+    this.countsLoadedAt = Date.now();
+    this.dashboardApi.getDashboard().subscribe({
+      next: (d) =>
+        this.navCounts.set({
+          '/admin/orders': d.ordersPending ?? 0,
+          '/admin/returns': d.pendingReturns ?? 0,
+          '/admin/stock-notifications': d.pendingStockNotifications ?? 0,
+          '/admin/service-purchases': d.servicePurchasesPending ?? 0,
+        }),
+      error: () => (this.countsLoadedAt = 0),
+    });
+  }
+
+  private rememberVisit(url: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const path = url.split(/[?#]/)[0];
+    let best: string | null = null;
+    for (const group of this.visibleGroups()) {
+      for (const item of group.items) {
+        if ((path === item.link || path.startsWith(item.link + '/')) && (!best || item.link.length > best.length)) best = item.link;
+      }
+    }
+    if (!best) return;
+    const next = [best, ...this.recentLinks().filter((l) => l !== best)].slice(0, 4);
+    this.recentLinks.set(next);
+    try {
+      localStorage.setItem('iwn-admin-recent', JSON.stringify(next));
+    } catch {
+      /* storage unavailable */
+    }
+  }
 
   readonly activePaletteIndex = computed(() => {
     const length = this.paletteResults().length;
@@ -266,6 +336,8 @@ export class AdminShellComponent implements OnInit {
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe((e) => {
         this.currentUrl.set((e as NavigationEnd).urlAfterRedirects);
+        this.rememberVisit((e as NavigationEnd).urlAfterRedirects);
+        this.loadCounts();
         this.mobileOpen.set(false);
         this.userMenuOpen.set(false);
         this.paletteOpen.set(false);
@@ -278,7 +350,14 @@ export class AdminShellComponent implements OnInit {
     if (isPlatformBrowser(this.platformId)) {
       this.collapsed.set(localStorage.getItem('iwn-admin-collapsed') === '1');
       this.density.set(localStorage.getItem('iwn-admin-density') === 'compact' ? 'compact' : 'comfortable');
+      try {
+        const stored = JSON.parse(localStorage.getItem('iwn-admin-recent') ?? '[]');
+        if (Array.isArray(stored)) this.recentLinks.set(stored.filter((x) => typeof x === 'string').slice(0, 4));
+      } catch {
+        /* ignore corrupt storage */
+      }
     }
+    this.loadCounts();
   }
 
   toggleCollapsed(): void {
@@ -356,6 +435,8 @@ export class AdminShellComponent implements OnInit {
     }
     if (event.key === 'Escape' && this.paletteOpen()) {
       this.closePalette();
+    } else if (event.key === 'Escape' && this.userMenuOpen()) {
+      this.userMenuOpen.set(false);
     }
   }
 

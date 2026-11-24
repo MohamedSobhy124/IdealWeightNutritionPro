@@ -21,6 +21,7 @@ public sealed class ListFeaturedReviewsEndpoint : Endpoint<ListFeaturedReviewsRe
     {
         Get("reviews/featured");
         AllowAnonymous();
+        Options(x => x.CacheOutput(p => p.Expire(TimeSpan.FromMinutes(5)).SetVaryByQuery("*")));
     }
 
     public override async Task HandleAsync(ListFeaturedReviewsRequest req, CancellationToken ct)

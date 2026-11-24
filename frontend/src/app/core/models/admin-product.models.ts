@@ -13,6 +13,7 @@ export interface AdminProductListItem {
   inStock: boolean;
   isNew: boolean;
   isTrending: boolean;
+  expiryDate?: string | null;
 }
 
 export type AdminProductFilter =
@@ -23,7 +24,8 @@ export type AdminProductFilter =
   | 'outofstock'
   | 'instock'
   | 'new'
-  | 'trending';
+  | 'trending'
+  | 'expiring';
 
 export interface AdminProductListResponse {
   items: AdminProductListItem[];
@@ -87,6 +89,7 @@ export interface AdminProductDetail {
   categoryName?: string;
   brandName?: string;
   isDeleted: boolean;
+  expiryDate?: string | null;
   variants: AdminProductVariant[];
   images: AdminProductImage[];
   options: AdminProductOption[];
@@ -151,6 +154,7 @@ export interface UpdateAdminProductRequest {
   allowFreeDelivery: boolean;
   freeDeliveryMinimumAmount: number;
   isDeleted: boolean;
+  expiryDate?: string | null;
   variants?: UpdateAdminProductVariantRequest[];
 }
 
@@ -172,4 +176,13 @@ export interface CreateAdminProductRequest {
   allowFreeDelivery?: boolean;
   freeDeliveryMinimumAmount?: number;
   expiryDate?: string;
+}
+
+export interface AdminProductStatistics {
+  total: number;
+  active: number;
+  lowStock: number;
+  outOfStock: number;
+  deleted: number;
+  expiring: number;
 }

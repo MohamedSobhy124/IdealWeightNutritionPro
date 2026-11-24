@@ -44,6 +44,19 @@ export interface UiTableColumn {
   searchText?: (row: Record<string, unknown>) => unknown;
 }
 
+/** Status tab above the toolbar (e.g. All / Active / Low stock). */
+export interface UiTableTab {
+  value: string;
+  label: string;
+  count?: number | null;
+}
+
+/** Applied filter shown as a removable chip. */
+export interface UiTableFilterChip {
+  key: string;
+  label: string;
+}
+
 type SortDir = 'asc' | 'desc' | null;
 
 const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"]';
@@ -62,7 +75,13 @@ const LABELS = {
   columnsLabel: ['Columns', 'الأعمدة'],
   resetColumnsLabel: ['Show all columns', 'إظهار كل الأعمدة'],
   rowsPerPageLabel: ['Rows per page', 'صفوف لكل صفحة'],
-  clearSelectionLabel: ['Clear', 'إلغاء التحديد'],
+  clearSelectionLabel: ['Clear selection', 'إلغاء التحديد'],
+  tabsLabel: ['Filter by status', 'تصفية حسب الحالة'],
+  removeFilterLabel: ['Remove filter', 'إزالة عامل التصفية'],
+  clearFiltersLabel: ['Clear all', 'مسح الكل'],
+  bulkActionsLabel: ['Bulk actions', 'إجراءات جماعية'],
+  noResultsTitle: ['No matching results', 'لا توجد نتائج مطابقة'],
+  noResultsMessage: ['Try a different search or clear the filters.', 'جرّب بحثاً مختلفاً أو امسح عوامل التصفية.'],
 } as const satisfies Record<string, readonly [string, string]>;
 
 type LabelKey = keyof typeof LABELS;
@@ -74,6 +93,41 @@ type LabelKey = keyof typeof LABELS;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ui-card overflow-hidden">
+      <!-- Status tabs -->
+      @if (tabs().length) {
+        <div
+          class="flex gap-1 overflow-x-auto border-b border-ink-100 px-2 sm:px-3"
+          role="tablist"
+          [attr.aria-label]="tabsLabel() || label('tabsLabel')"
+        >
+          @for (tab of tabs(); track tab.value) {
+            <button
+              type="button"
+              role="tab"
+              class="inline-flex shrink-0 items-center gap-2 border-0 border-b-2 border-solid bg-transparent px-2.5 pb-3 pt-3.5 text-[13px] font-semibold transition-colors hover:text-ink-900"
+              [class.border-brand-600]="tab.value === activeTab()"
+              [class.text-ink-900]="tab.value === activeTab()"
+              [class.border-transparent]="tab.value !== activeTab()"
+              [class.text-ink-500]="tab.value !== activeTab()"
+              [attr.aria-selected]="tab.value === activeTab()"
+              (click)="selectTab(tab.value)"
+            >
+              {{ tab.label }}
+              @if (tab.count !== undefined && tab.count !== null) {
+                <span
+                  class="rounded-full px-1.5 py-px text-[11px] tabular-nums"
+                  [class.bg-brand-50]="tab.value === activeTab()"
+                  [class.text-brand-700]="tab.value === activeTab()"
+                  [class.bg-ink-100]="tab.value !== activeTab()"
+                  [class.text-ink-500]="tab.value !== activeTab()"
+                  >{{ tab.count }}</span
+                >
+              }
+            </button>
+          }
+        </div>
+      }
+
       <!-- Toolbar -->
       <div class="flex flex-col gap-3 border-b border-ink-200 p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -86,22 +140,17 @@ type LabelKey = keyof typeof LABELS;
               >
               <input
                 type="search"
-                class="ui-input ps-10"
+                class="ui-input !ps-10"
                 [placeholder]="label('searchPlaceholder')"
                 [attr.aria-label]="label('searchAriaLabel')"
                 [ngModel]="search()"
-                (ngModelChange)="search.set($event)"
+                (ngModelChange)="onSearchInput($event)"
               />
             </div>
           }
           <ng-content select="[table-toolbar]"></ng-content>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          @if (selectedCount() > 0) {
-            <span class="text-sm font-medium text-ink-600" role="status">{{ selectedCount() }} {{ label('selectedLabel') }}</span>
-            <ng-content select="[table-bulk-actions]"></ng-content>
-            <button type="button" class="ui-btn-ghost ui-btn-sm" (click)="clearSelection()">{{ label('clearSelectionLabel') }}</button>
-          }
           @if (columnMenu() && hideableColumns().length > 1) {
             <div class="relative hidden md:block">
               <button
@@ -151,8 +200,53 @@ type LabelKey = keyof typeof LABELS;
       </div>
       <ng-content select="[table-filters]"></ng-content>
 
+      <!-- Active filter chips -->
+      @if (activeFilters().length) {
+        <div class="flex flex-wrap items-center gap-2 border-b border-ink-100 px-3 py-2.5 sm:px-4">
+          @for (f of activeFilters(); track f.key) {
+            <span class="inline-flex h-7 items-center gap-1 rounded-full bg-brand-50 pe-1 ps-2.5 text-xs font-semibold text-brand-700">
+              {{ f.label }}
+              <button
+                type="button"
+                class="inline-flex h-5 w-5 items-center justify-center rounded-full border-0 bg-transparent p-0 text-inherit hover:bg-brand-100"
+                [attr.aria-label]="label('removeFilterLabel') + ': ' + f.label"
+                (click)="filterRemove.emit(f.key)"
+              >
+                <span class="material-icons !text-[16px]" aria-hidden="true">close</span>
+              </button>
+            </span>
+          }
+          <button type="button" class="ui-btn-ghost ui-btn-sm !min-h-7 !px-2" (click)="filtersClear.emit()">
+            {{ label('clearFiltersLabel') }}
+          </button>
+        </div>
+      }
+
+      <!-- Bulk action bar -->
+      @if (selectedCount() > 0) {
+        <div
+          class="mx-3 my-2.5 flex flex-wrap items-center gap-2 rounded-xl bg-ink-900 py-1.5 pe-1.5 ps-3.5 text-sm text-surface sm:mx-4"
+          role="region"
+          [attr.aria-label]="label('bulkActionsLabel')"
+        >
+          <span class="font-semibold tabular-nums" role="status">{{ selectedCount() }} {{ label('selectedLabel') }}</span>
+          <span class="flex-1"></span>
+          <div class="ui-table-bulk flex flex-wrap items-center gap-1.5">
+            <ng-content select="[table-bulk-actions]"></ng-content>
+          </div>
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-inherit hover:bg-white/10"
+            [attr.aria-label]="label('clearSelectionLabel')"
+            (click)="clearSelection()"
+          >
+            <span class="material-icons !text-[18px]" aria-hidden="true">close</span>
+          </button>
+        </div>
+      }
+
       <!-- Desktop table -->
-      <div class="hidden overflow-x-auto md:block" [class.ui-table-scroll]="stickyHeader()">
+      <div class="relative hidden overflow-x-auto md:block" [class.ui-table-scroll]="stickyHeader()">
         <table class="w-full border-collapse text-sm">
           @if (caption()) {
             <caption class="sr-only">{{ caption() }}</caption>
@@ -183,7 +277,7 @@ type LabelKey = keyof typeof LABELS;
                   @if (col.sortable) {
                     <button
                       type="button"
-                      class="inline-flex items-center gap-1 rounded uppercase hover:text-ink-900"
+                      class="inline-flex items-center gap-1 rounded border-0 bg-transparent p-0 text-xs font-semibold uppercase tracking-wide text-inherit hover:text-ink-900"
                       (click)="toggleSort(col.key)"
                     >
                       {{ col.header }}
@@ -309,7 +403,17 @@ type LabelKey = keyof typeof LABELS;
 
       <!-- Empty state -->
       @if (!loading() && pagedRows().length === 0) {
-        <ui-empty-state [icon]="emptyIcon()" [title]="label('emptyTitle')" [message]="emptyMessage()" />
+        <ui-empty-state
+          [icon]="isFiltered() ? 'search_off' : emptyIcon()"
+          [title]="isFiltered() ? label('noResultsTitle') : label('emptyTitle')"
+          [message]="isFiltered() ? label('noResultsMessage') : emptyMessage()"
+        >
+          @if (isFiltered()) {
+            <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="clearAllFilters()">{{ label('clearFiltersLabel') }}</button>
+          } @else {
+            <ng-content select="[table-empty-actions]"></ng-content>
+          }
+        </ui-empty-state>
       }
 
       <!-- Pagination -->
@@ -413,14 +517,31 @@ export class UiDataTableComponent<T extends Record<string, unknown> = Record<str
   readonly previousPageLabel = input<string | null>(null);
   readonly nextPageLabel = input<string | null>(null);
 
+  /** Status tabs; the page owns filtering and passes the active value back. */
+  readonly tabs = input<readonly UiTableTab[]>([]);
+  readonly activeTab = input<string | null>(null);
+  readonly tabsLabel = input<string | null>(null);
+  /** Applied filters rendered as chips with a "Clear all" button. */
+  readonly activeFilters = input<readonly UiTableFilterChip[]>([]);
+  /** When true the toolbar search only emits `searchChange` (debounced) and does not filter rows locally. */
+  readonly serverSearch = input(false);
+  readonly searchDebounce = input(300);
+  /** Initial search text, e.g. restored from the URL. */
+  readonly initialSearch = input('');
+
   readonly selectionChange = output<T[]>();
   readonly rowClick = output<T>();
   readonly pageChange = output<number>();
   readonly pageSizeChange = output<number>();
+  readonly tabChange = output<string>();
+  readonly searchChange = output<string>();
+  readonly filterRemove = output<string>();
+  readonly filtersClear = output<void>();
 
   private readonly cellDirectives = contentChildren(UiCellDirective);
 
-  protected readonly search = signal('');
+  protected readonly search = linkedSignal(() => this.initialSearch());
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
   protected readonly sortKey = signal<string | null>(null);
   protected readonly sortDir = signal<SortDir>(null);
   protected readonly clientPage = signal(1);
@@ -556,8 +677,32 @@ export class UiDataTableComponent<T extends Record<string, unknown> = Record<str
 
   private readonly isServer = computed(() => this.serverTotal() !== null);
 
+  // ---- Tabs, search, filters ---------------------------------------------
+  protected selectTab(value: string): void {
+    if (value === this.activeTab()) return;
+    this.clearSelection();
+    this.tabChange.emit(value);
+  }
+
+  protected onSearchInput(value: string): void {
+    this.search.set(value);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchChange.emit(value.trim()), this.searchDebounce());
+  }
+
+  protected readonly isFiltered = computed(() => !!this.search().trim() || this.activeFilters().length > 0);
+
+  protected clearAllFilters(): void {
+    if (this.search()) {
+      this.search.set('');
+      if (this.searchTimer) clearTimeout(this.searchTimer);
+      this.searchChange.emit('');
+    }
+    this.filtersClear.emit();
+  }
+
   private readonly filteredRows = computed(() => {
-    const term = this.search().trim().toLowerCase();
+    const term = this.serverSearch() ? '' : this.search().trim().toLowerCase();
     let data = [...this.rows()];
     if (term) {
       const columns = this.columns().filter((col) => !col.noExport);

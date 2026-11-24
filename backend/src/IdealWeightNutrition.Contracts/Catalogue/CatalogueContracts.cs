@@ -44,6 +44,8 @@ public sealed class ProductDetailDto
     public BrandDto? Brand { get; init; }
     public bool IsNew { get; init; }
     public bool IsTrending { get; init; }
+    public bool AllowFreeDelivery { get; init; }
+    public double FreeDeliveryMinimumAmount { get; init; }
     public IReadOnlyList<StorefrontProductOptionDto> Options { get; init; } = [];
     public IReadOnlyList<StorefrontProductVariantDto> Variants { get; init; } = [];
 }

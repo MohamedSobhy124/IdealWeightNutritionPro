@@ -375,7 +375,7 @@ internal sealed class ReturnService : IReturnService
 
     private async Task EnsureReturnEligibleAsync(OrderHeader order, CancellationToken cancellationToken)
     {
-        if (order.OrderStatus is not OrderStatuses.Delivered and not OrderStatuses.Shipped)
+        if (order.OrderStatus is not (OrderStatuses.Delivered or OrderStatuses.Shipped or OrderStatuses.OutForDelivery))
             throw new InvalidOperationException("Only shipped or delivered orders can be returned.");
 
         var deadline = order.OrderStatus == OrderStatuses.Delivered

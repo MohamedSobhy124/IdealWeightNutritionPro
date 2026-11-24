@@ -4,6 +4,7 @@ using IdealWeightNutrition.Domain.Catalogue;
 using IdealWeightNutrition.Domain.Checkout;
 using IdealWeightNutrition.Domain.Constants;
 using IdealWeightNutrition.Domain.Identity;
+using IdealWeightNutrition.Infrastructure.Delivery;
 using IdealWeightNutrition.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -98,7 +99,8 @@ internal sealed class CheckoutService : ICheckoutService
         CancellationToken cancellationToken = default)
     {
         var cart = await RequireNonEmptyCartAsync(userId, guestCartId, cancellationToken);
-        var (city, areaName, shipping) = await ResolveShippingAsync(cart.Items, cart.Subtotal, request, cancellationToken);
+        var (city, remoteArea) = await ResolveDestinationAsync(request.CityId, request.RemoteAreaId, cancellationToken);
+        var delivery = await QuoteDeliveryAsync(cart.Items, cart.Subtotal, city, remoteArea, cancellationToken);
         var discount = cart.Discount;
         var merchandiseTotal = Math.Max(0, cart.Subtotal - discount);
 
@@ -106,10 +108,15 @@ internal sealed class CheckoutService : ICheckoutService
         {
             Subtotal = cart.Subtotal,
             Discount = discount,
-            Shipping = shipping,
-            Total = merchandiseTotal + shipping,
+            Shipping = delivery.FinalCharge,
+            Total = merchandiseTotal + delivery.FinalCharge,
             CityName = city.Name,
-            AreaName = areaName
+            AreaName = remoteArea?.Name,
+            BaseShipping = delivery.BaseCharge,
+            IsFreeDelivery = delivery.IsFree,
+            FreeDeliveryAvailable = delivery.AllLinesAllowFree,
+            FreeDeliveryThreshold = delivery.Threshold,
+            AmountRemainingForFreeDelivery = delivery.AmountRemainingForFree
         };
     }
 
@@ -187,34 +194,10 @@ internal sealed class CheckoutService : ICheckoutService
             }
         }
 
-        var city = await _db.Cities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == request.CityId && c.IsActive, cancellationToken)
-            ?? throw new InvalidOperationException("Selected city is not available.");
-
-        string? areaName = null;
-        if (request.RemoteAreaId is > 0)
-        {
-            var remoteArea = await _db.RemoteAreas
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    r => r.Id == request.RemoteAreaId && r.CityId == city.Id && r.IsActive,
-                    cancellationToken);
-
-            if (remoteArea is null)
-                throw new InvalidOperationException("Selected area is not available.");
-
-            areaName = remoteArea.Name;
-        }
-        else
-        {
-            var hasRemoteAreas = await _db.RemoteAreas
-                .AnyAsync(r => r.CityId == city.Id && r.IsActive, cancellationToken);
-            if (hasRemoteAreas)
-                throw new InvalidOperationException("Please select a delivery area.");
-        }
-
-        var shipping = await CalculateShippingAsync(cart.Items, cart.Subtotal, city, request.RemoteAreaId, cancellationToken);
+        var (city, remoteArea) = await ResolveDestinationAsync(request.CityId, request.RemoteAreaId, cancellationToken);
+        var areaName = remoteArea?.Name;
+        var delivery = await QuoteDeliveryAsync(cart.Items, cart.Subtotal, city, remoteArea, cancellationToken);
+        var shipping = delivery.FinalCharge;
         var subtotal = cart.Subtotal;
         var discount = cart.Discount;
         var merchandiseTotal = Math.Max(0, subtotal - discount);
@@ -468,81 +451,97 @@ internal sealed class CheckoutService : ICheckoutService
         return cart;
     }
 
-    private async Task<(City city, string? areaName, double shipping)> ResolveShippingAsync(
-        IReadOnlyList<Contracts.Cart.CartItemDto> items,
-        double subtotal,
-        ShippingQuoteRequest request,
+    /// <summary>
+    /// Validates the delivery destination the same way for the quote and the order: the city
+    /// must be active, a selected area must be active and belong to the city, and a city that
+    /// has areas requires one to be selected.
+    /// </summary>
+    private async Task<(City City, RemoteArea? RemoteArea)> ResolveDestinationAsync(
+        int cityId,
+        int? remoteAreaId,
         CancellationToken cancellationToken)
     {
         var city = await _db.Cities
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == request.CityId && c.IsActive, cancellationToken)
+            .FirstOrDefaultAsync(c => c.Id == cityId && c.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("Selected city is not available.");
 
-        string? areaName = null;
-        if (request.RemoteAreaId is > 0)
+        if (remoteAreaId is > 0)
         {
             var area = await _db.RemoteAreas
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
-                    r => r.Id == request.RemoteAreaId && r.CityId == city.Id && r.IsActive,
-                    cancellationToken);
+                    r => r.Id == remoteAreaId && r.CityId == city.Id && r.IsActive,
+                    cancellationToken)
+                ?? throw new InvalidOperationException("Selected area is not available.");
 
-            if (area is not null)
-                areaName = area.Name;
+            return (city, area);
         }
 
-        var shipping = await CalculateShippingAsync(items, subtotal, city, request.RemoteAreaId, cancellationToken);
-        return (city, areaName, shipping);
+        var hasRemoteAreas = await _db.RemoteAreas
+            .AnyAsync(r => r.CityId == city.Id && r.IsActive, cancellationToken);
+        if (hasRemoteAreas)
+            throw new InvalidOperationException("Please select a delivery area.");
+
+        return (city, null);
     }
 
-    private async Task<double> CalculateShippingAsync(
+    private async Task<DeliveryQuote> QuoteDeliveryAsync(
         IReadOnlyList<Contracts.Cart.CartItemDto> items,
         double subtotal,
         City city,
-        int? remoteAreaId,
+        RemoteArea? remoteArea,
         CancellationToken cancellationToken)
     {
-        double deliveryCharge = city.DeliveryCharge;
-
-        if (remoteAreaId is > 0)
-        {
-            var remoteArea = await _db.RemoteAreas
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    r => r.Id == remoteAreaId && r.CityId == city.Id && r.IsActive,
-                    cancellationToken);
-
-            if (remoteArea is not null)
-                deliveryCharge = remoteArea.DeliveryCharge;
-        }
-
-        if (await QualifiesForFreeDeliveryAsync(items, subtotal, cancellationToken))
-            deliveryCharge = 0;
-
-        return deliveryCharge;
+        var lines = await LoadDeliveryLinesAsync(items, cancellationToken);
+        var baseCharge = remoteArea?.DeliveryCharge ?? city.DeliveryCharge;
+        return DeliveryCalculator.Calculate(lines, subtotal, baseCharge);
     }
 
-    private async Task<bool> QualifiesForFreeDeliveryAsync(
+    /// <summary>
+    /// Free-delivery settings per cart line: a combo line uses the combo's own settings,
+    /// any other line its product's. Missing or deleted items never allow free delivery.
+    /// </summary>
+    private async Task<IReadOnlyList<DeliveryLine>> LoadDeliveryLinesAsync(
         IReadOnlyList<Contracts.Cart.CartItemDto> items,
-        double subtotal,
         CancellationToken cancellationToken)
     {
-        if (items.Count == 0)
-            return false;
+        var comboIds = items
+            .Where(i => i.ComboOfferId is > 0)
+            .Select(i => i.ComboOfferId!.Value)
+            .Distinct()
+            .ToList();
+        var productIds = items
+            .Where(i => i.ComboOfferId is not > 0)
+            .Select(i => i.ProductId)
+            .Distinct()
+            .ToList();
 
-        var productIds = items.Select(i => i.ProductId).Distinct().ToList();
-        var products = await _db.Products
-            .AsNoTracking()
-            .Where(p => productIds.Contains(p.Id))
-            .Select(p => new { p.AllowFreeDelivery, p.FreeDeliveryMinimumAmount })
-            .ToListAsync(cancellationToken);
+        var combos = comboIds.Count == 0
+            ? new Dictionary<int, DeliveryLine>()
+            : await _db.ComboOffers
+                .AsNoTracking()
+                .Where(c => comboIds.Contains(c.Id) && !c.IsDeleted)
+                .ToDictionaryAsync(
+                    c => c.Id,
+                    c => new DeliveryLine(true, c.AllowFreeDelivery, c.FreeDeliveryMinimumAmount),
+                    cancellationToken);
 
-        if (products.Count != productIds.Count || !products.All(p => p.AllowFreeDelivery))
-            return false;
+        var products = productIds.Count == 0
+            ? new Dictionary<int, DeliveryLine>()
+            : await _db.Products
+                .AsNoTracking()
+                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+                .ToDictionaryAsync(
+                    p => p.Id,
+                    p => new DeliveryLine(true, p.AllowFreeDelivery, p.FreeDeliveryMinimumAmount),
+                    cancellationToken);
 
-        var maxMinimum = products.Max(p => p.FreeDeliveryMinimumAmount);
-        return subtotal >= maxMinimum;
+        return items
+            .Select(i => i.ComboOfferId is > 0
+                ? combos.GetValueOrDefault(i.ComboOfferId.Value, DeliveryLine.Missing)
+                : products.GetValueOrDefault(i.ProductId, DeliveryLine.Missing))
+            .ToList();
     }
 
     private static bool IsValidEmail(string email) =>

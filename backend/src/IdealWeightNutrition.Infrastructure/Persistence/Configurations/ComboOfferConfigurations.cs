@@ -14,6 +14,21 @@ internal sealed class ComboOfferConfiguration : IEntityTypeConfiguration<ComboOf
         builder.HasMany(c => c.Items)
             .WithOne(i => i.ComboOffer)
             .HasForeignKey(i => i.ComboOfferId);
+        builder.HasMany(c => c.Images)
+            .WithOne(i => i.ComboOffer)
+            .HasForeignKey(i => i.ComboOfferId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class ComboOfferImageConfiguration : IEntityTypeConfiguration<ComboOfferImage>
+{
+    public void Configure(EntityTypeBuilder<ComboOfferImage> builder)
+    {
+        builder.ToTable("ComboOfferImages");
+        builder.HasKey(i => i.Id);
+        builder.Property(i => i.ImageUrl).IsRequired();
+        builder.Property(i => i.ImageInfo).HasMaxLength(500);
     }
 }
 

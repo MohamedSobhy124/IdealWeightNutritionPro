@@ -362,6 +362,11 @@ namespace IdealWeightNutrition.Utility
 					{
 						checkoutBaseUrl = "https://www.ksamerchant.geidea.net/hpp/checkout";
 					}
+					else if (apiBaseUrl.Contains("geidea.ae", StringComparison.OrdinalIgnoreCase))
+					{
+						// UAE accounts (api.geidea.ae) use the UAE hosted payment page.
+						checkoutBaseUrl = "https://payments.geidea.ae/hpp/checkout";
+					}
 					else
 					{
 						checkoutBaseUrl = "https://www.merchant.geidea.net/hpp/checkout";

@@ -10,6 +10,7 @@ import {
 } from '../../../core/models/admin-delivery.models';
 import { AdminDeliveryService } from '../../../core/services/admin-delivery.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
@@ -19,12 +20,16 @@ import {
   UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
+  UiActionMenuComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiActionMenuComponent,
+    UiAlertComponent,
     FormsModule,
     IwnCurrencyPipe,
     UiPageHeaderComponent,
@@ -41,6 +46,7 @@ export class AdminCityAreasComponent implements OnInit {
   private readonly deliveryApi = inject(AdminDeliveryService);
   private readonly route = inject(ActivatedRoute);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
   private readonly confirmDialog = inject(UiConfirmService);
 
   readonly city = signal<AdminCity | null>(null);
@@ -83,7 +89,7 @@ export class AdminCityAreasComponent implements OnInit {
         mobile: 'secondary',
         value: (row) => ((row as unknown as AdminRemoteArea).isActive ? this.t('active') : this.t('inactive')),
       },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
   }
 
@@ -188,7 +194,7 @@ export class AdminCityAreasComponent implements OnInit {
         this.showForm.set(false);
         this.editingId.set(null);
         this.busyId.set(null);
-        this.message.set(this.t('saved'));
+        this.toast.success(this.t('saved'));
         this.load();
       },
       error: () => {
@@ -204,7 +210,7 @@ export class AdminCityAreasComponent implements OnInit {
     this.message.set(null);
     this.deliveryApi.deleteRemoteArea(item.id).subscribe({
       next: () => {
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
         this.load();
       },

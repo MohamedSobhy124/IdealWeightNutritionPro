@@ -11,12 +11,26 @@ import { WhatsAppService, WhatsAppSettings } from '../../core/services/whatsapp.
 import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
+import { freeDeliveryLabel } from '../../core/utils/free-delivery-label';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { Brand, ProductDetail, ProductListItem, ProductOption, ProductVariant } from '../../core/models/catalogue.models';
 import { ProductReviewSummary } from '../../core/models/review.models';
 import { ReviewService } from '../../core/services/review.service';
 import { ProductReviewsComponent } from './product-reviews.component';
-import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiModalComponent, UiPageHeaderComponent, UiProductCardComponent, UiSectionHeaderComponent, UiSkeletonComponent, type UiBreadcrumb } from '../../shared/ui';
+import { UiCardComponent, UiEmptyStateComponent, UiModalComponent, UiProductCardComponent, UiSectionHeaderComponent, UiSkeletonComponent, type UiBreadcrumb } from '../../shared/ui';
+
+/** Page-local copy that has no shared key in ui-text.ts. */
+const COPY = {
+  breadcrumb: { en: 'Breadcrumb', ar: 'مسار التنقل' },
+  newBadge: { en: 'New', ar: 'جديد' },
+} as const;
+
+type InfoTabId = 'description' | 'specification' | 'suggestedUse' | 'healthNotes' | 'delivery';
+interface InfoTab {
+  id: InfoTabId;
+  label: UiKey;
+  icon: string;
+}
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,11 +41,9 @@ import { UiBadgeComponent, UiCardComponent, UiEmptyStateComponent, UiModalCompon
     FormsModule,
     ProductReviewsComponent,
     IwnCurrencyPipe,
-    UiBadgeComponent,
     UiCardComponent,
     UiModalComponent,
     UiSkeletonComponent,
-    UiPageHeaderComponent,
     UiEmptyStateComponent,
     UiProductCardComponent,
     UiSectionHeaderComponent,
@@ -68,11 +80,8 @@ export class ProductDetailComponent implements OnInit {
   readonly stockNotifyError = signal(false);
   readonly whatsappSettings = signal<WhatsAppSettings | null>(null);
   readonly selectedImage = signal<string | null>(null);
-  readonly detailsExpanded = signal(true);
-  readonly specificationExpanded = signal(false);
-  readonly suggestedUseExpanded = signal(false);
-  readonly healthNotesExpanded = signal(false);
-  readonly deliveryExpanded = signal(false);
+  /** View-only: which details tab is showing. */
+  readonly infoTab = signal<InfoTabId>('description');
   readonly imageZoomOpen = signal(false);
   readonly reviewSummary = signal<ProductReviewSummary | null>(null);
   readonly relatedProducts = signal<ProductListItem[]>([]);
@@ -91,6 +100,12 @@ export class ProductDetailComponent implements OnInit {
     const product = this.product();
     if (variant?.listPrice) return variant.listPrice;
     return product?.listPrice ?? 0;
+  });
+  /** View-only sale helpers (same comparison the template always used). */
+  readonly onSale = computed(() => this.displayListPrice() > this.displayPrice());
+  readonly savingsPercent = computed(() => {
+    const list = this.displayListPrice();
+    return this.onSale() ? Math.round(((list - this.displayPrice()) / list) * 100) : 0;
   });
   readonly displayInStock = computed(() => {
     const product = this.product();
@@ -131,8 +146,30 @@ export class ProductDetailComponent implements OnInit {
     untracked(() => queueMicrotask(() => this.scrollGalleryTo(first, 'auto')));
   });
 
+  readonly freeDeliveryText = computed(() => freeDeliveryLabel(this.product(), this.locale));
+
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  copy(key: keyof typeof COPY): string {
+    return this.locale.pick(COPY[key].en, COPY[key].ar);
+  }
+
+  /** Tabs with content for this product, in display order. */
+  infoTabs(p: ProductDetail): InfoTab[] {
+    const tabs: InfoTab[] = [{ id: 'description', label: 'productDescription', icon: 'article' }];
+    if (this.productSpecification(p)) tabs.push({ id: 'specification', label: 'specification', icon: 'list_alt' });
+    if (this.suggestedUse(p)) tabs.push({ id: 'suggestedUse', label: 'suggestedUse', icon: 'menu_book' });
+    if (this.healthNotes(p)) tabs.push({ id: 'healthNotes', label: 'healthNotes', icon: 'health_and_safety' });
+    tabs.push({ id: 'delivery', label: 'deliveryReturnsTitle', icon: 'local_shipping' });
+    return tabs;
+  }
+
+  /** Falls back to the description when the chosen tab has no content for this product. */
+  currentInfoTab(p: ProductDetail): InfoTabId {
+    const id = this.infoTab();
+    return this.infoTabs(p).some((tab) => tab.id === id) ? id : 'description';
   }
 
   productTitle(p: ProductDetail): string {

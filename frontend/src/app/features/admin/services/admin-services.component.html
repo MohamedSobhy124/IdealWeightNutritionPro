@@ -18,7 +18,7 @@
 
 @if (error()) {
 
-  <p class="mb-4 text-danger">{{ error() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 
 }
 
@@ -124,29 +124,17 @@
 
 
   <ng-template uiCell="actions" let-row>
-
     @let service = $any(row);
-
-    <div class="flex flex-wrap gap-1.5">
-
-      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="toggleActive(service.id)">
-
-        {{ service.isActive ? t('deactivate') : t('activate') }}
-
-      </button>
-
-      <a [routerLink]="['/admin/services', service.id]" class="ui-btn-secondary ui-btn-sm">{{ t('edit') }}</a>
-
-      <a [routerLink]="['/admin/service-offers']" [queryParams]="{ serviceSubscriptionId: service.id }" class="ui-btn-ghost ui-btn-sm">
-
-        {{ t('viewServiceOffers') }}
-
-      </a>
-
-      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="deleteService(service.id)">{{ t('delete') }}</button>
-
-    </div>
-
+    <ui-action-menu
+      [label]="t('moreActions')"
+      [items]="[
+        { id: 'edit', label: t('edit'), icon: 'edit', link: ['/admin/services', service.id] },
+        { id: 'offers', label: t('viewServiceOffers'), icon: 'local_offer' },
+        { id: 'toggle', label: service.isActive ? t('turnOff') : t('turnOn'), icon: service.isActive ? 'pause_circle' : 'play_circle' },
+        { id: 'delete', label: t('delete'), icon: 'delete_outline', danger: true, dividerBefore: true }
+      ]"
+      (select)="$event === 'offers' ? router.navigate(['/admin/service-offers'], { queryParams: { serviceSubscriptionId: service.id } }) : $event === 'toggle' ? toggleActive(service.id) : $event === 'delete' ? deleteService(service.id) : null"
+    />
   </ng-template>
 
 </ui-data-table>

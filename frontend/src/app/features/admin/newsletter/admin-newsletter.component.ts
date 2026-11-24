@@ -4,15 +4,17 @@ import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { NewsletterSubscription } from '../../../core/models/newsletter.models';
 import { LocaleService } from '../../../core/services/locale.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { NewsletterService } from '../../../core/services/newsletter.service';
 import {
   UiBadgeComponent,
   UiCellDirective,
   UiDataTableComponent,
-  UiFilterBarComponent,
+  UiActionMenuComponent,
+  UiAlertComponent,
   UiPageHeaderComponent,
-  UiSegmentedComponent,
-  type UiSegmentedOption,
+  type UiMenuItem,
+  type UiTableTab,
   type UiTableColumn,
 } from '../../../shared/ui';
 
@@ -25,8 +27,8 @@ import {
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
-    UiFilterBarComponent,
-    UiSegmentedComponent,
+    UiActionMenuComponent,
+    UiAlertComponent,
   ],
   templateUrl: './admin-newsletter.component.html',
   styleUrl: './admin-newsletter.component.css',
@@ -35,16 +37,16 @@ export class AdminNewsletterComponent implements OnInit {
   private readonly newsletterApi = inject(NewsletterService);
   readonly locale = inject(LocaleService);
   private readonly confirmDialog = inject(UiConfirmService);
+  private readonly toast = inject(UiToastService);
 
   readonly items = signal<NewsletterSubscription[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly message = signal<string | null>(null);
   readonly busyId = signal<number | null>(null);
   readonly exporting = signal(false);
-  status = 'all';
+  readonly status = signal('all');
 
-  readonly statusOptions = computed<UiSegmentedOption[]>(() => [
+  readonly tabs = computed<UiTableTab[]>(() => [
     { value: 'all', label: this.t('filterAll') },
     { value: 'active', label: this.t('filterActive') },
     { value: 'inactive', label: this.t('filterInactive') },
@@ -60,8 +62,27 @@ export class AdminNewsletterComponent implements OnInit {
       { key: 'subscribedDate', header: this.t('subscribedDate'), sortable: true },
       { key: 'source', header: this.t('source'), hideOnMobile: true },
       { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
+  }
+
+  onTab(value: string): void {
+    this.status.set(value);
+    this.load();
+  }
+
+  rowMenu(item: NewsletterSubscription): UiMenuItem[] {
+    return [
+      item.isActive
+        ? { id: 'toggle', label: this.t('deactivate'), icon: 'unsubscribe' }
+        : { id: 'toggle', label: this.t('activate'), icon: 'mark_email_read' },
+      { id: 'delete', label: this.t('remove'), icon: 'delete_outline', danger: true, dividerBefore: true },
+    ];
+  }
+
+  onRowAction(id: string, item: NewsletterSubscription): void {
+    if (id === 'toggle') this.toggle(item);
+    if (id === 'delete') void this.remove(item);
   }
 
   ngOnInit(): void {
@@ -71,7 +92,7 @@ export class AdminNewsletterComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.newsletterApi.listAdmin(this.status).subscribe({
+    this.newsletterApi.listAdmin(this.status()).subscribe({
       next: (items) => {
         this.items.set(items);
         this.loading.set(false);
@@ -85,34 +106,32 @@ export class AdminNewsletterComponent implements OnInit {
 
   toggle(item: NewsletterSubscription): void {
     this.busyId.set(item.id);
-    this.message.set(null);
     this.newsletterApi.toggleActive(item.id).subscribe({
       next: () => {
         this.items.update((list) =>
           list.map((n) => (n.id === item.id ? { ...n, isActive: !n.isActive } : n))
         );
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
       },
       error: () => {
-        this.message.set(this.t('actionFailed'));
+        this.toast.error(this.t('actionFailed'));
         this.busyId.set(null);
       },
     });
   }
 
   async remove(item: NewsletterSubscription): Promise<void> {
-    if (!(await this.confirmDialog.danger(this.t('confirmDeleteSubscription'), this.t('actionCannotBeUndone')))) return;
+    if (!(await this.confirmDialog.danger(this.t('confirmDeleteSubscription'), item.email + '. ' + this.t('actionCannotBeUndone'), this.t('remove')))) return;
     this.busyId.set(item.id);
-    this.message.set(null);
     this.newsletterApi.delete(item.id).subscribe({
       next: () => {
         this.items.update((list) => list.filter((n) => n.id !== item.id));
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
       },
       error: () => {
-        this.message.set(this.t('actionFailed'));
+        this.toast.error(this.t('actionFailed'));
         this.busyId.set(null);
       },
     });
@@ -120,7 +139,6 @@ export class AdminNewsletterComponent implements OnInit {
 
   exportCsv(): void {
     this.exporting.set(true);
-    this.message.set(null);
     this.newsletterApi.exportActive().subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
@@ -132,7 +150,7 @@ export class AdminNewsletterComponent implements OnInit {
         this.exporting.set(false);
       },
       error: () => {
-        this.message.set(this.t('exportFailed'));
+        this.toast.error(this.t('exportFailed'));
         this.exporting.set(false);
       },
     });

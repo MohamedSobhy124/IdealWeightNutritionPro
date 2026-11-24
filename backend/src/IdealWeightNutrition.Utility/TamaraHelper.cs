@@ -304,6 +304,18 @@ namespace IdealWeightNutrition.Utility
                         Status = response.Data.Status,
                         PaymentStatus = response.Data.Status
                     };
+
+                    // The merchant reference the Tamara order was created with (our order id).
+                    try
+                    {
+                        var referenceProp = response.Data.GetType().GetProperty("OrderReferenceId")
+                            ?? response.Data.GetType().GetProperty("ReferenceId");
+                        orderDetails.OrderReferenceId = referenceProp?.GetValue(response.Data)?.ToString();
+                    }
+                    catch
+                    {
+                        // Leave it null; callers that need it treat null as "cannot confirm".
+                    }
                     
                     // Try to extract refund information using reflection
                     try
@@ -1299,6 +1311,10 @@ namespace IdealWeightNutrition.Utility
         
         [JsonPropertyName("remaining_refundable_amount")]
         public decimal? RemainingRefundableAmount { get; set; }
+
+        /// <summary>Our order reference the Tamara order was created with (<c>order_reference_id</c>).</summary>
+        [JsonPropertyName("order_reference_id")]
+        public string OrderReferenceId { get; set; }
     }
 
     // Capture Request/Response Models

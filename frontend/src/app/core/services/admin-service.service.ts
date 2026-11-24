@@ -78,6 +78,14 @@ export class AdminMediaService {
     return this.upload(`${this.baseUrl}/admin/combo-offers/${comboOfferId}/image`, file);
   }
 
+  uploadCategoryImage(categoryId: number, file: File) {
+    return this.upload(`${this.baseUrl}/admin/categories/${categoryId}/image`, file);
+  }
+
+  uploadBrandImage(brandId: number, file: File) {
+    return this.upload(`${this.baseUrl}/admin/brands/${brandId}/image`, file);
+  }
+
   uploadBlogPostImage(blogPostId: number, file: File) {
     return this.upload(`${this.baseUrl}/admin/blog-posts/${blogPostId}/image`, file);
   }

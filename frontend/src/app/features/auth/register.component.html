@@ -1,109 +1,177 @@
-<section class="auth-shell">
-  <div class="auth-layout">
-    <aside class="auth-brand-panel" aria-hidden="true">
-      <div class="auth-brand-panel__logo">
-        <span class="material-icons text-[32px]">eco</span>
+<section class="ap">
+  <div class="ap-layout">
+    <aside class="ap-panel" aria-hidden="true">
+      <div class="ap-panel__top">
+        <span class="ap-panel__logo"><span class="material-icons">eco</span></span>
+        <span class="ap-panel__brand">{{ t('brandName') }}</span>
       </div>
-      <h2 class="auth-brand-panel__title">{{ t('whyChooseUsTitle') }}</h2>
-      <p class="auth-brand-panel__lead">{{ t('whyChooseUsLead') }}</p>
-      <ul class="auth-brand-panel__trust">
-        <li><span class="material-icons text-[18px]" aria-hidden="true">verified</span>{{ t('trustedOriginals') }}</li>
-        <li><span class="material-icons text-[18px]" aria-hidden="true">local_shipping</span>{{ t('sameDayDelivery') }}</li>
-        <li><span class="material-icons text-[18px]" aria-hidden="true">lock</span>{{ t('securePayments') }}</li>
-      </ul>
+
+      <div class="ap-panel__body">
+        <h2 class="ap-panel__title display-title">{{ c('heroTitleJoin') }}</h2>
+        <p class="ap-panel__lead">{{ c('heroLeadJoin') }}</p>
+
+        <ul class="ap-benefits">
+          @for (b of benefits; track b.icon) {
+            <li class="ap-benefit">
+              <span class="ap-benefit__icon"><span class="material-icons">{{ b.icon }}</span></span>
+              <span class="ap-benefit__text">
+                <strong>{{ b.title() }}</strong>
+                <small>{{ b.desc() }}</small>
+              </span>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="ap-trust">
+        <span class="ap-trust__stars">
+          @for (s of stars; track s) {
+            <span class="material-icons">star</span>
+          }
+        </span>
+        <span>{{ c('trustLine') }}</span>
+      </div>
     </aside>
 
-    <div class="auth-form-wrap">
-      <ui-page-header [title]="t('registerTitle')" [breadcrumbs]="[{ label: t('navHome'), link: '/' }]" />
+    <div class="ap-main">
+      <div class="ap-card">
+        <header class="ap-head">
+          <span class="ap-head__icon"><span class="material-icons" aria-hidden="true">person_add</span></span>
+          <h1 class="ap-head__title display-title">{{ c('joinTitle') }}</h1>
+          <p class="ap-head__sub">{{ c('joinSubtitle') }}</p>
+        </header>
 
-      <div class="auth-form-card">
-        <div class="auth-form-icon lg:hidden">
-          <span class="material-icons text-[28px]">eco</span>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="submit()" class="ap-form">
+          <!-- 1. Personal details -->
+          <fieldset class="ap-group">
+            <legend class="ap-group__legend"><span class="ap-group__num" aria-hidden="true">1</span>{{ c('stepDetails') }}</legend>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-          <ui-form-field [label]="t('fullName')">
-            <input type="text" formControlName="fullName" name="fullName" autocomplete="name" class="ui-input" />
-          </ui-form-field>
-
-          <ui-form-field [label]="t('email')">
-            <input type="email" formControlName="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" class="ui-input" />
-          </ui-form-field>
-
-          <div class="checkout-otp">
-            <p class="text-sm font-medium text-ink-700">{{ t('verifyEmailFirst') }}</p>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <ui-form-field [label]="t('verificationCode')" class="flex-1">
-                <ui-otp-input
-                  [(ngModel)]="otp"
-                  [ngModelOptions]="{ standalone: true }"
-                  name="otp"
-                  [groupLabel]="t('verificationCode')"
-                  [digitLabelPattern]="t('otpDigit')"
-                />
-              </ui-form-field>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  class="ui-btn-secondary ui-btn-sm whitespace-nowrap"
-                  (click)="sendOtp()"
-                  [disabled]="otpBusy() || form.controls.email.invalid"
-                >
-                  {{ t('sendCode') }}
-                </button>
-                <button
-                  type="button"
-                  class="ui-btn-primary whitespace-nowrap"
-                  (click)="verifyOtpCode()"
-                  [disabled]="otpBusy() || !otp"
-                >
-                  {{ t('verifyCode') }}
-                </button>
+            <ui-form-field [label]="t('fullName')">
+              <div class="ap-field">
+                <span class="material-icons ap-field__icon" aria-hidden="true">person</span>
+                <input type="text" formControlName="fullName" name="fullName" autocomplete="name" class="ui-input" />
               </div>
+            </ui-form-field>
+
+            <ui-form-field [label]="t('email')">
+              <div class="ap-field">
+                <span class="material-icons ap-field__icon" aria-hidden="true">mail</span>
+                <input type="email" formControlName="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" class="ui-input" />
+              </div>
+            </ui-form-field>
+
+            <ui-form-field [label]="t('phoneOptional')">
+              <div class="ap-field">
+                <span class="material-icons ap-field__icon" aria-hidden="true">call</span>
+                <input type="tel" formControlName="phone" name="phone" inputmode="tel" autocomplete="tel" class="ui-input ui-input-ltr" />
+              </div>
+            </ui-form-field>
+          </fieldset>
+
+          <!-- 2. Email verification -->
+          <fieldset class="ap-group ap-group--verify" [class.ap-group--done]="emailVerified()">
+            <legend class="ap-group__legend">
+              <span class="ap-group__num" aria-hidden="true">
+                @if (emailVerified()) {
+                  <span class="material-icons">check</span>
+                } @else {
+                  2
+                }
+              </span>
+              {{ c('stepVerify') }}
+            </legend>
+            <p class="ap-group__hint">{{ t('verifyEmailFirst') }}</p>
+
+            <ui-form-field [label]="t('verificationCode')">
+              <ui-otp-input
+                [(ngModel)]="otp"
+                [ngModelOptions]="{ standalone: true }"
+                name="otp"
+                [groupLabel]="t('verificationCode')"
+                [digitLabelPattern]="t('otpDigit')"
+              />
+            </ui-form-field>
+
+            <div class="ap-otp-actions">
+              <button
+                type="button"
+                class="ui-btn-secondary"
+                (click)="sendOtp()"
+                [disabled]="otpBusy() || form.controls.email.invalid"
+              >
+                <span class="material-icons text-[18px]" aria-hidden="true">send</span>
+                {{ t('sendCode') }}
+              </button>
+              <button
+                type="button"
+                class="ui-btn-primary"
+                (click)="verifyOtpCode()"
+                [disabled]="otpBusy() || !otp"
+              >
+                <span class="material-icons text-[18px]" aria-hidden="true">mark_email_read</span>
+                {{ t('verifyCode') }}
+              </button>
             </div>
+
             @if (otpMessage()) {
-              <p class="flex items-center gap-1.5 text-xs font-medium" role="status" aria-live="polite" [class.text-success-fg]="emailVerified()" [class.text-ink-500]="!emailVerified()">
+              <p class="ap-otp-msg" role="status" aria-live="polite" [class.ap-otp-msg--ok]="emailVerified()">
                 @if (emailVerified()) {
                   <span class="material-icons text-[16px]" aria-hidden="true">check_circle</span>
                 }
                 {{ otpMessage() }}
               </p>
             }
-          </div>
+          </fieldset>
 
-          <ui-form-field [label]="t('phoneOptional')">
-            <input type="tel" formControlName="phone" name="phone" inputmode="tel" autocomplete="tel" class="ui-input ui-input-ltr" />
-          </ui-form-field>
+          <!-- 3. Password -->
+          <fieldset class="ap-group">
+            <legend class="ap-group__legend"><span class="ap-group__num" aria-hidden="true">3</span>{{ c('stepSecure') }}</legend>
 
-          <ui-form-field [label]="t('password')">
-            <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
-              <input type="password" formControlName="password" name="password" autocomplete="new-password" class="ui-input" />
-            </ui-password-field>
-          </ui-form-field>
+            <ui-form-field [label]="t('password')">
+              <div class="ap-field">
+                <span class="material-icons ap-field__icon" aria-hidden="true">lock</span>
+                <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
+                  <input type="password" formControlName="password" name="password" autocomplete="new-password" class="ui-input" />
+                </ui-password-field>
+              </div>
+            </ui-form-field>
+          </fieldset>
 
           @if (error()) {
-            <p class="ui-error" role="alert" aria-live="polite">{{ error() }}</p>
+            <p class="ap-alert" role="alert" aria-live="polite">
+              <span class="material-icons" aria-hidden="true">error_outline</span>
+              <span>{{ error() }}</span>
+            </p>
           }
 
-          <button type="submit" class="ui-btn-primary w-full" [disabled]="form.invalid || loading() || !emailVerified()" [attr.aria-busy]="loading()">
+          <button type="submit" class="ui-btn-primary ui-btn-lg ap-submit" [disabled]="form.invalid || loading() || !emailVerified()" [attr.aria-busy]="loading()">
             @if (loading()) {
               <span class="material-icons animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
             }
             {{ t('createAccount') }}
+            @if (!loading()) {
+              <span class="material-icons text-[18px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+            }
           </button>
         </form>
 
-        <p class="auth-divider">{{ t('or') }}</p>
+        <p class="ap-divider"><span>{{ t('or') }}</span></p>
 
-        <button type="button" class="ui-btn-secondary w-full" (click)="auth.loginWithGoogle()">
-          <span class="material-icons text-[18px]">account_circle</span>
+        <button type="button" class="ui-btn-secondary ui-btn-lg ap-google" (click)="auth.loginWithGoogle()">
+          <span class="ap-google__mark" aria-hidden="true">G</span>
           {{ t('signInWithGoogle') }}
         </button>
 
-        <p class="mt-6 text-center text-sm">
-          <a routerLink="/auth/login" class="inline-flex min-h-11 items-center font-medium text-brand-600 hover:text-brand-700">{{ t('alreadyHaveAccount') }}</a>
+        <p class="ap-switch">
+          {{ t('alreadyHaveAccount') }}
+          <a routerLink="/auth/login">{{ t('signIn') }}</a>
         </p>
       </div>
+
+      <p class="ap-secure">
+        <span class="material-icons" aria-hidden="true">verified_user</span>
+        {{ c('secureNote') }}
+      </p>
     </div>
   </div>
 </section>

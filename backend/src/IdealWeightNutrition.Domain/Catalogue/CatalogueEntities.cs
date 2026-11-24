@@ -37,6 +37,7 @@ public sealed class Product
     public bool AllowFreeDelivery { get; set; }
     public double FreeDeliveryMinimumAmount { get; set; }
     public double? StoreCost { get; set; }
+    public DateTime? ExpiryDate { get; set; }
 
     public Category? Category { get; set; }
     public Brand? Brand { get; set; }

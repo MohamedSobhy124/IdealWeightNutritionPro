@@ -31,7 +31,17 @@ export { UiSegmentedComponent, type UiSegmentedOption } from './ui-segmented.com
 export { UiStepperComponent, type UiStepperStep } from './ui-stepper.component';
 export { UiSheetSelectComponent, type UiSheetOption } from './ui-sheet-select.component';
 export { UiCellDirective } from './ui-cell.directive';
-export { UiDataTableComponent, type UiTableColumn } from './ui-data-table.component';
+export {
+  UiDataTableComponent,
+  type UiTableColumn,
+  type UiTableTab,
+  type UiTableFilterChip,
+} from './ui-data-table.component';
 export { UiToastService, type UiToastVariant, type UiToastOptions } from './ui-toast.service';
 export { UiConfirmService, type UiConfirmOptions } from './ui-confirm.service';
 export { UiFeedbackHostComponent } from './ui-feedback-host.component';
+export { UiAlertComponent, type UiAlertVariant } from './ui-alert.component';
+export { UiErrorSummaryComponent, type UiFormError } from './ui-error-summary.component';
+export { UiFormSectionNavComponent, type UiFormSection } from './ui-form-section-nav.component';
+export { UiActionMenuComponent, type UiMenuItem } from './ui-action-menu.component';
+export { UiFormBarComponent } from './ui-form-bar.component';

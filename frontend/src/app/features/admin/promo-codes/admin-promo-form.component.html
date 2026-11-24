@@ -1,6 +1,7 @@
 <ui-page-header
   [title]="isEdit() ? t('editPromoCode') : t('newPromoCode')"
-  [breadcrumbs]="[{ label: t('promoCodesTitle'), link: '/admin/promo-codes' }]"
+  backLink="/admin/promo-codes"
+  [backLabel]="t('promoCodesTitle')"
 />
 
 @if (loading()) {
@@ -10,9 +11,15 @@
     <ui-skeleton height="2.5rem" />
   </div>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <div class="ui-card">
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/admin/promo-codes" class="ui-btn-secondary ui-btn-sm">{{ t('promoCodesTitle') }}</a>
+    </ui-empty-state>
+  </div>
 } @else {
-  <form class="admin-form" (ngSubmit)="submit()">
+  <form class="admin-form" (ngSubmit)="submit()" novalidate>
+    <ui-error-summary class="admin-form-span" [errors]="saveError() ? [{ message: saveError()! }] : []" />
+
     <ui-card [heading]="t('sectionBasicInfo')">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ui-form-field [label]="t('promoCode')" [required]="true">
@@ -100,24 +107,14 @@
       </div>
     </ui-card>
 
-    @if (saveError()) {
-      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
-    }
 
-    <div class="admin-form-bar">
-      <a routerLink="/admin/promo-codes" class="ui-btn-secondary">{{ t('cancel') }}</a>
-      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
-        {{ submitting() ? t('saving') : t('save') }}
-      </button>
-    </div>
+    <ui-form-bar [dirty]="hasUnsavedChanges()" [saving]="submitting()" (cancel)="cancel()" />
   </form>
 
   @if (isEdit() && exclusions(); as ex) {
     <ui-card [heading]="t('promoExclusionsTitle')" [subheading]="t('promoExclusionsHint')" class="mt-6 block">
       @if (exclusionMessage()) {
-        <p [class.text-danger]="exclusionError()" [class.text-success-fg]="!exclusionError()" class="text-sm">
-          {{ exclusionMessage() }}
-        </p>
+        <ui-alert class="mb-3 block" [variant]="exclusionError() ? 'danger' : 'success'" [message]="exclusionMessage()" [dismissible]="true" (dismiss)="exclusionMessage.set(null)" />
       }
 
       <div class="space-y-6">
@@ -240,5 +237,45 @@
     </ui-card>
   } @else if (!isEdit()) {
     <p class="mt-4 text-sm text-ink-500">{{ t('promoExclusionsAfterSave') }}</p>
+  }
+
+  @if (isEdit()) {
+    <ui-card [heading]="t('promoUsageTitle')" class="mt-6 block">
+      @if (usages().length === 0) {
+        <p class="text-sm text-ink-500">{{ t('promoUsageEmpty') }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-ink-200 text-start text-xs uppercase text-ink-500">
+                <th class="px-3 py-2 text-start">{{ t('promoUsageUser') }}</th>
+                <th class="px-3 py-2 text-start">{{ t('promoUsageOrder') }}</th>
+                <th class="px-3 py-2 text-start">{{ t('promoUsageDate') }}</th>
+                <th class="px-3 py-2 text-end">{{ t('promoUsageDiscount') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of usages(); track u.id) {
+                <tr class="border-b border-ink-100">
+                  <td class="px-3 py-2">
+                    {{ u.userName || u.userEmail || u.userId }}
+                    @if (u.userName && u.userEmail) {
+                      <span class="block text-xs text-ink-500">{{ u.userEmail }}</span>
+                    }
+                  </td>
+                  <td class="px-3 py-2">
+                    <a [routerLink]="['/admin/orders', u.orderId]" class="text-brand-600 hover:underline">#{{ u.orderId }}</a>
+                  </td>
+                  <td class="px-3 py-2">{{ u.usedDate | date: 'medium' }}</td>
+                  <td class="px-3 py-2 text-end tabular-nums">
+                    {{ u.discountAmount != null ? (u.discountAmount | iwnCurrency) : '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </ui-card>
   }
 }

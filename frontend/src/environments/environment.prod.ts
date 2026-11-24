@@ -1,7 +1,9 @@
 export const environment = {
   production: true,
   apiBaseUrl: 'https://idealweight-001-site1.ftempurl.com/api',
-  signalRHubUrl: '/hubs/notifications',
+  // Absolute: the storefront host (site3) is static IIS and has no hub; the
+  // hub lives on the API host, same as apiBaseUrl.
+  signalRHubUrl: 'https://idealweight-001-site1.ftempurl.com/hubs/notifications',
   legacyAssetsBaseUrl: 'https://idealweightnutrition.ae',
   siteName: 'Ideal Weight Nutrition',
   siteNameAr: 'ايديال ويت للتغذية',

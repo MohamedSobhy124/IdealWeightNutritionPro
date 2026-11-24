@@ -85,21 +85,23 @@ export type ProductCardDensity = 'compact' | 'comfortable';
         </a>
 
         <div class="product-card__actions mt-auto flex gap-2 pt-2">
+          <!-- Quick view is icon-only so "Add to cart" never gets squeezed or wrapped. -->
           @if (showQuickView()) {
             <button
               type="button"
-              class="ui-btn-secondary hidden flex-1 sm:inline-flex"
+              class="ui-btn-secondary product-card__quick-view hidden shrink-0 sm:inline-flex"
               [disabled]="busy()"
               (click)="onQuickView($event)"
               [attr.aria-label]="quickViewLabel()"
+              [attr.title]="quickViewLabel()"
             >
-              {{ quickViewLabel() }}
+              <span class="material-icons !text-[20px]" aria-hidden="true">visibility</span>
             </button>
           }
 
           <button
             type="button"
-            class="ui-btn-primary w-full flex-1"
+            class="ui-btn-primary w-full min-w-0 flex-1"
             [disabled]="busy() || !inStock()"
             [attr.aria-busy]="busy()"
             [attr.aria-label]="quickAddLabel()"

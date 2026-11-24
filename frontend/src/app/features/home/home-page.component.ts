@@ -39,7 +39,6 @@ import {
   UiProductCardComponent,
   UiSkeletonComponent,
   UiSectionHeaderComponent,
-  UiCategoryCardComponent,
   UiReviewCardComponent,
 } from '../../shared/ui';
 import { RevealOnScrollDirective } from '../../shared/directives/reveal-on-scroll.directive';
@@ -110,7 +109,6 @@ type ProductsTab = 'best' | 'new';
     UiProductCardComponent,
     UiSkeletonComponent,
     UiSectionHeaderComponent,
-    UiCategoryCardComponent,
         UiReviewCardComponent,
       RevealOnScrollDirective,
   ],
@@ -402,6 +400,31 @@ export class HomePageComponent implements OnInit, OnDestroy {
     return rules.find(([pattern]) => pattern.test(name))?.[1] ?? 'eco';
   }
 
+  /**
+   * Picks up to `limit` reviews round-robin by reviewer (keeping the API's
+   * quality order), so the same name repeats only when there aren't enough
+   * different customers.
+   */
+  private diverseReviews(reviews: FeaturedReview[], limit: number): FeaturedReview[] {
+    const groups = new Map<string, FeaturedReview[]>();
+    for (const review of reviews) {
+      const key = (review.userName ?? '').trim().toLowerCase() || `#${review.id}`;
+      const list = groups.get(key);
+      if (list) list.push(review);
+      else groups.set(key, [review]);
+    }
+    const queues = [...groups.values()];
+    const picked: FeaturedReview[] = [];
+    while (picked.length < limit && queues.some((q) => q.length > 0)) {
+      for (const queue of queues) {
+        if (picked.length >= limit) break;
+        const next = queue.shift();
+        if (next) picked.push(next);
+      }
+    }
+    return picked;
+  }
+
   /** Some accounts use their email as the display name; never show it publicly. */
   private publicAuthorName(name: string | null | undefined): string {
     const value = (name ?? '').trim();
@@ -617,7 +640,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
           availability: 'instock',
         })
         .pipe(catchError(() => of({ items: [] as ProductListItem[], totalCount: 0, page: 1, pageSize: 8 }))),
-      featuredReviews: this.reviewsApi.listFeatured(6).pipe(catchError(() => of([] as FeaturedReview[]))),
+      // Ask for the max pool (12) so we can pick 6 with as many different reviewers as possible.
+      featuredReviews: this.reviewsApi.listFeatured(12).pipe(catchError(() => of([] as FeaturedReview[]))),
     }).subscribe({
       next: ({
         flash,
@@ -647,7 +671,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
         this.bestSellers.set(rails.bestSellers);
         this.emitFeaturedProductsStructuredData();
         this.newArrivals.set(rails.newArrivals);
-        this.featuredReviews.set(featuredReviews);
+        this.featuredReviews.set(this.diverseReviews(featuredReviews, 6));
         this.loadingPromos.set(false);
         this.loadingMerch.set(false);
         this.loadingProducts.set(false);

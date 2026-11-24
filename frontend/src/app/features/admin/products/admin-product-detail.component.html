@@ -1,13 +1,29 @@
-<ui-page-header
-  [title]="product() ? t('editProduct') + ' #' + product()!.id : t('editProduct')"
-  [breadcrumbs]="[{ label: t('productsTitle'), link: '/admin/products' }]"
->
-  @if (product(); as p) {
-    <div header-actions>
-      <a [routerLink]="['/product', p.slug]" target="_blank" class="ui-btn-secondary ui-btn-sm">{{ t('viewStorefront') }}</a>
+@if (product(); as p) {
+  <ui-page-header
+    [title]="p.title"
+    [subtitle]="'#' + p.id + ' · ' + p.productType + (p.categoryName ? ' · ' + p.categoryName : '') + (p.brandName ? ' · ' + p.brandName : '')"
+    backLink="/admin/products"
+    [backLabel]="t('productsTitle')"
+  >
+    <span header-status class="flex flex-wrap items-center gap-1.5">
+      @if (p.isDeleted) {
+        <ui-badge variant="neutral">{{ t('hiddenFromStore') }}</ui-badge>
+      } @else if (p.stockQuantity <= 0) {
+        <ui-badge variant="danger">{{ t('outOfStock') }}</ui-badge>
+      } @else {
+        <ui-badge variant="success" [dot]="true">{{ t('active') }}</ui-badge>
+      }
+    </span>
+    <div header-actions class="flex items-center gap-2">
+      <a [routerLink]="['/product', p.slug]" target="_blank" class="ui-btn-secondary ui-btn-sm">
+        <span class="material-icons !text-[18px]" aria-hidden="true">open_in_new</span>
+        {{ t('viewStorefront') }}
+      </a>
     </div>
-  }
-</ui-page-header>
+  </ui-page-header>
+} @else {
+  <ui-page-header [title]="t('editProduct')" backLink="/admin/products" [backLabel]="t('productsTitle')" />
+}
 
 @if (loading()) {
   <div class="ui-card ui-card-pad space-y-3">
@@ -16,339 +32,375 @@
     <ui-skeleton height="12rem" />
   </div>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <div class="ui-card">
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/admin/products" class="ui-btn-secondary ui-btn-sm">{{ t('productsTitle') }}</a>
+    </ui-empty-state>
+  </div>
 } @else if (product()) {
   @if (product(); as p) {
-  <div class="mb-6 flex items-start gap-4">
-    <img
-      [src]="catalogue.resolveImageUrl(p.imageUrl)"
-      [alt]="p.title"
-      class="h-24 w-24 shrink-0 rounded-xl object-cover"
-    />
-    <div>
-      <p class="text-sm text-ink-500">
-        {{ p.productType }}
-        @if (p.categoryName) { · {{ p.categoryName }} }
-        @if (p.brandName) { · {{ p.brandName }} }
-      </p>
-    </div>
-  </div>
+  <div class="admin-form-with-nav">
+    <ui-form-section-nav [sections]="sections()" [label]="t('formSections')" />
 
-  @if (p.productType === 'Simple') {
-    <div class="mb-6">
-      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="convertToVariable()" [disabled]="converting()">
-        {{ converting() ? t('saving') : t('convertToVariable') }}
-      </button>
-    </div>
-  }
+    <form class="admin-form" (ngSubmit)="save()" novalidate>
+      <ui-error-summary class="admin-form-span" [errors]="formErrors()" />
 
-  <form class="admin-form" (ngSubmit)="save()">
-    <ui-card [heading]="t('sectionBasicInfo')">
-      <ui-form-field [label]="t('title')" [required]="true">
-        <input class="ui-input" [(ngModel)]="title" name="title" required />
-      </ui-form-field>
-    </ui-card>
-
-    <ui-card [heading]="t('sectionPricing')">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <ui-form-field [label]="t('salePrice')" [required]="true">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="price" name="price" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('listPrice')" [required]="true">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="listPrice" name="listPrice" required />
-        </ui-form-field>
-        <ui-form-field [label]="t('storeCost')">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="storeCost" name="storeCost" />
-        </ui-form-field>
-      </div>
-
-      @if (p.productType === 'Simple') {
-        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ui-form-field [label]="t('stockQuantity')" [required]="true">
-            <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="stockQuantity" name="stockQuantity" required />
+      <!-- Basic info -->
+      <ui-card id="pd-basic" data-form-section [heading]="t('sectionBasicInfo')">
+        <div class="flex items-start gap-4">
+          <img
+            [src]="catalogue.resolveImageUrl(p.imageUrl)"
+            alt=""
+            class="hidden h-20 w-20 shrink-0 rounded-xl border border-ink-100 bg-stage object-cover sm:block"
+          />
+          <ui-form-field class="flex-1" [label]="t('title')" [required]="true" for="pd-title" [error]="fieldError('pd-title')">
+            <input id="pd-title" class="ui-input" [(ngModel)]="title" name="title" required />
           </ui-form-field>
-          <ui-form-field [label]="t('minStockAlert')">
-            <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="minimumStockAlert" name="minimumStockAlert" />
-          </ui-form-field>
-        </div>
-      }
-    </ui-card>
-
-    <ui-card [heading]="t('productStatus')">
-      <div class="flex flex-wrap gap-4">
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="isNew" name="isNew" />
-          {{ t('isNewProduct') }}
-        </label>
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="isTrending" name="isTrending" />
-          {{ t('isTrendingProduct') }}
-        </label>
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="allowFreeDelivery" name="allowFreeDelivery" />
-          {{ t('allowFreeDelivery') }}
-        </label>
-        <label class="flex items-center gap-2 text-sm text-ink-700">
-          <input type="checkbox" [(ngModel)]="isDeleted" name="isDeleted" />
-          {{ t('markDeleted') }}
-        </label>
-      </div>
-      @if (allowFreeDelivery) {
-        <ui-form-field [label]="t('freeDeliveryMinimum')" class="mt-4 max-w-xs">
-          <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="freeDeliveryMinimumAmount" name="freeDeliveryMinimumAmount" />
-        </ui-form-field>
-      }
-    </ui-card>
-
-    @if (isVariable()) {
-      <ui-card class="admin-form-span" [heading]="t('productOptions')">
-        @for (option of options(); track option.id) {
-          <div class="mb-4 rounded-xl border border-ink-200 p-4">
-            <div class="mb-3 flex items-center justify-between gap-2">
-              <strong class="text-ink-900">{{ optionLabel(option) }}</strong>
-              <button type="button" class="ui-btn-danger ui-btn-sm" (click)="removeOption(option.id)" [disabled]="optionBusy()">
-                {{ t('delete') }}
-              </button>
-            </div>
-            <ul class="mb-3 space-y-1 text-sm">
-              @for (val of option.values; track val.id) {
-                <li class="flex items-center justify-between gap-2">
-                  <span>{{ optionValueLabel(val) }}</span>
-                  <button type="button" class="text-sm text-danger hover:underline" (click)="removeOptionValue(val.id)" [disabled]="optionBusy()">
-                    {{ t('remove') }}
-                  </button>
-                </li>
-              }
-            </ul>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <ui-form-field [label]="t('optionValueEn')">
-                <input class="ui-input" [(ngModel)]="newValueText[option.id]" [name]="'val-en-' + option.id" />
-              </ui-form-field>
-              <ui-form-field [label]="t('optionValueAr')">
-                <input class="ui-input" [(ngModel)]="newValueTextAr[option.id]" [name]="'val-ar-' + option.id" />
-              </ui-form-field>
-              <div class="flex items-end">
-                <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="addOptionValue(option)" [disabled]="optionBusy()">
-                  {{ t('addValue') }}
-                </button>
-              </div>
-            </div>
-          </div>
-        }
-
-        <div class="rounded-xl border border-dashed border-ink-200 p-4">
-          <p class="mb-3 text-sm font-semibold text-ink-900">{{ t('addOption') }}</p>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <ui-form-field [label]="t('titleEn')">
-              <input class="ui-input" [(ngModel)]="newOptionName" name="newOptionName" />
-            </ui-form-field>
-            <ui-form-field [label]="t('titleAr')">
-              <input class="ui-input" [(ngModel)]="newOptionNameAr" name="newOptionNameAr" />
-            </ui-form-field>
-            <ui-form-field [label]="t('displayOrder')">
-              <input class="ui-input" type="number" min="0" [(ngModel)]="newOptionOrder" name="newOptionOrder" />
-            </ui-form-field>
-          </div>
-          <button type="button" class="ui-btn-secondary ui-btn-sm mt-3" (click)="addOption()" [disabled]="optionBusy()">
-            {{ t('addOption') }}
-          </button>
-        </div>
-
-        <div class="mt-4">
-          <button type="button" class="ui-btn-primary ui-btn-sm" (click)="generateVariants()" [disabled]="generating()">
-            {{ generating() ? t('generating') : t('generateVariants') }}
-          </button>
         </div>
       </ui-card>
 
-      @if (variants().length > 0) {
-        <ui-card class="admin-form-span" [heading]="t('variants')">
-          <div class="hidden overflow-x-auto md:block">
-            <table class="w-full text-sm">
-              <caption class="sr-only">{{ t('variantsTableCaption') }}</caption>
-              <thead>
-                <tr class="border-b border-ink-200 text-start text-xs uppercase tracking-wide text-ink-500">
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('variant') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('variantImage') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('sku') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('price') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('listPrice') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('price50') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('price100') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('stock') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('minStockAlert') }}</th>
-                  <th class="px-3 py-2 text-start font-medium" scope="col">{{ t('expiryDate') }}</th>
-                  <th class="px-3 py-2 text-end font-medium" scope="col">{{ t('actions') }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-ink-100">
-                @for (variant of variants(); track variant.id) {
-                  <tr>
-                    <td class="px-3 py-2 text-ink-900">{{ variantLabel(variant) }}</td>
-                    <td class="px-3 py-2">
-                      <div class="flex items-center gap-2">
-                        @if (variant.imageUrl) {
-                          <img
-                            [src]="catalogue.resolveImageUrl(variant.imageUrl)"
-                            [alt]="variantLabel(variant)"
-                            class="h-12 w-12 rounded-lg object-cover"
-                          />
-                        }
-                        <label class="ui-btn-secondary ui-btn-sm cursor-pointer">
-                          {{ variantImageUploadingId() === variant.id ? t('saving') : t('uploadImage') }}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            class="sr-only"
-                            (change)="onVariantImageSelected($event, variant)"
-                            [disabled]="variantImageUploadingId() === variant.id"
-                          />
-                        </label>
-                      </div>
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" [(ngModel)]="variant.sku" [name]="'sku-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price" [name]="'price-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.listPrice" [name]="'list-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price50" [name]="'price50-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price100" [name]="'price100-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="variant.stockQuantity" [name]="'stock-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="variant.minimumStockAlert" [name]="'min-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2">
-                      <input class="ui-input" type="date" [(ngModel)]="variant.expiryDate" [name]="'exp-' + variant.id" />
-                    </td>
-                    <td class="px-3 py-2 text-end">
-                      <button
-                        type="button"
-                        class="ui-btn-secondary ui-btn-sm"
-                        (click)="saveVariant(variant)"
-                        [disabled]="variantBusyId() === variant.id"
-                      >
-                        {{ variantBusyId() === variant.id ? t('saving') : t('save') }}
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+      <!-- Pricing & inventory -->
+      <ui-card id="pd-pricing" data-form-section [heading]="t('sectionPricing')">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <ui-form-field [label]="t('salePrice')" [required]="true" for="pd-price" [error]="fieldError('pd-price')">
+            <input id="pd-price" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="price" name="price" required />
+          </ui-form-field>
+          <ui-form-field [label]="t('listPrice')" [required]="true" for="pd-list" [error]="fieldError('pd-list')">
+            <input id="pd-list" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="listPrice" name="listPrice" required />
+          </ui-form-field>
+          <ui-form-field [label]="t('storeCost')" for="pd-cost">
+            <input id="pd-cost" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="storeCost" name="storeCost" />
+          </ui-form-field>
+        </div>
 
-          <div class="space-y-4 md:hidden">
-            @for (variant of variants(); track variant.id) {
-              <div class="rounded-xl border border-ink-200 p-4">
-                <p class="mb-3 font-semibold text-ink-900">{{ variantLabel(variant) }}</p>
-                <div class="mb-3 flex items-center gap-3">
-                  @if (variant.imageUrl) {
-                    <img
-                      [src]="catalogue.resolveImageUrl(variant.imageUrl)"
-                      [alt]="variantLabel(variant)"
-                      class="h-16 w-16 rounded-lg object-cover"
-                    />
-                  }
-                  <label class="ui-btn-secondary ui-btn-sm cursor-pointer">
-                    {{ variantImageUploadingId() === variant.id ? t('saving') : t('uploadImage') }}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      class="sr-only"
-                      (change)="onVariantImageSelected($event, variant)"
-                      [disabled]="variantImageUploadingId() === variant.id"
-                    />
-                  </label>
-                </div>
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ui-form-field [label]="t('sku')">
-                    <input class="ui-input" [(ngModel)]="variant.sku" [name]="'m-sku-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('price')">
-                    <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price" [name]="'m-price-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('listPrice')">
-                    <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.listPrice" [name]="'m-list-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('price50')">
-                    <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price50" [name]="'m-price50-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('price100')">
-                    <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price100" [name]="'m-price100-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('stock')">
-                    <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="variant.stockQuantity" [name]="'m-stock-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('minStockAlert')">
-                    <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="variant.minimumStockAlert" [name]="'m-min-' + variant.id" />
-                  </ui-form-field>
-                  <ui-form-field [label]="t('expiryDate')">
-                    <input class="ui-input" type="date" [(ngModel)]="variant.expiryDate" [name]="'m-exp-' + variant.id" />
-                  </ui-form-field>
-                </div>
-                <button
-                  type="button"
-                  class="ui-btn-secondary ui-btn-sm mt-3 w-full"
-                  (click)="saveVariant(variant)"
-                  [disabled]="variantBusyId() === variant.id"
-                >
-                  {{ variantBusyId() === variant.id ? t('saving') : t('save') }}
-                </button>
-              </div>
+        <!-- What the customer sees -->
+        <div class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600">
+          <span class="material-icons !text-[18px] text-ink-400" aria-hidden="true">visibility</span>
+          {{ t('customersSee') }}:
+          <strong class="text-ink-900">{{ price | iwnCurrency }}</strong>
+          @if (discountPercent() > 0) {
+            <span class="text-ink-400 line-through">{{ listPrice | iwnCurrency }}</span>
+            <span class="rounded-full bg-citrus-soft px-2 py-0.5 text-xs font-bold text-citrus-fg">−{{ discountPercent() }}%</span>
+          } @else if (price > listPrice) {
+            <span class="text-warning-fg">· {{ t('priceAboveList') }}</span>
+          }
+        </div>
+
+        @if (p.productType === 'Simple') {
+          <h4 class="mb-3 mt-6 text-sm font-semibold text-ink-900">{{ t('sectionInventory') }}</h4>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <ui-form-field [label]="t('stockQuantity')" [required]="true" for="pd-stock" [error]="fieldError('pd-stock')">
+              <input id="pd-stock" class="ui-input" type="number" min="0" step="1" [(ngModel)]="stockQuantity" name="stockQuantity" required />
+            </ui-form-field>
+            <ui-form-field [label]="t('minStockAlert')" for="pd-min">
+              <input id="pd-min" class="ui-input" type="number" min="0" step="1" [(ngModel)]="minimumStockAlert" name="minimumStockAlert" />
+            </ui-form-field>
+            <ui-form-field [label]="t('expiryDate')" for="pd-expiry">
+              <input id="pd-expiry" class="ui-input" type="date" [(ngModel)]="expiryDate" name="expiryDate" />
+            </ui-form-field>
+          </div>
+        }
+      </ui-card>
+
+      <!-- Status & visibility -->
+      <ui-card id="pd-status" data-form-section [heading]="t('sectionVisibility')">
+        <div class="divide-y divide-ink-100">
+          <label class="flex cursor-pointer items-center justify-between gap-4 py-3 first:pt-0">
+            <span class="text-sm font-medium text-ink-800">{{ t('isNewProduct') }}</span>
+            <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="isNew" name="isNew" />
+          </label>
+          <label class="flex cursor-pointer items-center justify-between gap-4 py-3">
+            <span class="text-sm font-medium text-ink-800">{{ t('isTrendingProduct') }}</span>
+            <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="isTrending" name="isTrending" />
+          </label>
+          <div class="py-3">
+            <label class="flex cursor-pointer items-center justify-between gap-4">
+              <span class="text-sm font-medium text-ink-800">{{ t('allowFreeDelivery') }}</span>
+              <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="allowFreeDelivery" name="allowFreeDelivery" />
+            </label>
+            @if (allowFreeDelivery) {
+              <ui-form-field [label]="t('freeDeliveryMinimum')" for="pd-free-min" [hint]="t('freeDeliveryMinimumHint')" [error]="fieldError('pd-free-min')" class="mt-3 block max-w-xs">
+                <input id="pd-free-min" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="freeDeliveryMinimumAmount" name="freeDeliveryMinimumAmount" />
+              </ui-form-field>
             }
+          </div>
+          <label class="flex cursor-pointer items-center justify-between gap-4 py-3 last:pb-0">
+            <span>
+              <span class="block text-sm font-medium text-danger">{{ t('markDeleted') }}</span>
+              <span class="block text-xs text-ink-500">{{ t('productDeleteHint') }}</span>
+            </span>
+            <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="isDeleted" name="isDeleted" />
+          </label>
+        </div>
+      </ui-card>
+
+      @if (p.productType === 'Simple') {
+        <!-- Convert to variable -->
+        <ui-card id="pd-variant-setup" data-form-section [heading]="t('sectionVariantSetup')">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="m-0 text-sm text-ink-500">{{ t('convertToVariableHint') }}</p>
+            <button type="button" class="ui-btn-secondary ui-btn-sm shrink-0" (click)="convertToVariable()" [disabled]="converting()">
+              <span class="material-icons !text-[18px]" aria-hidden="true">call_split</span>
+              {{ converting() ? t('saving') : t('convertToVariable') }}
+            </button>
           </div>
         </ui-card>
       }
-    }
 
-    <ui-card class="admin-form-span" [heading]="t('images')">
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        @for (image of images(); track image.id) {
-          <figure class="relative">
-            <img [src]="catalogue.resolveImageUrl(image.imageUrl)" [alt]="p.title" class="h-28 w-full rounded-xl object-cover" />
-            <input class="ui-input mt-1 text-xs" [(ngModel)]="image.imageInfo" [name]="'img-info-' + image.id" placeholder="Info label" />
-            <button type="button" class="mt-1 text-xs text-ink-600 hover:underline" (click)="updateImageInfo(image)">{{ t('save') }}</button>
-            <button type="button" class="mt-1 text-xs text-danger hover:underline" (click)="removeImage(image.id)">{{ t('remove') }}</button>
-          </figure>
+      @if (isVariable()) {
+        <!-- Options -->
+        <ui-card id="pd-options" data-form-section class="admin-form-span" [heading]="t('productOptions')">
+          <div class="space-y-4">
+            @for (option of options(); track option.id) {
+              <div class="rounded-xl border border-ink-200 p-4">
+                <div class="mb-3 flex items-center justify-between gap-2">
+                  <strong class="text-ink-900">{{ optionLabel(option) }}</strong>
+                  <button type="button" class="ui-btn-ghost ui-btn-sm text-danger" (click)="removeOption(option.id)" [disabled]="optionBusy()">
+                    <span class="material-icons !text-[18px]" aria-hidden="true">delete_outline</span>
+                    {{ t('delete') }}
+                  </button>
+                </div>
+                <div class="mb-3 flex flex-wrap gap-2">
+                  @for (val of option.values; track val.id) {
+                    <span class="inline-flex h-8 items-center gap-1 rounded-full border border-ink-200 bg-surface pe-1 ps-3 text-sm text-ink-800">
+                      {{ optionValueLabel(val) }}
+                      <button
+                        type="button"
+                        class="inline-flex h-6 w-6 items-center justify-center rounded-full border-0 bg-transparent p-0 text-ink-400 hover:bg-danger-soft hover:text-danger"
+                        [attr.aria-label]="t('remove') + ' ' + optionValueLabel(val)"
+                        (click)="removeOptionValue(val.id)"
+                        [disabled]="optionBusy()"
+                      >
+                        <span class="material-icons !text-[16px]" aria-hidden="true">close</span>
+                      </button>
+                    </span>
+                  }
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <ui-form-field [label]="t('optionValueEn')">
+                    <input class="ui-input" [(ngModel)]="newValueText[option.id]" [name]="'val-en-' + option.id" />
+                  </ui-form-field>
+                  <ui-form-field [label]="t('optionValueAr')">
+                    <input class="ui-input" dir="rtl" [(ngModel)]="newValueTextAr[option.id]" [name]="'val-ar-' + option.id" />
+                  </ui-form-field>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="addOptionValue(option)" [disabled]="optionBusy()">
+                    <span class="material-icons !text-[18px]" aria-hidden="true">add</span>
+                    {{ t('addValue') }}
+                  </button>
+                </div>
+              </div>
+            }
+
+            <div class="rounded-xl border border-dashed border-ink-200 p-4">
+              <p class="mb-3 text-sm font-semibold text-ink-900">{{ t('addOption') }}</p>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <ui-form-field [label]="t('titleEn')">
+                  <input class="ui-input" [(ngModel)]="newOptionName" name="newOptionName" />
+                </ui-form-field>
+                <ui-form-field [label]="t('titleAr')">
+                  <input class="ui-input" dir="rtl" [(ngModel)]="newOptionNameAr" name="newOptionNameAr" />
+                </ui-form-field>
+                <ui-form-field [label]="t('displayOrder')">
+                  <input class="ui-input" type="number" min="0" [(ngModel)]="newOptionOrder" name="newOptionOrder" />
+                </ui-form-field>
+              </div>
+              <button type="button" class="ui-btn-secondary ui-btn-sm mt-3" (click)="addOption()" [disabled]="optionBusy()">
+                <span class="material-icons !text-[18px]" aria-hidden="true">add</span>
+                {{ t('addOption') }}
+              </button>
+            </div>
+          </div>
+
+          <div card-actions>
+            <button type="button" class="ui-btn-primary ui-btn-sm" (click)="generateVariants()" [disabled]="generating()">
+              <span class="material-icons !text-[18px]" aria-hidden="true">auto_awesome</span>
+              {{ generating() ? t('generating') : t('generateVariants') }}
+            </button>
+          </div>
+        </ui-card>
+
+        @if (variants().length > 0) {
+          <!-- Variants -->
+          <ui-card id="pd-variants" data-form-section class="admin-form-span" [heading]="t('variants')" [padded]="false">
+            <div class="relative hidden overflow-x-auto md:block">
+              <table class="w-full border-collapse text-sm">
+                <caption class="sr-only">{{ t('variantsTableCaption') }}</caption>
+                <thead class="bg-ink-50">
+                  <tr class="border-b border-ink-200">
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('variant') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('sku') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('price') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('listPrice') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('price50') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('price100') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('stock') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('minStockAlert') }}</th>
+                    <th class="whitespace-nowrap px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-ink-500" scope="col">{{ t('expiryDate') }}</th>
+                    <th class="px-3 py-2.5" scope="col"><span class="sr-only">{{ t('actions') }}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (variant of variants(); track variant.id) {
+                    <tr class="border-b border-ink-100 align-middle last:border-0 hover:bg-ink-50/60">
+                      <td class="px-3 py-2">
+                        <div class="flex min-w-[11rem] items-center gap-2.5">
+                          <label
+                            class="relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-ink-300 bg-ink-50 text-ink-400 hover:border-brand-600 hover:text-brand-700"
+                            [attr.title]="t('uploadImage')"
+                          >
+                            @if (variant.imageUrl) {
+                              <img [src]="catalogue.resolveImageUrl(variant.imageUrl)" alt="" class="h-full w-full object-cover" />
+                            } @else {
+                              <span class="material-icons !text-[18px]" aria-hidden="true">{{ variantImageUploadingId() === variant.id ? 'hourglass_top' : 'add_photo_alternate' }}</span>
+                            }
+                            <input
+                              type="file"
+                              accept="image/*"
+                              class="sr-only"
+                              [attr.aria-label]="t('uploadImage') + ': ' + variantLabel(variant)"
+                              (change)="onVariantImageSelected($event, variant)"
+                              [disabled]="variantImageUploadingId() === variant.id"
+                            />
+                          </label>
+                          <span class="font-medium text-ink-900">{{ variantLabel(variant) }}</span>
+                        </div>
+                      </td>
+                      <td class="px-3 py-2"><input class="ui-input min-w-[7rem]" [(ngModel)]="variant.sku" [name]="'sku-' + variant.id" [attr.aria-label]="t('sku')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-24" type="number" min="0" step="0.01" [(ngModel)]="variant.price" [name]="'price-' + variant.id" [attr.aria-label]="t('price')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-24" type="number" min="0" step="0.01" [(ngModel)]="variant.listPrice" [name]="'list-' + variant.id" [attr.aria-label]="t('listPrice')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-24" type="number" min="0" step="0.01" [(ngModel)]="variant.price50" [name]="'price50-' + variant.id" [attr.aria-label]="t('price50')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-24" type="number" min="0" step="0.01" [(ngModel)]="variant.price100" [name]="'price100-' + variant.id" [attr.aria-label]="t('price100')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-20" type="number" min="0" step="1" [(ngModel)]="variant.stockQuantity" [name]="'stock-' + variant.id" [attr.aria-label]="t('stock')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-20" type="number" min="0" step="1" [(ngModel)]="variant.minimumStockAlert" [name]="'min-' + variant.id" [attr.aria-label]="t('minStockAlert')" /></td>
+                      <td class="px-3 py-2"><input class="ui-input w-36" type="date" [(ngModel)]="variant.expiryDate" [name]="'exp-' + variant.id" [attr.aria-label]="t('expiryDate')" /></td>
+                      <td class="px-3 py-2 text-end">
+                        <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="saveVariant(variant)" [disabled]="variantBusyId() === variant.id">
+                          {{ variantBusyId() === variant.id ? t('saving') : t('save') }}
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="space-y-4 p-4 md:hidden">
+              @for (variant of variants(); track variant.id) {
+                <div class="rounded-xl border border-ink-200 p-4">
+                  <div class="mb-3 flex items-center gap-3">
+                    <label class="relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-ink-300 bg-ink-50 text-ink-400">
+                      @if (variant.imageUrl) {
+                        <img [src]="catalogue.resolveImageUrl(variant.imageUrl)" alt="" class="h-full w-full object-cover" />
+                      } @else {
+                        <span class="material-icons !text-[20px]" aria-hidden="true">add_photo_alternate</span>
+                      }
+                      <input
+                        type="file"
+                        accept="image/*"
+                        class="sr-only"
+                        [attr.aria-label]="t('uploadImage') + ': ' + variantLabel(variant)"
+                        (change)="onVariantImageSelected($event, variant)"
+                        [disabled]="variantImageUploadingId() === variant.id"
+                      />
+                    </label>
+                    <p class="m-0 font-semibold text-ink-900">{{ variantLabel(variant) }}</p>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <ui-form-field class="col-span-2" [label]="t('sku')">
+                      <input class="ui-input" [(ngModel)]="variant.sku" [name]="'m-sku-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field [label]="t('price')">
+                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price" [name]="'m-price-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field [label]="t('listPrice')">
+                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.listPrice" [name]="'m-list-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field [label]="t('price50')">
+                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price50" [name]="'m-price50-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field [label]="t('price100')">
+                      <input class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="variant.price100" [name]="'m-price100-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field [label]="t('stock')">
+                      <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="variant.stockQuantity" [name]="'m-stock-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field [label]="t('minStockAlert')">
+                      <input class="ui-input" type="number" min="0" step="1" [(ngModel)]="variant.minimumStockAlert" [name]="'m-min-' + variant.id" />
+                    </ui-form-field>
+                    <ui-form-field class="col-span-2" [label]="t('expiryDate')">
+                      <input class="ui-input" type="date" [(ngModel)]="variant.expiryDate" [name]="'m-exp-' + variant.id" />
+                    </ui-form-field>
+                  </div>
+                  <button type="button" class="ui-btn-secondary ui-btn-sm mt-3 w-full" (click)="saveVariant(variant)" [disabled]="variantBusyId() === variant.id">
+                    {{ variantBusyId() === variant.id ? t('saving') : t('save') }}
+                  </button>
+                </div>
+              }
+            </div>
+          </ui-card>
         }
-      </div>
-      <label class="ui-label mt-4 block">
-        {{ t('uploadImage') }}
-        <input type="file" accept="image/*" (change)="onImageSelected($event)" [disabled]="uploading()" class="mt-1 block text-sm" />
-      </label>
-      <label class="ui-label mt-3 block">
-        {{ t('uploadImage') }} (info)
-        <input
-          type="file"
-          accept="image/*"
-          (change)="onInfoImageSelected($event)"
-          [disabled]="infoImageUploading()"
-          class="mt-1 block text-sm"
-        />
-      </label>
-    </ui-card>
+      }
 
-    @if (saveError()) {
-      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
-    }
-    @if (saveMessage()) {
-      <div class="admin-form-span rounded-xl bg-success-soft px-4 py-3 text-sm text-success-fg">{{ saveMessage() }}</div>
-    }
+      <!-- Images -->
+      <ui-card id="pd-images" data-form-section class="admin-form-span" [heading]="t('images')" [subheading]="t('imagesHint')">
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          @for (image of images(); track image.id; let first = $first) {
+            <figure class="m-0 flex flex-col gap-2">
+              <div
+                class="relative aspect-square overflow-hidden rounded-xl border bg-stage"
+                [class.border-brand-600]="first"
+                [class.border-2]="first"
+                [class.border-ink-200]="!first"
+              >
+                <img [src]="catalogue.resolveImageUrl(image.imageUrl)" alt="" class="h-full w-full object-cover" />
+                @if (first) {
+                  <span class="absolute start-2 top-2 rounded-md bg-brand-700 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ t('mainImage') }}</span>
+                }
+                <button
+                  type="button"
+                  class="absolute end-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-surface/90 p-0 text-ink-600 shadow-sm hover:bg-danger-soft hover:text-danger"
+                  [attr.aria-label]="t('remove')"
+                  (click)="removeImage(image.id)"
+                >
+                  <span class="material-icons !text-[18px]" aria-hidden="true">delete_outline</span>
+                </button>
+              </div>
+              <div class="flex gap-1.5">
+                <input
+                  class="ui-input !min-h-9 flex-1 text-xs"
+                  [(ngModel)]="image.imageInfo"
+                  [name]="'img-info-' + image.id"
+                  [placeholder]="t('imageInfoPlaceholder')"
+                  [attr.aria-label]="t('imageInfoPlaceholder')"
+                />
+                <button type="button" class="ui-btn-secondary ui-btn-sm !min-h-9 !px-2" [attr.aria-label]="t('save')" (click)="updateImageInfo(image)">
+                  <span class="material-icons !text-[18px]" aria-hidden="true">check</span>
+                </button>
+              </div>
+            </figure>
+          }
 
-    <div class="admin-form-bar">
-      <button type="submit" class="ui-btn-primary" [disabled]="saving()">
-        {{ saving() ? t('saving') : t('saveChanges') }}
-      </button>
-    </div>
-  </form>
-  }
+          <label
+            class="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-ink-200 p-3 text-center text-xs font-medium text-ink-500 hover:border-brand-600 hover:text-brand-700"
+            [class.opacity-60]="uploading()"
+          >
+            <span class="material-icons !text-[28px]" aria-hidden="true">{{ uploading() ? 'hourglass_top' : 'add_photo_alternate' }}</span>
+            {{ uploading() ? t('saving') : t('uploadImage') }}
+            <input type="file" accept="image/*" class="sr-only" (change)="onImageSelected($event)" [disabled]="uploading()" />
+          </label>
+          <label
+            class="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-ink-200 p-3 text-center text-xs font-medium text-ink-500 hover:border-brand-600 hover:text-brand-700"
+            [class.opacity-60]="infoImageUploading()"
+          >
+            <span class="material-icons !text-[28px]" aria-hidden="true">{{ infoImageUploading() ? 'hourglass_top' : 'info' }}</span>
+            {{ infoImageUploading() ? t('saving') : t('uploadInfoImage') }}
+            <input type="file" accept="image/*" class="sr-only" (change)="onInfoImageSelected($event)" [disabled]="infoImageUploading()" />
+          </label>
+        </div>
+      </ui-card>
+
+      <ui-form-bar [dirty]="hasUnsavedChanges()" [saving]="saving()" (cancel)="cancel()" />
+    </form>
+  </div>
+}
 }

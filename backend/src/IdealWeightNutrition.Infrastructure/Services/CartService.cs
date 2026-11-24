@@ -4,6 +4,7 @@ using IdealWeightNutrition.Contracts.Cart;
 using IdealWeightNutrition.Domain.Cart;
 using IdealWeightNutrition.Domain.Catalogue;
 using IdealWeightNutrition.Domain.Promotions;
+using IdealWeightNutrition.Infrastructure.Delivery;
 using IdealWeightNutrition.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -715,13 +716,15 @@ internal sealed class CartService : ICartService
             });
         }
 
+        var subtotal = items.Sum(i => i.LineTotal);
         var response = new CartResponse
         {
             Items = items,
             ItemCount = items.Sum(i => i.Quantity),
-            Subtotal = items.Sum(i => i.LineTotal),
+            Subtotal = subtotal,
             Discount = 0,
-            Total = items.Sum(i => i.LineTotal)
+            Total = subtotal,
+            FreeDelivery = BuildFreeDelivery(items, subtotal, products, combos)
         };
 
         return await EnrichWithPromoAsync(response, lineList, products, combos, userId, guestCartId, ct);
@@ -759,7 +762,48 @@ internal sealed class CartService : ICartService
             Subtotal = cart.Subtotal,
             Discount = validation.DiscountAmount,
             Total = Math.Max(0, cart.Subtotal - validation.DiscountAmount),
-            AppliedPromo = validation.Promo
+            AppliedPromo = validation.Promo,
+            FreeDelivery = cart.FreeDelivery
+        };
+    }
+
+    /// <summary>
+    /// Same rule as checkout (<see cref="DeliveryCalculator"/>): combo lines use the combo's
+    /// settings, other lines their product's; the threshold applies to the pre-promo subtotal.
+    /// The delivery charge itself depends on the city, so only progress is reported here.
+    /// </summary>
+    private static CartFreeDeliveryDto? BuildFreeDelivery(
+        IReadOnlyList<CartItemDto> items,
+        double subtotal,
+        Dictionary<int, Product> products,
+        Dictionary<int, ComboOffer> combos)
+    {
+        if (items.Count == 0)
+            return null;
+
+        var lines = items
+            .Select(i =>
+            {
+                if (i.ComboOfferId is > 0)
+                {
+                    return combos.TryGetValue(i.ComboOfferId.Value, out var combo) && !combo.IsDeleted
+                        ? new DeliveryLine(true, combo.AllowFreeDelivery, combo.FreeDeliveryMinimumAmount)
+                        : DeliveryLine.Missing;
+                }
+
+                return products.TryGetValue(i.ProductId, out var product) && !product.IsDeleted
+                    ? new DeliveryLine(true, product.AllowFreeDelivery, product.FreeDeliveryMinimumAmount)
+                    : DeliveryLine.Missing;
+            })
+            .ToList();
+
+        var quote = DeliveryCalculator.Calculate(lines, subtotal, baseCharge: 0);
+        return new CartFreeDeliveryDto
+        {
+            Available = quote.AllLinesAllowFree,
+            Threshold = quote.Threshold,
+            Qualifies = quote.IsFree,
+            AmountRemaining = quote.AmountRemainingForFree
         };
     }
 

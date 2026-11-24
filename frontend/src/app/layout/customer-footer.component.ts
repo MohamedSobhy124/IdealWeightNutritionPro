@@ -13,6 +13,18 @@ import {
 } from '../core/services/newsletter-storage';
 import { UiConfirmService } from '../shared/ui/ui-confirm.service';
 
+const COPY = {
+  about: {
+    en: 'Original supplements, healthy food and expert nutrition advice, with fast delivery across the UAE.',
+    ar: 'مكملات أصلية وأغذية صحية ونصائح تغذية من الخبراء، مع توصيل سريع في جميع أنحاء الإمارات.',
+  },
+  allProducts: { en: 'All products', ar: 'كل المنتجات' },
+  company: { en: 'Company', ar: 'الشركة' },
+  visit: { en: 'Our branches', ar: 'فروعنا' },
+  rights: { en: 'All rights reserved.', ar: 'جميع الحقوق محفوظة.' },
+  securePay: { en: 'Secure payment', ar: 'دفع آمن' },
+} as const;
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-customer-footer',
@@ -55,6 +67,10 @@ export class CustomerFooterComponent {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  c(key: keyof typeof COPY): string {
+    return this.locale.pick(COPY[key].en, COPY[key].ar);
   }
 
   subscribeNewsletter(): void {

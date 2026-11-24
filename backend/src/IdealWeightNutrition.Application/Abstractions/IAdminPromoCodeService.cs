@@ -18,6 +18,8 @@ public interface IAdminPromoCodeService
         UpsertAdminPromoCodeRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<AdminPromoCodeUsageDto>> GetUsagesAsync(int promoId, CancellationToken cancellationToken = default);
+
     Task ToggleActiveAsync(int id, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);

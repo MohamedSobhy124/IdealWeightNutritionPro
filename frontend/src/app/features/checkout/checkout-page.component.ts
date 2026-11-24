@@ -1,12 +1,14 @@
-import { isPlatformBrowser } from '@angular/common';
+import { NgTemplateOutlet, isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { CartService } from '../../core/services/cart.service';
+import { CatalogueService } from '../../core/services/catalogue.service';
 import { CheckoutService } from '../../core/services/checkout.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
+import { formatIwnCurrency } from '../../core/utils/iwn-currency';
 import { UI, UiKey } from '../../core/i18n/ui-text';
 import { paymentMethodLabelKey, paymentUnavailableReasonKey } from '../../core/i18n/payment-labels';
 import {
@@ -16,23 +18,40 @@ import {
   PaymentMethodOption,
   CreateOrderResponse,
 } from '../../core/models/checkout.models';
-import { startGeideaPayment } from '../../core/utils/geidea-checkout';
+import { GeideaCancelledError, GeideaUnavailableError, startGeideaPayment } from '../../core/utils/geidea-checkout';
 import { apiErrorMessage } from '../../core/utils/api-error';
 
-import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiOtpInputComponent, UiPageHeaderComponent, UiSheetSelectComponent, UiSkeletonComponent, UiStepperComponent } from '../../shared/ui';
+import { CartItem } from '../../core/models/cart.models';
+import { UiEmptyStateComponent, UiFormFieldComponent, UiOtpInputComponent, UiPageHeaderComponent, UiSheetSelectComponent, UiSkeletonComponent } from '../../shared/ui';
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Checkout-only copy that has no shared key in ui-text.ts. */
+const COPY = {
+  secureCheckout: { en: 'Secure checkout', ar: 'دفع آمن ومشفّر' },
+  stepOf: { en: 'Step {n} of {total}', ar: 'الخطوة {n} من {total}' },
+  edit: { en: 'Edit', ar: 'تعديل' },
+  showSummary: { en: 'Show order summary', ar: 'عرض ملخص الطلب' },
+  hideSummary: { en: 'Hide order summary', ar: 'إخفاء ملخص الطلب' },
+  weAccept: { en: 'We accept', ar: 'طرق الدفع المتاحة' },
+  payDescCOD: { en: 'Pay in cash when your order arrives', ar: 'ادفع نقداً عند استلام طلبك' },
+  payDescCard: { en: 'Visa or Mastercard, processed securely', ar: 'فيزا أو ماستركارد بمعالجة آمنة' },
+  payDescLater: { en: 'Split your total into interest-free payments', ar: 'قسّم المبلغ على دفعات بدون فوائد' },
+  payDescOther: { en: 'Secure online payment', ar: 'دفع إلكتروني آمن' },
+} as const;
+type CopyKey = keyof typeof COPY;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, FormsModule, IwnCurrencyPipe, UiCardComponent, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiFormFieldComponent, UiStepperComponent, UiOtpInputComponent, UiSheetSelectComponent],
+  imports: [RouterLink, FormsModule, NgTemplateOutlet, IwnCurrencyPipe, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiFormFieldComponent, UiOtpInputComponent, UiSheetSelectComponent],
   templateUrl: './checkout-page.component.html',
   styleUrl: './checkout-page.component.css',
 })
 export class CheckoutPageComponent implements OnInit {
   private readonly checkout = inject(CheckoutService);
   private readonly cartService = inject(CartService);
+  readonly catalogue = inject(CatalogueService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly locale = inject(LocaleService);
@@ -73,16 +92,76 @@ export class CheckoutPageComponent implements OnInit {
     { icon: 'fact_check', labelKey: 'checkoutStepReview' },
   ];
 
-  readonly stepperSteps = computed(() => {
+  /* ---- View-only helpers (no checkout logic) ---------------------------- */
+  /** Mobile order-summary disclosure. */
+  readonly summaryOpen = signal(false);
+  readonly cartItems = computed<CartItem[]>(() => this.cartService.cart()?.items ?? []);
+  readonly appliedPromoCode = computed(() => this.cartService.cart()?.appliedPromo?.code ?? null);
+  /** Fill of the stepper line, 0-100. */
+  readonly stepProgress = computed(() => (this.checkoutStep() / (this.checkoutSteps.length - 1)) * 100);
+  readonly stepCounter = computed(() =>
+    this.c('stepOf')
+      .replace('{n}', String(this.checkoutStep() + 1))
+      .replace('{total}', String(this.checkoutSteps.length)),
+  );
+  /** Payment names shown as pills in the summary. */
+  readonly paymentPills = computed(() => {
     this.locale.locale();
-    return this.checkoutSteps.map((step) => ({ label: this.t(step.labelKey) }));
+    const available = this.paymentMethods().filter((m) => m.available);
+    if (available.length) return available.map((m) => this.paymentLabel(m));
+    // Before methods load (no city yet), only claim what the API always offers.
+    return [this.t('cashOnDelivery')];
   });
+
+  c(key: CopyKey): string {
+    return this.locale.pick(COPY[key].en, COPY[key].ar);
+  }
+
+  itemTitle(item: CartItem): string {
+    return this.locale.pick(item.title, item.titleAr);
+  }
+
+  paymentDescription(methodId: string): string {
+    switch (methodId) {
+      case 'COD':
+        return this.c('payDescCOD');
+      case 'Geidea':
+        return this.c('payDescCard');
+      case 'Tamara':
+      case 'Tabby':
+        return this.c('payDescLater');
+      default:
+        return this.c('payDescOther');
+    }
+  }
+
+  /** Jump back to an earlier step (stepper dots / review "Edit" links). Same effect as repeated Back. */
+  goToStep(step: number): void {
+    if (step >= this.checkoutStep() || step < 0) return;
+    this.attemptedStep.set(null);
+    this.checkoutStep.set(step);
+  }
 
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
   }
+
+  /** 0–100: how close the subtotal is to the free-delivery threshold. */
+  readonly freeDeliveryProgress = computed(() => {
+    const q = this.quote();
+    const threshold = q?.freeDeliveryThreshold ?? 0;
+    if (!q?.freeDeliveryAvailable || threshold <= 0) return 100;
+    return Math.min(100, Math.max(0, Math.round((q.subtotal / threshold) * 100)));
+  });
+
+  readonly freeDeliveryRemainingText = computed(() =>
+    this.t('freeDeliveryRemaining').replace(
+      '{amount}',
+      formatIwnCurrency(this.quote()?.amountRemainingForFreeDelivery ?? 0, this.locale),
+    ),
+  );
 
   readonly cityOptions = computed(() => {
     this.locale.locale();
@@ -402,7 +481,14 @@ export class CheckoutPageComponent implements OnInit {
       startGeideaPayment(order.paymentSessionId)
         .then(() => this.finalizeOnlineOrder(order.orderId))
         .catch((err: Error) => {
-          this.error.set(err.message ?? this.t('paymentNotCompleted'));
+          // Popup could not open: use Geidea's hosted payment page instead.
+          if (err instanceof GeideaUnavailableError && order.paymentRedirectUrl) {
+            window.location.href = order.paymentRedirectUrl;
+            return;
+          }
+          this.error.set(
+            err instanceof GeideaCancelledError ? this.t('paymentNotCompleted') : err.message || this.t('paymentNotCompleted'),
+          );
           this.submitting.set(false);
         });
       return;

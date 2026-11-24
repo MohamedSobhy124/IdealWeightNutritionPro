@@ -8,6 +8,7 @@ import { AdminBlogService } from '../../../core/services/admin-blog.service';
 import { AdminMediaService } from '../../../core/services/admin-service.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { RichTextEditorComponent } from '../../../shared/components/rich-text-editor/rich-text-editor.component';
 import {
   UiCardComponent,
@@ -15,12 +16,16 @@ import {
   UiFormFieldComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
+  UiErrorSummaryComponent,
+  UiFormBarComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiErrorSummaryComponent,
+    UiFormBarComponent,
     RouterLink,
     FormsModule,
     RichTextEditorComponent,
@@ -44,6 +49,7 @@ export class AdminBlogFormComponent extends UnsavedChangesForm implements OnInit
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
   readonly loading = signal(true);
   readonly submitting = signal(false);
@@ -341,6 +347,7 @@ export class AdminBlogFormComponent extends UnsavedChangesForm implements OnInit
 
         this.submitting.set(false);
         this.markSaved();
+        this.toast.success(this.t('saved'));
 
         if (!this.isEdit()) {
 
@@ -405,6 +412,8 @@ export class AdminBlogFormComponent extends UnsavedChangesForm implements OnInit
   private hasContent(html: string): boolean {
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
   }
+
+  cancel(): void {
+    void this.router.navigate(['/admin/blog']);
+  }
 }
-
-

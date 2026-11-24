@@ -45,7 +45,7 @@
               {{ t(group.labelKey) }}
             </p>
           }
-          <ul class="space-y-0.5">
+          <ul class="m-0 list-none space-y-0.5 p-0">
             @for (item of group.items; track item.link) {
               <li>
                 <a
@@ -56,9 +56,17 @@
                   [class.justify-center]="collapsed()"
                   [attr.title]="collapsed() ? t(item.labelKey) : null"
                 >
-                  <span class="material-icons !text-[20px]">{{ item.icon }}</span>
+                  <span class="relative inline-flex">
+                    <span class="material-icons !text-[20px]">{{ item.icon }}</span>
+                    @if (collapsed() && navCount(item.link)) {
+                      <span class="absolute -end-1 -top-1 h-2 w-2 rounded-full bg-warning" aria-hidden="true"></span>
+                    }
+                  </span>
                   @if (!collapsed()) {
                     <span class="truncate">{{ t(item.labelKey) }}</span>
+                    @if (navCount(item.link)) {
+                      <span class="admin-nav-badge" [attr.aria-label]="navCount(item.link) + ' ' + t('pendingCount')">{{ navCount(item.link) }}</span>
+                    }
                   }
                 </a>
               </li>
@@ -146,7 +154,7 @@
 
       <button
         type="button"
-        class="ui-btn-icon"
+        class="ui-btn-icon hidden sm:inline-flex"
         (click)="toggleDensity()"
         [attr.aria-pressed]="density() === 'compact'"
         [attr.aria-label]="density() === 'compact' ? t('densityCompact') : t('densityComfortable')"

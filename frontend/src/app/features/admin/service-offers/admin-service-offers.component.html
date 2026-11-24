@@ -40,7 +40,7 @@
 
 @if (message()) {
 
-  <p class="mb-4 text-sm text-success-fg">{{ message() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
 
 }
 
@@ -48,7 +48,7 @@
 
 @if (error()) {
 
-  <p class="mb-4 text-danger">{{ error() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 
 }
 
@@ -126,23 +126,17 @@
 
 
   <ng-template uiCell="actions" let-row>
-
     @let item = $any(row);
-
-    <div class="flex flex-wrap gap-1.5">
-
-      <a [routerLink]="['/admin/service-offers', item.id]" class="ui-btn-secondary ui-btn-sm">{{ t('edit') }}</a>
-
-      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="toggle(item)" [disabled]="busyId() === item.id">
-
-        {{ item.isActive ? t('deactivate') : t('activate') }}
-
-      </button>
-
-      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('remove') }}</button>
-
-    </div>
-
+    <ui-action-menu
+      [label]="t('moreActions')"
+      [disabled]="busyId() === item.id"
+      [items]="[
+        { id: 'edit', label: t('edit'), icon: 'edit', link: ['/admin/service-offers', item.id] },
+        { id: 'toggle', label: item.isActive ? t('turnOff') : t('turnOn'), icon: item.isActive ? 'pause_circle' : 'play_circle' },
+        { id: 'delete', label: t('remove'), icon: 'delete_outline', danger: true, dividerBefore: true }
+      ]"
+      (select)="$event === 'toggle' ? toggle(item) : $event === 'delete' ? remove(item) : null"
+    />
   </ng-template>
 
 </ui-data-table>

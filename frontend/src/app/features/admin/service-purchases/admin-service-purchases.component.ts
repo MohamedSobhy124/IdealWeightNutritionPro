@@ -19,12 +19,14 @@ import {
   UiPaginationComponent,
   type UiBadgeVariant,
   type UiTableColumn,
+  UiAlertComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiAlertComponent,
     RouterLink,
     DatePipe,
     IwnCurrencyPipe,

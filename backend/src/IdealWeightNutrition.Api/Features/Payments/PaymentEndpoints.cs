@@ -3,6 +3,8 @@ using IdealWeightNutrition.Api.Http;
 using IdealWeightNutrition.Application.Abstractions;
 using IdealWeightNutrition.Contracts.Checkout;
 using IdealWeightNutrition.Infrastructure.Options;
+using IdealWeightNutrition.Infrastructure.Payments;
+using IdealWeightNutrition.Utility;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
@@ -62,11 +64,16 @@ public sealed class TamaraWebhookEndpoint : EndpointWithoutRequest<TamaraWebhook
 {
     private readonly IPaymentService _payments;
     private readonly ILogger<TamaraWebhookEndpoint> _logger;
+    private readonly TamaraSettings _tamara;
 
-    public TamaraWebhookEndpoint(IPaymentService payments, ILogger<TamaraWebhookEndpoint> logger)
+    public TamaraWebhookEndpoint(
+        IPaymentService payments,
+        ILogger<TamaraWebhookEndpoint> logger,
+        IOptions<TamaraSettings> tamara)
     {
         _payments = payments;
         _logger = logger;
+        _tamara = tamara.Value;
     }
 
     public override void Configure()
@@ -77,6 +84,21 @@ public sealed class TamaraWebhookEndpoint : EndpointWithoutRequest<TamaraWebhook
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        // Tamara signs the webhook token (header and/or ?tamaraToken=) with the merchant's
+        // notification token. Reject anything that does not verify before reading the body.
+        var token = PaymentVerificationRules.ExtractTamaraToken(
+            HttpContext.Request.Headers.Authorization.ToString(),
+            HttpContext.Request.Query["tamaraToken"].ToString());
+
+        if (!PaymentVerificationRules.IsValidTamaraWebhookToken(token, _tamara.NotificationToken))
+        {
+            _logger.LogWarning(
+                "Tamara webhook rejected: missing or invalid token (notification token configured: {Configured}).",
+                !string.IsNullOrWhiteSpace(_tamara.NotificationToken));
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
         using var reader = new StreamReader(HttpContext.Request.Body);
         var body = await reader.ReadToEndAsync(ct);
 
@@ -108,8 +130,7 @@ public sealed class TamaraWebhookEndpoint : EndpointWithoutRequest<TamaraWebhook
             return;
         }
 
-        var authHeader = HttpContext.Request.Headers.Authorization.ToString();
-        var result = await _payments.HandleTamaraWebhookAsync(notification, authHeader, ct);
+        var result = await _payments.HandleTamaraWebhookAsync(notification, $"Bearer {token}", ct);
         await Send.OkAsync(result, ct);
     }
 }

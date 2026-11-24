@@ -3,7 +3,9 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { VideoBanner, VideoBannerService } from '../../../core/services/video-banner.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import {
+  UiAlertComponent,
   UiCardComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
@@ -12,13 +14,14 @@ import {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [DecimalPipe, UiPageHeaderComponent, UiCardComponent, UiSkeletonComponent],
+  imports: [DecimalPipe, UiAlertComponent, UiPageHeaderComponent, UiCardComponent, UiSkeletonComponent],
   templateUrl: './admin-video-banner.component.html',
   styleUrl: './admin-video-banner.component.css',
 })
 export class AdminVideoBannerComponent implements OnInit {
   private readonly api = inject(VideoBannerService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
   readonly banner = signal<VideoBanner | null>(null);
   readonly loading = signal(true);
@@ -57,7 +60,7 @@ export class AdminVideoBannerComponent implements OnInit {
     this.api.uploadVideo(file).subscribe({
       next: (banner) => {
         this.banner.set(banner);
-        this.message.set(this.t('videoUploaded'));
+        this.toast.success(this.t('videoUploaded'));
         this.error.set(false);
         this.busy.set(false);
         input.value = '';
@@ -78,7 +81,7 @@ export class AdminVideoBannerComponent implements OnInit {
     this.api.uploadPoster(file).subscribe({
       next: (banner) => {
         this.banner.set(banner);
-        this.message.set(this.t('posterUploaded'));
+        this.toast.success(this.t('posterUploaded'));
         this.error.set(false);
         this.busy.set(false);
         input.value = '';
@@ -96,7 +99,7 @@ export class AdminVideoBannerComponent implements OnInit {
     this.api.deleteVideo().subscribe({
       next: (banner) => {
         this.banner.set(banner);
-        this.message.set(this.t('videoDeleted'));
+        this.toast.success(this.t('videoDeleted'));
         this.error.set(false);
         this.busy.set(false);
       },
@@ -113,7 +116,7 @@ export class AdminVideoBannerComponent implements OnInit {
     this.api.deletePoster().subscribe({
       next: (banner) => {
         this.banner.set(banner);
-        this.message.set(this.t('posterDeleted'));
+        this.toast.success(this.t('posterDeleted'));
         this.error.set(false);
         this.busy.set(false);
       },

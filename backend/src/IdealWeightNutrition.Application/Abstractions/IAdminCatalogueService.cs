@@ -33,4 +33,16 @@ public interface IAdminCatalogueService
         CancellationToken cancellationToken = default);
 
     Task DeleteBrandAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<AdminImageUploadResultDto> UploadCategoryImageAsync(
+        int id,
+        Stream fileStream,
+        string fileName,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminImageUploadResultDto> UploadBrandImageAsync(
+        int id,
+        Stream fileStream,
+        string fileName,
+        CancellationToken cancellationToken = default);
 }

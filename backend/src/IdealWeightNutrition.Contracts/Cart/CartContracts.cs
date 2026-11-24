@@ -26,6 +26,20 @@ public sealed class CartResponse
     public double Discount { get; init; }
     public double Total { get; init; }
     public CartPromoDto? AppliedPromo { get; init; }
+    /// <summary>Free-delivery progress for the cart, independent of the delivery city.</summary>
+    public CartFreeDeliveryDto? FreeDelivery { get; init; }
+}
+
+public sealed class CartFreeDeliveryDto
+{
+    /// <summary>Every item allows free delivery, so a threshold applies.</summary>
+    public required bool Available { get; init; }
+    /// <summary>Subtotal (before promo discount) needed; null when not available.</summary>
+    public double? Threshold { get; init; }
+    /// <summary>The subtotal has reached the threshold.</summary>
+    public required bool Qualifies { get; init; }
+    /// <summary>How much more subtotal is needed; 0 when it qualifies or is not available.</summary>
+    public required double AmountRemaining { get; init; }
 }
 
 public sealed class AddCartItemRequest

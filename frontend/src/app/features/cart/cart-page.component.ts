@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
@@ -9,13 +9,28 @@ import { CatalogueService } from '../../core/services/catalogue.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { IwnCurrencyPipe } from '../../core/pipes/iwn-currency.pipe';
 import { UI, UiKey } from '../../core/i18n/ui-text';
-import { AddCartItemRequest, CartItem, CartPromo } from '../../core/models/cart.models';
-import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiPageHeaderComponent, UiSkeletonComponent, UiToastService } from '../../shared/ui';
+import { AddCartItemRequest, CartFreeDelivery, CartItem, CartPromo } from '../../core/models/cart.models';
+import { formatIwnCurrency } from '../../core/utils/iwn-currency';
+import { UiEmptyStateComponent, UiSkeletonComponent, UiToastService } from '../../shared/ui';
+
+/** Cart-only copy not (yet) in the shared ui-text dictionary. */
+const COPY = {
+  itemsOne: { en: '1 item', ar: 'منتج واحد' },
+  itemsMany: { en: '{n} items', ar: '{n} منتجات' },
+  stepDone: { en: 'Done', ar: 'تأكيد' },
+  shippingAtCheckout: { en: 'Calculated at checkout', ar: 'يُحتسب عند إتمام الطلب' },
+  emptyHint: {
+    en: 'Looks like you have not added anything yet. Explore our original supplements and healthy picks.',
+    ar: 'يبدو أنك لم تضف أي منتج بعد. تصفّح مكملاتنا الأصلية واختياراتنا الصحية.',
+  },
+  weAccept: { en: 'We accept', ar: 'نقبل' },
+  progress: { en: 'Checkout progress', ar: 'مراحل الطلب' },
+} as const;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, FormsModule, IwnCurrencyPipe, UiPageHeaderComponent, UiSkeletonComponent, UiEmptyStateComponent, UiCardComponent, UiFormFieldComponent],
+  imports: [RouterLink, FormsModule, IwnCurrencyPipe, UiSkeletonComponent, UiEmptyStateComponent],
   templateUrl: './cart-page.component.html',
   styleUrl: './cart-page.component.css',
 })
@@ -31,12 +46,45 @@ export class CartPageComponent implements OnInit {
   readonly discount = signal(0);
   readonly total = signal(0);
   readonly appliedPromo = signal<CartPromo | null>(null);
+  readonly freeDelivery = signal<CartFreeDelivery | null>(null);
+
+  /** 0–100: how close the subtotal is to the free-delivery threshold. */
+  readonly freeDeliveryProgress = computed(() => {
+    const fd = this.freeDelivery();
+    const threshold = fd?.threshold ?? 0;
+    if (!fd?.available || threshold <= 0) return 100;
+    return Math.min(100, Math.max(0, Math.round((this.subtotal() / threshold) * 100)));
+  });
+
+  readonly freeDeliveryRemainingText = computed(() =>
+    this.t('freeDeliveryRemaining').replace(
+      '{amount}',
+      formatIwnCurrency(this.freeDelivery()?.amountRemaining ?? 0, this.locale),
+    ),
+  );
   readonly loading = signal(true);
   readonly updating = signal(false);
   readonly error = signal<string | null>(null);
   readonly promoError = signal<string | null>(null);
 
   promoCode = '';
+
+  /** View-only: total units in the cart, for the header count. */
+  readonly itemCount = computed(() => this.items().reduce((sum, item) => sum + item.quantity, 0));
+  readonly paymentBadges = ['Visa', 'Mastercard', 'Apple Pay', 'Tabby', 'Tamara'] as const;
+
+  copy(key: keyof typeof COPY): string {
+    return this.locale.pick(COPY[key].en, COPY[key].ar);
+  }
+
+  countLabel(): string {
+    const n = this.itemCount();
+    return n === 1 ? this.copy('itemsOne') : this.copy('itemsMany').replace('{n}', String(n));
+  }
+
+  lineLink(item: CartItem): (string | number)[] {
+    return item.comboOfferId ? ['/combos', item.comboOfferId] : ['/product', item.slug];
+  }
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
@@ -56,12 +104,14 @@ export class CartPageComponent implements OnInit {
     discount?: number;
     total?: number;
     appliedPromo?: CartPromo;
+    freeDelivery?: CartFreeDelivery | null;
   }): void {
     this.items.set(cart.items);
     this.subtotal.set(cart.subtotal);
     this.discount.set(cart.discount ?? 0);
     this.total.set(cart.total ?? cart.subtotal);
     this.appliedPromo.set(cart.appliedPromo ?? null);
+    this.freeDelivery.set(cart.freeDelivery ?? null);
   }
 
   refresh(): void {

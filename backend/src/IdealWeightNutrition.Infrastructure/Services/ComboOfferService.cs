@@ -45,6 +45,7 @@ internal sealed class ComboOfferService : IComboOfferService
         var combo = await _db.ComboOffers
             .AsNoTracking()
             .Include(c => c.Items.Where(i => !i.IsDeleted))
+            .Include(c => c.Images)
             .FirstOrDefaultAsync(
                 c => c.Id == id && !c.IsDeleted && c.IsActive && c.StartDate <= now && c.EndDate >= now,
                 cancellationToken);
@@ -96,7 +97,9 @@ internal sealed class ComboOfferService : IComboOfferService
             StartDate = combo.StartDate,
             EndDate = combo.EndDate,
             ProductCount = combo.Items.Count(i => !i.IsDeleted),
-            InStock = inStock
+            InStock = inStock,
+            AllowFreeDelivery = combo.AllowFreeDelivery,
+            FreeDeliveryMinimumAmount = combo.FreeDeliveryMinimumAmount
         };
     }
 
@@ -142,7 +145,14 @@ internal sealed class ComboOfferService : IComboOfferService
             EndDate = combo.EndDate,
             MaxQuantity = maxQty,
             InStock = inStock,
-            Items = items
+            AllowFreeDelivery = combo.AllowFreeDelivery,
+            FreeDeliveryMinimumAmount = combo.FreeDeliveryMinimumAmount,
+            Items = items,
+            Images = combo.Images
+                .OrderBy(i => i.DisplayOrder)
+                .ThenBy(i => i.Id)
+                .Select(i => new ComboOfferImageDto { ImageUrl = i.ImageUrl, ImageInfo = i.ImageInfo })
+                .ToList()
         };
     }
 

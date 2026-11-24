@@ -6,7 +6,10 @@ const STATUS_KEYS: Record<string, UiKey> = {
   Paid: 'statusPaid',
   Approved: 'statusApproved',
   Processing: 'statusProcessing',
+  'Preparing Shiping': 'statusPreparingShipping',
+  PreparingShipping: 'statusPreparingShipping',
   Shipped: 'statusShipped',
+  OutForDelivery: 'statusOutForDelivery',
   Delivered: 'statusDelivered',
   Cancelled: 'statusCancelled',
   Refunded: 'statusRefunded',
@@ -19,6 +22,7 @@ const STATUS_KEYS: Record<string, UiKey> = {
   Processed: 'statusProcessed',
   Failed: 'statusFailed',
   ApprovedForDelayedPayment: 'statusDelayedPayment',
+  Authorized: 'statusAuthorized',
   Active: 'statusActive',
 };
 

@@ -43,7 +43,10 @@ public sealed class AdminComboOfferDetailDto
     public required int MinimumQuantity { get; init; }
     public int? MaximumQuantity { get; init; }
     public required int DisplayOrder { get; init; }
+    public bool AllowFreeDelivery { get; init; }
+    public double FreeDeliveryMinimumAmount { get; init; }
     public required IReadOnlyList<AdminComboOfferItemDto> Items { get; init; }
+    public IReadOnlyList<AdminComboOfferImageDto> Images { get; init; } = [];
 }
 
 public sealed class UpsertAdminComboOfferRequest
@@ -60,6 +63,8 @@ public sealed class UpsertAdminComboOfferRequest
     public int MinimumQuantity { get; init; } = 1;
     public int? MaximumQuantity { get; init; }
     public int DisplayOrder { get; init; }
+    public bool AllowFreeDelivery { get; init; }
+    public double FreeDeliveryMinimumAmount { get; init; }
     public bool NotifySubscribers { get; init; }
 }
 
@@ -68,5 +73,20 @@ public sealed class AddAdminComboOfferItemRequest
     public int ProductId { get; init; }
     public int? ProductVariantId { get; init; }
     public int Quantity { get; init; } = 1;
+    public bool IsRequired { get; init; } = true;
+}
+
+public sealed class AdminComboOfferImageDto
+{
+    public required int Id { get; init; }
+    public required string ImageUrl { get; init; }
+    public required int DisplayOrder { get; init; }
+    public string? ImageInfo { get; init; }
+}
+
+public sealed class UpdateAdminComboOfferItemRequest
+{
+    public int Quantity { get; init; } = 1;
+    public int DisplayOrder { get; init; }
     public bool IsRequired { get; init; } = true;
 }

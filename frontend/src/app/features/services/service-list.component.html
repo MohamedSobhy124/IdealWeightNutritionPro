@@ -1,30 +1,138 @@
-<section class="ui-fade-in">
-  <ui-page-header [title]="t('wellnessServices')" [subtitle]="t('servicesLead')" />
+<section class="svc-page ui-fade-in">
+  <!-- Banner -->
+  <header class="svc-hero">
+    <span class="svc-hero__glow svc-hero__glow--a" aria-hidden="true"></span>
+    <span class="svc-hero__glow svc-hero__glow--b" aria-hidden="true"></span>
 
+    <div class="svc-hero__copy">
+      <span class="svc-eyebrow">
+        <span class="material-icons" aria-hidden="true">spa</span>{{ c('eyebrow') }}
+      </span>
+      <h1 class="svc-hero__title display-title">{{ t('wellnessServices') }}</h1>
+      <p class="svc-hero__lead">{{ t('servicesLead') }}</p>
+    </div>
+
+    <dl class="svc-stats">
+      <div class="svc-stat">
+        <dt>{{ c('statServices') }}</dt>
+        <dd>
+          @if (loading()) {
+            <ui-skeleton width="2.5rem" height="1.9rem" />
+          } @else {
+            {{ services().length }}
+          }
+        </dd>
+      </div>
+      @if (!loading() && onOfferCount() > 0) {
+        <div class="svc-stat">
+          <dt>{{ c('statOnOffer') }}</dt>
+          <dd>{{ onOfferCount() }}</dd>
+        </div>
+      }
+      @if (!loading() && bestSaving() > 0) {
+        <div class="svc-stat svc-stat--accent">
+          <dt>{{ c('statBestSaving') }}</dt>
+          <dd>{{ bestSaving() }}%</dd>
+        </div>
+      }
+    </dl>
+  </header>
+
+  <!-- How it works -->
+  <section class="svc-steps" [attr.aria-label]="c('howTitle')">
+    <h2 class="svc-steps__title">{{ c('howTitle') }}</h2>
+    <ol class="svc-steps__list">
+      @for (step of steps; track step.icon; let i = $index) {
+        <li class="svc-step">
+          <span class="svc-step__icon" aria-hidden="true">
+            <span class="material-icons">{{ step.icon }}</span>
+            <span class="svc-step__num">{{ i + 1 }}</span>
+          </span>
+          <span class="min-w-0">
+            <strong class="svc-step__name">{{ c(step.title) }}</strong>
+            <span class="svc-step__text">{{ c(step.text) }}</span>
+          </span>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <!-- List -->
   @if (loading()) {
-    <div class="content-grid-2">
-      @for (_ of [1, 2, 3, 4]; track $index) {
-        <ui-skeleton height="220px" class="rounded-2xl bg-stage" />
+    <div class="svc-grid" aria-hidden="true">
+      @for (_ of [1, 2, 3, 4, 5, 6]; track $index) {
+        <div class="svc-card">
+          <ui-skeleton height="0" class="svc-card__media block" />
+          <div class="svc-card__body space-y-2.5">
+            <ui-skeleton width="70%" height="1.1rem" />
+            <ui-skeleton height="0.85rem" />
+            <ui-skeleton width="85%" height="0.85rem" />
+            <div class="flex items-center justify-between pt-3">
+              <ui-skeleton width="5rem" height="1.4rem" />
+              <ui-skeleton width="7rem" height="2.5rem" class="block overflow-hidden rounded-full" />
+            </div>
+          </div>
+        </div>
       }
     </div>
   } @else if (error()) {
-    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+    <div class="svc-empty">
+      <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+    </div>
   } @else if (services().length === 0) {
-    <ui-empty-state icon="medical_services" [title]="t('noServicesAvailable')" />
+    <div class="svc-empty">
+      <ui-empty-state icon="medical_services" [title]="t('noServicesAvailable')" />
+    </div>
   } @else {
-    <div class="content-grid-2 ui-stagger-children">
+    <div class="svc-grid ui-stagger-children">
       @for (service of services(); track service.id) {
-        <ui-service-card
-          [title]="displayTitle(service)"
-          [link]="['/services', service.id + '']"
-          [price]="service.salePrice != null && service.hasActiveOffer ? service.salePrice : service.price"
-          [imageUrl]="service.imageUrl ? catalogue.resolveImageUrl(service.imageUrl) : null"
-          [subtitle]="displayDescription(service) || null"
-          [meta]="typeLabel(service.serviceType)"
-          [comparePrice]="service.salePrice != null && service.hasActiveOffer ? service.price : null"
-          [badge]="service.hasActiveOffer ? t('limitedOffer') : null"
-          [ctaLabel]="t('viewDetails')"
-        />
+        @let sale = onOffer(service);
+        @let saving = savingPercent(service);
+        <article class="svc-card">
+          <a class="svc-card__media" [routerLink]="['/services', service.id + '']" tabindex="-1" aria-hidden="true">
+            @if (service.imageUrl) {
+              <img [src]="catalogue.resolveImageUrl(service.imageUrl)" alt="" loading="lazy" width="480" height="360" />
+            } @else {
+              <span class="material-icons svc-card__placeholder">self_improvement</span>
+            }
+            @if (typeLabel(service.serviceType)) {
+              <span class="svc-chip svc-card__type">
+                <span class="material-icons" aria-hidden="true">{{ typeIcon(service.serviceType) }}</span>
+                {{ typeLabel(service.serviceType) }}
+              </span>
+            }
+            @if (service.hasActiveOffer) {
+              <span class="svc-card__offer">
+                <span class="material-icons" aria-hidden="true">local_offer</span>
+                {{ saving > 0 ? '−' + saving + '%' : t('limitedOffer') }}
+              </span>
+            }
+          </a>
+
+          <div class="svc-card__body">
+            <h2 class="svc-card__title">
+              <a [routerLink]="['/services', service.id + '']">{{ displayTitle(service) }}</a>
+            </h2>
+            @if (displayDescription(service)) {
+              <p class="svc-card__lead">{{ displayDescription(service) }}</p>
+            }
+
+            <div class="svc-card__foot">
+              <div class="svc-price">
+                @if (sale) {
+                  <span class="svc-price__now svc-price__now--sale">{{ service.salePrice | iwnCurrency }}</span>
+                  <span class="svc-price__was">{{ service.price | iwnCurrency }}</span>
+                } @else {
+                  <span class="svc-price__now">{{ service.price | iwnCurrency }}</span>
+                }
+              </div>
+              <a class="ui-btn-primary svc-card__cta" [routerLink]="['/services', service.id + '']">
+                {{ t('viewDetails') }}
+                <span class="material-icons rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+        </article>
       }
     </div>
   }

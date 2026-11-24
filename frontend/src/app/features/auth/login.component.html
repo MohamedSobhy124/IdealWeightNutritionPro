@@ -1,65 +1,102 @@
-<section class="auth-shell">
-  <div class="auth-layout">
-    <aside class="auth-brand-panel" aria-hidden="true">
-      <div class="auth-brand-panel__logo">
-        <span class="material-icons text-[32px]">eco</span>
+<section class="ap">
+  <div class="ap-layout">
+    <aside class="ap-panel" aria-hidden="true">
+      <div class="ap-panel__top">
+        <span class="ap-panel__logo"><span class="material-icons">eco</span></span>
+        <span class="ap-panel__brand">{{ t('brandName') }}</span>
       </div>
-      <h2 class="auth-brand-panel__title">{{ t('whyChooseUsTitle') }}</h2>
-      <p class="auth-brand-panel__lead">{{ t('whyChooseUsLead') }}</p>
-      <ul class="auth-brand-panel__trust">
-        <li><span class="material-icons text-[18px]" aria-hidden="true">verified</span>{{ t('trustedOriginals') }}</li>
-        <li><span class="material-icons text-[18px]" aria-hidden="true">local_shipping</span>{{ t('sameDayDelivery') }}</li>
-        <li><span class="material-icons text-[18px]" aria-hidden="true">lock</span>{{ t('securePayments') }}</li>
-      </ul>
+
+      <div class="ap-panel__body">
+        <h2 class="ap-panel__title display-title">{{ c('heroTitle') }}</h2>
+        <p class="ap-panel__lead">{{ t('whyChooseUsLead') }}</p>
+
+        <ul class="ap-benefits">
+          @for (b of benefits; track b.icon) {
+            <li class="ap-benefit">
+              <span class="ap-benefit__icon"><span class="material-icons">{{ b.icon }}</span></span>
+              <span class="ap-benefit__text">
+                <strong>{{ b.title() }}</strong>
+                <small>{{ b.desc() }}</small>
+              </span>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="ap-trust">
+        <span class="ap-trust__stars">
+          @for (s of stars; track s) {
+            <span class="material-icons">star</span>
+          }
+        </span>
+        <span>{{ c('trustLine') }}</span>
+      </div>
     </aside>
 
-    <div class="auth-form-wrap">
-      <ui-page-header [title]="t('login')" [breadcrumbs]="[{ label: t('navHome'), link: '/' }]" />
+    <div class="ap-main">
+      <div class="ap-card">
+        <header class="ap-head">
+          <span class="ap-head__icon"><span class="material-icons" aria-hidden="true">waving_hand</span></span>
+          <h1 class="ap-head__title display-title">{{ c('formTitle') }}</h1>
+          <p class="ap-head__sub">{{ c('formSubtitle') }}</p>
+        </header>
 
-      <div class="auth-form-card">
-        <div class="auth-form-icon lg:hidden">
-          <span class="material-icons text-[28px]">eco</span>
-        </div>
-
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+        <form [formGroup]="form" (ngSubmit)="submit()" class="ap-form">
           <ui-form-field [label]="t('email')">
-            <input type="email" formControlName="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" class="ui-input" />
+            <div class="ap-field">
+              <span class="material-icons ap-field__icon" aria-hidden="true">mail</span>
+              <input type="email" formControlName="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" class="ui-input" />
+            </div>
           </ui-form-field>
 
           <ui-form-field [label]="t('password')">
-            <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
-              <input type="password" formControlName="password" name="password" autocomplete="current-password" class="ui-input" />
-            </ui-password-field>
+            <div class="ap-field">
+              <span class="material-icons ap-field__icon" aria-hidden="true">lock</span>
+              <ui-password-field [showLabel]="t('showPassword')" [hideLabel]="t('hidePassword')">
+                <input type="password" formControlName="password" name="password" autocomplete="current-password" class="ui-input" />
+              </ui-password-field>
+            </div>
           </ui-form-field>
 
+          <div class="ap-row-end">
+            <a routerLink="/auth/forgot-password" class="ap-link-muted">{{ t('forgotPassword') }}</a>
+          </div>
+
           @if (error()) {
-            <p class="ui-error" role="alert" aria-live="polite">{{ error() }}</p>
+            <p class="ap-alert" role="alert" aria-live="polite">
+              <span class="material-icons" aria-hidden="true">error_outline</span>
+              <span>{{ error() }}</span>
+            </p>
           }
 
-          <button type="submit" class="ui-btn-primary w-full" [disabled]="form.invalid || loading()" [attr.aria-busy]="loading()">
+          <button type="submit" class="ui-btn-primary ui-btn-lg ap-submit" [disabled]="form.invalid || loading()" [attr.aria-busy]="loading()">
             @if (loading()) {
               <span class="material-icons animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
             }
             {{ t('signIn') }}
+            @if (!loading()) {
+              <span class="material-icons text-[18px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+            }
           </button>
         </form>
 
-        <p class="auth-divider">{{ t('or') }}</p>
+        <p class="ap-divider"><span>{{ t('or') }}</span></p>
 
-        <button type="button" class="ui-btn-secondary w-full" (click)="auth.loginWithGoogle()">
-          <span class="material-icons text-[18px]">account_circle</span>
+        <button type="button" class="ui-btn-secondary ui-btn-lg ap-google" (click)="auth.loginWithGoogle()">
+          <span class="ap-google__mark" aria-hidden="true">G</span>
           {{ t('signInWithGoogle') }}
         </button>
 
-        <div class="mt-6 space-y-2 text-center text-sm">
-          <p>
-            <a routerLink="/auth/register" class="font-medium text-brand-600 hover:text-brand-700">{{ t('createAccount') }}</a>
-          </p>
-          <p>
-            <a routerLink="/auth/forgot-password" class="text-ink-500 hover:text-ink-700">{{ t('forgotPassword') }}</a>
-          </p>
-        </div>
+        <p class="ap-switch">
+          {{ c('newHere') }}
+          <a routerLink="/auth/register">{{ t('createAccount') }}</a>
+        </p>
       </div>
+
+      <p class="ap-secure">
+        <span class="material-icons" aria-hidden="true">verified_user</span>
+        {{ c('secureNote') }}
+      </p>
     </div>
   </div>
 </section>

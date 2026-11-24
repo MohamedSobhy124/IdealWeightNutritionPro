@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { FlashSaleService } from '../../core/services/flash-sale.service';
@@ -24,15 +24,33 @@ import {
 import {
   UiEmptyStateComponent,
   UiFilterDrawerComponent,
-  UiPageHeaderComponent,
-  UiPaginationComponent,
   UiProductCardComponent,
   UiQuickViewComponent,
   UiSkeletonComponent,
-  UiFormFieldComponent,
-  UiSegmentedComponent,
   UiSheetSelectComponent,
 } from '../../shared/ui';
+
+/** Page-local copy (view only). */
+const COPY = {
+  eyebrow: { en: '100% original supplements', ar: 'مكملات أصلية 100%' },
+  lead: {
+    en: 'Proteins, vitamins and performance essentials from trusted brands, delivered across the UAE.',
+    ar: 'بروتينات وفيتامينات ومستلزمات الأداء من علامات موثوقة، مع توصيل لجميع أنحاء الإمارات.',
+  },
+  category: { en: 'Category', ar: 'التصنيف' },
+  brand: { en: 'Brand', ar: 'العلامة التجارية' },
+  sortBy: { en: 'Sort by', ar: 'ترتيب حسب' },
+  search: { en: 'Search', ar: 'بحث' },
+  results: { en: 'Results for', ar: 'نتائج البحث عن' },
+  clearAll: { en: 'Clear all', ar: 'مسح الكل' },
+  emptyHint: {
+    en: 'Try a different category or brand, or clear your filters to see everything.',
+    ar: 'جرّب تصنيفاً أو علامة أخرى، أو امسح الفلاتر لعرض جميع المنتجات.',
+  },
+  pagination: { en: 'Pagination', ar: 'ترقيم الصفحات' },
+  page: { en: 'Page', ar: 'صفحة' },
+} as const;
+type CopyKey = keyof typeof COPY;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,14 +58,11 @@ import {
   imports: [
     ReactiveFormsModule,
     UiProductCardComponent,
+    RouterLink,
     UiFilterDrawerComponent,
-    UiPaginationComponent,
     UiQuickViewComponent,
     UiSkeletonComponent,
-    UiPageHeaderComponent,
     UiEmptyStateComponent,
-    UiFormFieldComponent,
-    UiSegmentedComponent,
     UiSheetSelectComponent,
   ],
   templateUrl: './shop-page.component.html',
@@ -90,6 +105,10 @@ export class ShopPageComponent implements OnInit {
 
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  c(key: CopyKey): string {
+    return this.locale.pick(COPY[key].en, COPY[key].ar);
   }
 
   productTitle(p: ProductListItem): string {
@@ -250,6 +269,49 @@ export class ShopPageComponent implements OnInit {
     }
     return chips;
   });
+
+  /* ---- View-only helpers (no data/query logic) ---- */
+  readonly skeletons = [1, 2, 3, 4, 5, 6, 7, 8];
+
+  readonly activeCategory = computed(() => {
+    const id = this.appliedFilters().categoryId;
+    return id ? (this.categories().find((c) => String(c.id) === id) ?? null) : null;
+  });
+
+  readonly activeBrand = computed(() => {
+    const id = this.appliedFilters().brandId;
+    return id ? (this.brands().find((b) => String(b.id) === id) ?? null) : null;
+  });
+
+  readonly heroTitle = computed(() => {
+    this.locale.locale();
+    const category = this.activeCategory();
+    const brand = this.activeBrand();
+    if (category) return this.categoryName(category);
+    if (brand) return this.brandName(brand);
+    return this.t('shop');
+  });
+
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize)));
+
+  /** Page numbers with `0` standing in for an ellipsis gap. */
+  readonly pageItems = computed(() => {
+    const total = this.totalPages();
+    const current = this.page();
+    const set = new Set([1, total, current - 1, current, current + 1]);
+    const pages = [...set].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+    const items: number[] = [];
+    pages.forEach((n, i) => {
+      if (i > 0 && n - pages[i - 1] > 1) items.push(0);
+      items.push(n);
+    });
+    return items;
+  });
+
+  selectCategory(categoryId: string): void {
+    this.filters.patchValue({ categoryId });
+    this.applyFilters();
+  }
 
   setSort(value: string): void {
     this.filters.patchValue({ sortBy: value });

@@ -226,3 +226,62 @@ public sealed class DeleteAdminBrandEndpoint : EndpointWithoutRequest
         }
     }
 }
+
+public abstract class UploadAdminCatalogueImageEndpoint : EndpointWithoutRequest<AdminImageUploadResultDto>
+{
+    private readonly IAdminCatalogueService _catalogue;
+    private readonly string _route;
+    private readonly string _idName;
+    private readonly bool _isBrand;
+
+    protected UploadAdminCatalogueImageEndpoint(IAdminCatalogueService catalogue, string route, string idName, bool isBrand)
+    {
+        _catalogue = catalogue;
+        _route = route;
+        _idName = idName;
+        _isBrand = isBrand;
+    }
+
+    public override void Configure()
+    {
+        Post(_route);
+        Policies(AuthPolicies.Admin);
+        AllowFileUploads();
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>(_idName), out var id) || id <= 0)
+        {
+            ThrowError("Invalid id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        var file = HttpContext.Request.Form.Files.FirstOrDefault();
+        if (file is null || file.Length == 0)
+        {
+            ThrowError("Image file is required.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = _isBrand
+                ? await _catalogue.UploadBrandImageAsync(id, stream, file.FileName, ct)
+                : await _catalogue.UploadCategoryImageAsync(id, stream, file.FileName, ct);
+            HttpContext.Response.StatusCode = StatusCodes.Status201Created;
+            await Send.OkAsync(result, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status400BadRequest);
+        }
+    }
+}
+
+public sealed class UploadAdminCategoryImageEndpoint(IAdminCatalogueService catalogue)
+    : UploadAdminCatalogueImageEndpoint(catalogue, "admin/categories/{categoryId}/image", "categoryId", false);
+
+public sealed class UploadAdminBrandImageEndpoint(IAdminCatalogueService catalogue)
+    : UploadAdminCatalogueImageEndpoint(catalogue, "admin/brands/{brandId}/image", "brandId", true);

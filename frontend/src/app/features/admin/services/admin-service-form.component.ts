@@ -7,6 +7,8 @@ import {
   UiFormFieldComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
+  UiErrorSummaryComponent,
+  UiFormBarComponent,
 } from '../../../shared/ui';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { UnsavedChangesForm } from '../../../core/guards/unsaved-changes-form';
@@ -17,12 +19,15 @@ import {
 import { AdminServiceService } from '../../../core/services/admin-service.service';
 import { CatalogueService } from '../../../core/services/catalogue.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiErrorSummaryComponent,
+    UiFormBarComponent,
     RouterLink,
     FormsModule,
     UiPageHeaderComponent,
@@ -40,6 +45,7 @@ export class AdminServiceFormComponent extends UnsavedChangesForm implements OnI
   private readonly router = inject(Router);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
   private readonly confirmDialog = inject(UiConfirmService);
 
   readonly loading = signal(true);
@@ -150,6 +156,7 @@ export class AdminServiceFormComponent extends UnsavedChangesForm implements OnI
       next: (service) => {
         this.submitting.set(false);
         this.markSaved();
+        this.toast.success(this.t('saved'));
         if (!this.isEdit()) {
           void this.router.navigate(['/admin/services', service.id]);
         }
@@ -190,5 +197,9 @@ export class AdminServiceFormComponent extends UnsavedChangesForm implements OnI
         this.saveError.set(err?.error?.errors?.[0] ?? this.t('deleteFailed'));
       },
     });
+  }
+
+  cancel(): void {
+    void this.router.navigate(['/admin/services']);
   }
 }

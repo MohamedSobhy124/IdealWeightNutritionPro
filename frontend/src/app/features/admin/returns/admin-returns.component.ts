@@ -3,18 +3,21 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
+import { UI, UiKey } from '../../../core/i18n/ui-text';
+import { statusLabel } from '../../../core/utils/status-label';
 import { ReturnListItem } from '../../../core/models/return.models';
 import { LocaleService } from '../../../core/services/locale.service';
 import { ReturnService } from '../../../core/services/return.service';
 import {
+  statusVariant,
+  UiAlertComponent,
   UiPageHeaderComponent,
   UiDataTableComponent,
   UiCellDirective,
   UiBadgeComponent,
-  UiSegmentedComponent,
   type UiBadgeVariant,
-  type UiSegmentedOption,
   type UiTableColumn,
+  type UiTableTab,
 } from '../../../shared/ui';
 
 @Component({
@@ -28,7 +31,7 @@ import {
     UiDataTableComponent,
     UiCellDirective,
     UiBadgeComponent,
-    UiSegmentedComponent,
+    UiAlertComponent,
   ],
   templateUrl: './admin-returns.component.html',
   styleUrl: './admin-returns.component.css',
@@ -40,9 +43,9 @@ export class AdminReturnsComponent implements OnInit {
   readonly items = signal<ReturnListItem[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  status = 'all';
+  readonly status = signal('all');
 
-  readonly statusOptions = computed<UiSegmentedOption[]>(() => [
+  readonly tabs = computed<UiTableTab[]>(() => [
     { value: 'all', label: this.t('filterAll') },
     { value: 'Pending', label: this.t('filterPending') },
     { value: 'Approved', label: this.t('filterApproved') },
@@ -57,38 +60,24 @@ export class AdminReturnsComponent implements OnInit {
 
   get cols(): UiTableColumn[] {
     return [
-      { key: 'id', header: this.t('returnId'), sortable: true },
+      { key: 'id', header: this.t('returnId'), sortable: true, mobile: 'primary', hideable: false },
       { key: 'orderId', header: this.t('orderNumber'), sortable: true },
       { key: 'status', header: this.t('productStatus') },
-      { key: 'customerEmail', header: this.t('customer') },
+      { key: 'customerEmail', header: this.t('customer'), mobile: 'secondary' },
       { key: 'refundAmount', header: this.t('refundCol'), align: 'end' },
       { key: 'requestDate', header: this.t('date'), sortable: true },
     ];
   }
 
-  statusVariant(status: string): UiBadgeVariant {
-    const x = (status || '').toLowerCase();
-    if (
-      x.includes('deliver') ||
-      x.includes('paid') ||
-      x.includes('approve') ||
-      x.includes('active') ||
-      x.includes('complete')
-    )
-      return 'success';
-    if (
-      x.includes('cancel') ||
-      x.includes('fail') ||
-      x.includes('reject') ||
-      x.includes('refund') ||
-      x.includes('deleted') ||
-      x.includes('out')
-    )
-      return 'danger';
-    if (x.includes('ship')) return 'info';
-    if (x.includes('process')) return 'brand';
-    if (x.includes('pending') || x.includes('low')) return 'warning';
-    return 'neutral';
+  readonly statusVariant: (status: string) => UiBadgeVariant = statusVariant;
+
+  statusText(status: string): string {
+    return statusLabel(status, (key: UiKey) => this.locale.pick(UI[key].en, UI[key].ar));
+  }
+
+  onTab(value: string): void {
+    this.status.set(value);
+    this.load();
   }
 
   ngOnInit(): void {
@@ -97,7 +86,8 @@ export class AdminReturnsComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.returnsApi.listAdmin(this.status).subscribe({
+    this.error.set(null);
+    this.returnsApi.listAdmin(this.status()).subscribe({
       next: (items) => {
         this.items.set(items);
         this.loading.set(false);

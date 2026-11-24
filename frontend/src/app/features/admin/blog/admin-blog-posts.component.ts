@@ -5,6 +5,7 @@ import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminBlogPostListItem } from '../../../core/models/admin-blog.models';
 import { AdminBlogService } from '../../../core/services/admin-blog.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiBadgeComponent,
@@ -12,12 +13,16 @@ import {
   UiDataTableComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
+  UiActionMenuComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiActionMenuComponent,
+    UiAlertComponent,
     RouterLink,
     DatePipe,
     UiPageHeaderComponent,
@@ -31,6 +36,7 @@ import {
 export class AdminBlogPostsComponent implements OnInit {
   private readonly blogApi = inject(AdminBlogService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
   private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminBlogPostListItem[]>([]);
@@ -50,7 +56,7 @@ export class AdminBlogPostsComponent implements OnInit {
       { key: 'author', header: this.t('blogAuthor'), hideOnMobile: true },
       { key: 'publishedDate', header: this.t('date') },
       { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
   }
 
@@ -92,7 +98,7 @@ export class AdminBlogPostsComponent implements OnInit {
         this.items.update((list) =>
           list.map((p) => (p.id === item.id ? { ...p, isDeleted: true } : p))
         );
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
       },
       error: () => {
@@ -110,7 +116,7 @@ export class AdminBlogPostsComponent implements OnInit {
         this.items.update((list) =>
           list.map((p) => (p.id === item.id ? { ...p, isDeleted: false } : p))
         );
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
       },
       error: () => {

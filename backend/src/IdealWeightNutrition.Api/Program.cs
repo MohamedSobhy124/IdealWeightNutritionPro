@@ -13,6 +13,9 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +27,38 @@ builder.Configuration.AddJsonFile(
     reloadOnChange: true);
 
 builder.Host.UseSerilog((context, loggerConfiguration) =>
-    loggerConfiguration.ReadFrom.Configuration(context.Configuration).WriteTo.Console());
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .WriteTo.Console()
+        .WriteTo.File(
+            Path.Combine(context.HostingEnvironment.ContentRootPath, "logs", "log-.txt"),
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            shared: true));
+
+// 50 MB request bodies (video banner uploads).
+const long MaxUploadBytes = 50L * 1024 * 1024;
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = MaxUploadBytes);
+builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = MaxUploadBytes);
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")))
+    .SetApplicationName("IdealWeightNutrition")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
+
+builder.Services.AddProblemDetails();
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("PublicRead", policy => policy.Expire(TimeSpan.FromMinutes(5)));
+});
 
 builder.Services.AddModernizedPlatform(builder.Configuration);
 
@@ -127,13 +161,38 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // IIS/ANCM is not on loopback-with-known-proxy in every host (shared hosting); trust its headers.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 var app = builder.Build();
 
-await DatabaseInitializer.InitializeAsync(app.Services, app.Logger);
+await DatabaseInitializer.InitializeAsync(app.Services, app.Logger, app.Configuration);
 
 app.UseForwardedHeaders();
+
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+{
+    var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    var isBadRequest = exception is InvalidOperationException;
+    var status = isBadRequest ? StatusCodes.Status400BadRequest : StatusCodes.Status500InternalServerError;
+    context.Response.StatusCode = status;
+    var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+    {
+        Status = status,
+        Title = isBadRequest ? exception!.Message : "An unexpected error occurred. Please try again later.",
+        Detail = isBadRequest ? exception!.Message : null
+    };
+    await context.Response.WriteAsJsonAsync(problem, (System.Text.Json.JsonSerializerOptions?)null, "application/problem+json");
+}));
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+
 app.UseSerilogRequestLogging();
 app.UseCors("Spa");
 app.UseRateLimiter();
@@ -141,12 +200,13 @@ app.UseLegacyMediaStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseOutputCache();
 
 app.MapGet("/sitemap.xml", async (ISeoService seo, CancellationToken ct) =>
 {
     var xml = await seo.GenerateSitemapXmlAsync(ct);
     return Results.Content(xml, "application/xml", Encoding.UTF8);
-}).AllowAnonymous();
+}).AllowAnonymous().CacheOutput("PublicRead");
 
 app.MapGet("/robots.txt", (ISeoService seo) =>
     Results.Content(seo.GenerateRobotsTxt(), "text/plain", Encoding.UTF8)).AllowAnonymous();

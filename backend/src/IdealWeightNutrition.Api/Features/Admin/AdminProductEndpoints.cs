@@ -342,3 +342,64 @@ public sealed class RegenerateAdminProductSlugsEndpoint : EndpointWithoutRequest
         }
     }
 }
+
+public sealed class AdminProductStatisticsEndpoint : EndpointWithoutRequest<AdminProductStatisticsDto>
+{
+    private readonly IAdminProductService _products;
+
+    public AdminProductStatisticsEndpoint(IAdminProductService products) => _products = products;
+
+    public override void Configure()
+    {
+        Get("admin/products/statistics");
+        Policies(AuthPolicies.Admin);
+    }
+
+    public override async Task HandleAsync(CancellationToken ct) =>
+        await Send.OkAsync(await _products.GetStatisticsAsync(ct), ct);
+}
+
+public abstract class SetAdminProductDeletedEndpoint : EndpointWithoutRequest
+{
+    private readonly IAdminProductService _products;
+    private readonly bool _deleted;
+    private readonly string _route;
+
+    protected SetAdminProductDeletedEndpoint(IAdminProductService products, bool deleted, string route)
+    {
+        _products = products;
+        _deleted = deleted;
+        _route = route;
+    }
+
+    public override void Configure()
+    {
+        Post(_route);
+        Policies(AuthPolicies.Admin);
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("productId"), out var productId) || productId <= 0)
+        {
+            ThrowError("Invalid product id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            await _products.SetProductDeletedAsync(productId, _deleted, ct);
+            await Send.NoContentAsync(ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status400BadRequest);
+        }
+    }
+}
+
+public sealed class DeleteAdminProductEndpoint(IAdminProductService products)
+    : SetAdminProductDeletedEndpoint(products, true, "admin/products/{productId}/delete");
+
+public sealed class RestoreAdminProductEndpoint(IAdminProductService products)
+    : SetAdminProductDeletedEndpoint(products, false, "admin/products/{productId}/restore");

@@ -12,7 +12,7 @@ import { paymentMethodLabelKey, paymentUnavailableReasonKey } from '../../core/i
 import { PaymentMethodOption } from '../../core/models/checkout.models';
 import { CreateServicePurchaseResponse, ServiceCheckoutQuoteResponse } from '../../core/models/service-checkout.models';
 import { ServiceSubscriptionDetail } from '../../core/models/service.models';
-import { startGeideaPayment } from '../../core/utils/geidea-checkout';
+import { GeideaCancelledError, GeideaUnavailableError, startGeideaPayment } from '../../core/utils/geidea-checkout';
 import { apiErrorMessage } from '../../core/utils/api-error';
 import { UiCardComponent, UiEmptyStateComponent, UiFormFieldComponent, UiOtpInputComponent, UiPageHeaderComponent, UiSkeletonComponent, UiStepperComponent } from '../../shared/ui';
 
@@ -339,7 +339,14 @@ export class ServiceCheckoutPageComponent implements OnInit {
       startGeideaPayment(result.paymentSessionId)
         .then(() => this.finalizePayment(result.purchaseId))
         .catch((err: Error) => {
-          this.error.set(err.message ?? this.t('paymentNotCompleted'));
+          // Popup could not open: use Geidea's hosted payment page instead.
+          if (err instanceof GeideaUnavailableError && result.paymentRedirectUrl) {
+            window.location.href = result.paymentRedirectUrl;
+            return;
+          }
+          this.error.set(
+            err instanceof GeideaCancelledError ? this.t('paymentNotCompleted') : err.message || this.t('paymentNotCompleted'),
+          );
           this.submitting.set(false);
         });
       return;

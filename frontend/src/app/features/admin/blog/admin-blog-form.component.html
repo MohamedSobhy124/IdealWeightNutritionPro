@@ -1,6 +1,7 @@
 <ui-page-header
   [title]="isEdit() ? t('editBlogPost') : t('newBlogPost')"
-  [breadcrumbs]="[{ label: t('blogPostsTitle'), link: '/admin/blog' }]"
+  backLink="/admin/blog"
+  [backLabel]="t('blogPostsTitle')"
 />
 
 @if (loading()) {
@@ -11,9 +12,15 @@
     <ui-skeleton height="8rem" />
   </div>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <div class="ui-card">
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/admin/blog" class="ui-btn-secondary ui-btn-sm">{{ t('blogPostsTitle') }}</a>
+    </ui-empty-state>
+  </div>
 } @else {
-  <form class="admin-form" (ngSubmit)="submit()">
+  <form class="admin-form" (ngSubmit)="submit()" novalidate>
+    <ui-error-summary class="admin-form-span" [errors]="saveError() ? [{ message: saveError()! }] : []" />
+
     <ui-card [heading]="t('sectionBasicInfo')">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ui-form-field [label]="t('titleEn')" [required]="true">
@@ -107,15 +114,7 @@
       </div>
     </ui-card>
 
-    @if (saveError()) {
-      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
-    }
 
-    <div class="admin-form-bar">
-      <a routerLink="/admin/blog" class="ui-btn-secondary">{{ t('cancel') }}</a>
-      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
-        {{ submitting() ? t('saving') : t('save') }}
-      </button>
-    </div>
+    <ui-form-bar [dirty]="hasUnsavedChanges()" [saving]="submitting()" (cancel)="cancel()" />
   </form>
 }

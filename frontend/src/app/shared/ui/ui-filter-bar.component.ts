@@ -18,9 +18,9 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       gap: 0.75rem;
       border-radius: 1rem;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--surface-raised);
       padding: 0.85rem 1rem;
-      box-shadow: var(--shadow-card);
+      box-shadow: none;
     }
 
     :host-context(.dark) .ui-filter-bar {

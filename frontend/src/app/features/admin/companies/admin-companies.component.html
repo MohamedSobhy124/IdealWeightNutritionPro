@@ -11,7 +11,7 @@
 
 
 @if (message() && !showForm()) {
-  <p class="mb-4 text-sm" [class.text-success-fg]="message() === t('saved') || message() === t('updated')" [class.text-danger]="message() !== t('saved') && message() !== t('updated')">{{ message() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
 }
 
 <ui-modal
@@ -24,7 +24,7 @@
 >
   <form id="company-form" (ngSubmit)="submit()">
     @if (message()) {
-      <p class="mb-4 text-sm text-danger">{{ message() }}</p>
+      <ui-alert class="mb-4 block" variant="danger" [message]="message()" [dismissible]="true" (dismiss)="message.set(null)" />
     }
     <div class="grid grid-cols-1 gap-4">
       <ui-form-field [label]="t('companyName')" [required]="true">
@@ -61,7 +61,7 @@
 
 @if (error()) {
 
-  <p class="mb-4 text-danger">{{ error() }}</p>
+  <ui-alert class="mb-4 block" variant="danger" [message]="error()" [retryable]="true" (retry)="load()" />
 
 }
 
@@ -120,17 +120,16 @@
 
 
   <ng-template uiCell="actions" let-row>
-
     @let item = $any(row);
-
-    <div class="flex flex-wrap gap-1.5">
-
-      <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="openEdit(item)" [disabled]="busyId() === item.id">{{ t('edit') }}</button>
-
-      <button type="button" class="ui-btn-danger ui-btn-sm" (click)="remove(item)" [disabled]="busyId() === item.id">{{ t('delete') }}</button>
-
-    </div>
-
+    <ui-action-menu
+      [label]="t('moreActions')"
+      [disabled]="busyId() === item.id"
+      [items]="[
+        { id: 'edit', label: t('edit'), icon: 'edit' },
+        { id: 'delete', label: t('delete'), icon: 'delete_outline', danger: true, dividerBefore: true }
+      ]"
+      (select)="$event === 'edit' ? openEdit(item) : $event === 'delete' ? remove(item) : null"
+    />
   </ng-template>
 
 </ui-data-table>

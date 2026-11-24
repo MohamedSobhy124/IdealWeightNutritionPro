@@ -71,6 +71,8 @@ export interface ProductDetail {
   brand?: Brand;
   isNew: boolean;
   isTrending: boolean;
+  allowFreeDelivery?: boolean;
+  freeDeliveryMinimumAmount?: number;
   options: ProductOption[];
   variants: ProductVariant[];
 }

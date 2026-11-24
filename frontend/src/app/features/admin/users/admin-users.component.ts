@@ -6,6 +6,7 @@ import { AdminUserListItem } from '../../../core/models/admin-user.models';
 import { AdminCompanyService } from '../../../core/services/admin-company.service';
 import { AdminUserService } from '../../../core/services/admin-user.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import {
   UiCellDirective,
   UiDataTableComponent,
@@ -13,12 +14,14 @@ import {
   UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiAlertComponent,
     FormsModule,
     UiPageHeaderComponent,
     UiDataTableComponent,
@@ -33,6 +36,7 @@ export class AdminUsersComponent implements OnInit {
   private readonly usersApi = inject(AdminUserService);
   private readonly companiesApi = inject(AdminCompanyService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
 
   readonly items = signal<AdminUserListItem[]>([]);
   readonly companies = signal<AdminCompany[]>([]);
@@ -136,7 +140,7 @@ export class AdminUsersComponent implements OnInit {
         next: (res) => {
           this.showForm.set(false);
           this.creating.set(false);
-          this.message.set(res.message || this.t('userCreated'));
+          this.toast.success(res.message || this.t('userCreated'));
           this.load();
         },
         error: (err) => {

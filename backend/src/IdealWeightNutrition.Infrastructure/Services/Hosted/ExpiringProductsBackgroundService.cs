@@ -90,9 +90,14 @@ internal sealed class ExpiringProductsBackgroundService : BackgroundService
                 (v, p) => new { Variant = v, Product = p })
             .ToListAsync(cancellationToken);
 
-        if (variants.Count == 0)
+        var simpleProducts = await db.Products.AsNoTracking()
+            .Where(p => !p.IsDeleted && p.ProductType == ProductType.Simple
+                && p.ExpiryDate != null && p.ExpiryDate >= today && p.ExpiryDate <= threshold)
+            .ToListAsync(cancellationToken);
+
+        if (variants.Count == 0 && simpleProducts.Count == 0)
         {
-            _logger.LogInformation("No expiring product variants found.");
+            _logger.LogInformation("No expiring products found.");
             return;
         }
 
@@ -104,12 +109,19 @@ internal sealed class ExpiringProductsBackgroundService : BackgroundService
                 x.Variant.StockQuantity,
                 x.Variant.ExpiryDate!.Value,
                 (x.Variant.ExpiryDate!.Value.Date - today).Days))
+            .Concat(simpleProducts.Select(p => new ExpiringRow(
+                p.Id,
+                p.Title,
+                null,
+                p.StockQuantity,
+                p.ExpiryDate!.Value,
+                (p.ExpiryDate!.Value.Date - today).Days)))
             .OrderBy(r => r.ExpiryDate)
             .ToList();
 
         var csv = BuildCsv(rows);
         var csvBytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
-        var subject = $"Expiring products alert — {rows.Count} variant(s) in next {_options.DaysBeforeExpiry} days";
+        var subject = $"Expiring products alert — {rows.Count} product(s) in next {_options.DaysBeforeExpiry} days";
         var body = BuildEmailBody(rows, _options.DaysBeforeExpiry);
 
         await email.SendWithAttachmentAsync(
@@ -122,11 +134,11 @@ internal sealed class ExpiringProductsBackgroundService : BackgroundService
 
         await notifications.NotifyAdminsAsync(
             "Expiring products",
-            $"{rows.Count} product variant(s) expire within {_options.DaysBeforeExpiry} days.",
+            $"{rows.Count} product(s) expire within {_options.DaysBeforeExpiry} days.",
             "Stock",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation("Sent expiring products alert for {Count} variants.", rows.Count);
+        _logger.LogInformation("Sent expiring products alert for {Count} items.", rows.Count);
     }
 
     private static string BuildCsv(IReadOnlyList<ExpiringRow> rows)
@@ -155,7 +167,7 @@ internal sealed class ExpiringProductsBackgroundService : BackgroundService
                 $"#{r.ProductId} {System.Net.WebUtility.HtmlEncode(r.Title)} — SKU {System.Net.WebUtility.HtmlEncode(r.Sku ?? "-")} — expires {r.ExpiryDate:dd MMM yyyy} ({r.DaysUntilExpiry} days)"));
 
         return $"""
-            <p><strong>{rows.Count}</strong> product variant(s) expire within the next {daysWindow} days.</p>
+            <p><strong>{rows.Count}</strong> product(s) expire within the next {daysWindow} days.</p>
             <p>{preview}</p>
             <p>See the attached CSV for the full list.</p>
             """;

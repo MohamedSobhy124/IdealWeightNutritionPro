@@ -109,6 +109,17 @@ public sealed class UpdateOrderLineRequest
     public required double UnitPrice { get; init; }
 }
 
+public sealed class UpdateOrderDetailsRequest
+{
+    public required string Name { get; init; }
+    public required string PhoneNumber { get; init; }
+    public required string StreetAddress { get; init; }
+    public required string City { get; init; }
+    public string? Area { get; init; }
+    public string? Carrier { get; init; }
+    public string? TrackingNumber { get; init; }
+}
+
 public sealed class AdminOrderQuery
 {
     public string? Status { get; init; }

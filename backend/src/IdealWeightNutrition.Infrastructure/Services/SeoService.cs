@@ -159,11 +159,11 @@ internal sealed class SeoService : ISeoService
         element.Add(new XElement(XhtmlNs + "link",
             new XAttribute("rel", "alternate"),
             new XAttribute("hreflang", "ar"),
-            new XAttribute("href", $"{url}{separator}lang=ar")));
+            new XAttribute("href", $"{url}{separator}culture=ar")));
         element.Add(new XElement(XhtmlNs + "link",
             new XAttribute("rel", "alternate"),
             new XAttribute("hreflang", "en"),
-            new XAttribute("href", $"{url}{separator}lang=en")));
+            new XAttribute("href", $"{url}{separator}culture=en")));
 
         return element;
     }

@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IdealWeightNutrition.Application\IdealWeightNutrition.Application.csproj" />
+    <ProjectReference Include="..\..\src\IdealWeightNutrition.Infrastructure\IdealWeightNutrition.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

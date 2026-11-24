@@ -1,6 +1,6 @@
 import { IMAGE_LOADER, ImageLoaderConfig } from '@angular/common';
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
@@ -18,7 +18,7 @@ const passthroughImageLoader = (config: ImageLoaderConfig): string => config.src
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' })),
     provideAnimationsAsync(),
     provideCharts(withDefaultRegisterables()),
     provideHttpClient(

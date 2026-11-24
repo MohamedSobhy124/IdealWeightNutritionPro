@@ -4,6 +4,7 @@ import { environment } from '../../../environments/environment';
 import {
   AdminPromoCodeDetail,
   AdminPromoCodeListItem,
+  AdminPromoCodeUsage,
   PromoCodeExclusions,
   UpsertAdminPromoCodeRequest,
 } from '../models/admin-promo.models';
@@ -15,6 +16,12 @@ export class AdminPromoService {
 
   list() {
     return this.http.get<AdminPromoCodeListItem[]>(`${this.baseUrl}/admin/promo-codes`, {
+      withCredentials: true,
+    });
+  }
+
+  getUsages(id: number) {
+    return this.http.get<AdminPromoCodeUsage[]>(`${this.baseUrl}/admin/promo-codes/${id}/usages`, {
       withCredentials: true,
     });
   }

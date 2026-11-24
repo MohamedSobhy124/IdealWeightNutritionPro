@@ -1,6 +1,7 @@
 <ui-page-header
   [title]="purchase() ? t('servicePurchaseTitle') + ' #' + purchase()!.id : t('servicePurchaseTitle')"
-  [breadcrumbs]="[{ label: t('servicePurchasesTitle'), link: '/admin/service-purchases' }]"
+  backLink="/admin/service-purchases"
+  [backLabel]="t('servicePurchasesTitle')"
 />
 
 @if (loading()) {

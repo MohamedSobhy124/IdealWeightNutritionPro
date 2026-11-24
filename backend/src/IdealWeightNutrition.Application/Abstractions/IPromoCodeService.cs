@@ -10,7 +10,14 @@ public interface IPromoCodeService
         string? userId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Records that an order used a promo code. Safe to call more than once per order.</summary>
     Task RecordUsageAsync(int promoCodeId, string userId, int orderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gives back the promo usage of an order that was cancelled before fulfilment, so it no
+    /// longer counts towards the code's limits. Returns how many usages were released.
+    /// </summary>
+    Task<int> ReleaseUsageForOrderAsync(int orderId, CancellationToken cancellationToken = default);
 }
 
 public sealed class PromoCartLine

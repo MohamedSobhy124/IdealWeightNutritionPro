@@ -170,6 +170,17 @@
 
   .ui-password__toggle {
     @apply absolute inset-y-0 end-0 flex w-11 items-center justify-center text-ink-500 hover:text-ink-800;
+    /* Preflight is off, so reset the browser's default button chrome. */
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0.75rem;
+    background: transparent;
+    cursor: pointer;
+  }
+  .ui-password__toggle:focus-visible {
+    outline: 2px solid rgb(var(--rgb-brand-solid) / 0.5);
+    outline-offset: -4px;
   }
 
   .ui-otp {
@@ -353,6 +364,16 @@
 
   .ui-product-card--compact .ui-product-card__actions .ui-btn-primary {
     @apply w-full justify-center;
+  }
+
+  /* Square icon button beside "Add to cart". */
+  .product-card__quick-view {
+    @apply aspect-square justify-center !px-0;
+    width: 2.75rem;
+    border-radius: 0.85rem;
+  }
+  .ui-product-card--compact .product-card__quick-view {
+    width: 2.5rem;
   }
 
   .product-grid .ui-product-card--compact .ui-product-card__wishlist {

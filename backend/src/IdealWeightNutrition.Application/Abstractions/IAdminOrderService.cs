@@ -49,6 +49,11 @@ public interface IAdminOrderService
         ForceOrderActionRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<AdminOrderActionResponse> UpdateOrderDetailsAsync(
+        int orderId,
+        UpdateOrderDetailsRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<AdminOrderActionResponse> UpdateOrderLineAsync(
         int orderId,
         UpdateOrderLineRequest request,

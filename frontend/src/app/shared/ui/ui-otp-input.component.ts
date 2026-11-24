@@ -21,14 +21,17 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
       multi: true,
     },
   ],
+  // Codes always read left-to-right, even on Arabic pages, so the group is LTR.
   template: `
-    <div class="ui-otp" role="group" [attr.aria-label]="groupLabel()">
+    <div class="otp" dir="ltr" role="group" [attr.aria-label]="groupLabel()" [style.--otp-count]="length()">
       @for (digit of digits(); track $index) {
         <input
           #cell
-          class="ui-input ui-otp__cell"
+          class="otp__cell"
+          [class.otp__cell--filled]="!!digit"
           type="text"
           inputmode="numeric"
+          pattern="[0-9]*"
           maxlength="1"
           [attr.autocomplete]="$index === 0 ? 'one-time-code' : 'off'"
           [attr.aria-label]="digitLabel($index)"
@@ -37,10 +40,83 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
           (input)="onInput($index, $event)"
           (keydown)="onKey($index, $event)"
           (paste)="onPaste($event)"
+          (focus)="selectCell($event)"
           (blur)="onTouched()"
         />
       }
     </div>
+  `,
+  // Component styles (not the global layer) so they beat the unlayered
+  // base rule `input[type="text"] { width: 100% }` in _forms.scss.
+  styles: `
+    :host {
+      display: block;
+    }
+
+    .otp {
+      display: grid;
+      grid-template-columns: repeat(var(--otp-count, 6), minmax(0, 3.25rem));
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 400px) {
+      .otp {
+        gap: 0.65rem;
+      }
+    }
+
+    .otp__cell {
+      width: 100%;
+      min-width: 0;
+      height: 3.5rem;
+      margin: 0;
+      padding: 0;
+      border: 1.5px solid rgb(var(--rgb-ink-200));
+      border-radius: 0.9rem;
+      background: rgb(var(--rgb-surface-raised));
+      box-shadow: 0 1px 2px rgb(var(--rgb-ink-900) / 0.04);
+      color: rgb(var(--rgb-ink-900));
+      font-size: 1.5rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      text-align: center;
+      caret-color: rgb(var(--rgb-brand-solid));
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .otp__cell:hover:not(:disabled) {
+      border-color: rgb(var(--rgb-brand-300));
+    }
+
+    .otp__cell:focus {
+      outline: none;
+      border-color: rgb(var(--rgb-brand-solid));
+      box-shadow: 0 0 0 4px rgb(var(--rgb-brand-solid) / 0.15);
+      transform: translateY(-1px);
+    }
+
+    .otp__cell--filled {
+      border-color: rgb(var(--rgb-brand-400));
+      background: rgb(var(--rgb-brand-50));
+      color: rgb(var(--rgb-brand-800));
+    }
+
+    .otp__cell:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .otp__cell {
+        transition: none;
+      }
+
+      .otp__cell:focus {
+        transform: none;
+      }
+    }
   `,
 })
 export class UiOtpInputComponent implements ControlValueAccessor {
@@ -112,6 +188,10 @@ export class UiOtpInputComponent implements ControlValueAccessor {
     this.digits.set(Array.from({ length: this.length() }, (_, index) => chars[index] ?? ''));
     this.emit();
     this.focus(Math.min(chars.length, this.length()) - 1);
+  }
+
+  protected selectCell(event: FocusEvent): void {
+    (event.target as HTMLInputElement).select();
   }
 
   private emit(): void {

@@ -4,6 +4,7 @@ import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminCompany, UpsertAdminCompanyRequest } from '../../../core/models/admin-company.models';
 import { AdminCompanyService } from '../../../core/services/admin-company.service';
 import { LocaleService } from '../../../core/services/locale.service';
+import { UiToastService } from '../../../shared/ui/ui-toast.service';
 import { UiConfirmService } from '../../../shared/ui/ui-confirm.service';
 import {
   UiCellDirective,
@@ -12,12 +13,16 @@ import {
   UiModalComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
+  UiActionMenuComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiActionMenuComponent,
+    UiAlertComponent,
     FormsModule,
     UiPageHeaderComponent,
     UiFormFieldComponent,
@@ -31,6 +36,7 @@ import {
 export class AdminCompaniesComponent implements OnInit {
   private readonly companiesApi = inject(AdminCompanyService);
   readonly locale = inject(LocaleService);
+  private readonly toast = inject(UiToastService);
   private readonly confirmDialog = inject(UiConfirmService);
 
   readonly items = signal<AdminCompany[]>([]);
@@ -74,7 +80,7 @@ export class AdminCompaniesComponent implements OnInit {
         },
       },
       { key: 'phoneNumber', header: this.t('phone'), mobile: 'secondary' },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true, mobile: 'actions' },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
   }
 
@@ -157,7 +163,7 @@ export class AdminCompaniesComponent implements OnInit {
         this.showForm.set(false);
         this.editingId.set(null);
         this.busyId.set(null);
-        this.message.set(this.t('saved'));
+        this.toast.success(this.t('saved'));
         this.load();
       },
       error: (err) => {
@@ -173,7 +179,7 @@ export class AdminCompaniesComponent implements OnInit {
     this.message.set(null);
     this.companiesApi.delete(item.id).subscribe({
       next: () => {
-        this.message.set(this.t('updated'));
+        this.toast.success(this.t('updated'));
         this.busyId.set(null);
         this.load();
       },

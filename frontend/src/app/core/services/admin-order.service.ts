@@ -10,6 +10,7 @@ import {
   AdminOrderStatistics,
   ForceOrderActionRequest,
   ShipOrderRequest,
+  UpdateOrderDetailsRequest,
   UpdateOrderLineRequest,
 } from '../models/admin-order.models';
 
@@ -134,6 +135,21 @@ export class AdminOrderService {
       request,
       this.httpOptions
     );
+  }
+
+  updateDetails(orderId: number, request: UpdateOrderDetailsRequest) {
+    return this.http.put<AdminOrderActionResponse>(
+      `${this.baseUrl}/admin/orders/${orderId}/details`,
+      request,
+      this.httpOptions
+    );
+  }
+
+  downloadInvoice(orderId: number) {
+    return this.http.get(`${this.baseUrl}/admin/orders/${orderId}/invoice`, {
+      ...this.httpOptions,
+      responseType: 'blob',
+    });
   }
 
   updateLineItem(orderId: number, request: UpdateOrderLineRequest) {

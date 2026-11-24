@@ -1,6 +1,7 @@
 <ui-page-header
   [title]="isEdit() ? t('editComboOffer') : t('newComboOffer')"
-  [breadcrumbs]="[{ label: t('comboOffersTitle'), link: '/admin/combo-offers' }]"
+  backLink="/admin/combo-offers"
+  [backLabel]="t('comboOffersTitle')"
 />
 
 @if (loading()) {
@@ -10,9 +11,15 @@
     <ui-skeleton height="2.5rem" />
   </div>
 } @else if (error()) {
-  <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true" />
+  <div class="ui-card">
+    <ui-empty-state icon="error_outline" [title]="error()!" [danger]="true">
+      <a routerLink="/admin/combo-offers" class="ui-btn-secondary ui-btn-sm">{{ t('comboOffersTitle') }}</a>
+    </ui-empty-state>
+  </div>
 } @else {
-  <form class="admin-form" (ngSubmit)="submit()">
+  <form class="admin-form" (ngSubmit)="submit()" novalidate>
+    <ui-error-summary class="admin-form-span" [errors]="saveError() ? [{ message: saveError()! }] : []" />
+
     <ui-card [heading]="t('sectionBasicInfo')">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ui-form-field [label]="t('titleEn')" [required]="true">
@@ -49,6 +56,36 @@
             class="mt-1 block text-sm"
           />
         </label>
+
+        <h3 class="mt-6 text-sm font-semibold text-ink-900">{{ t('comboGalleryTitle') }}</h3>
+        @if (images().length === 0) {
+          <p class="mt-2 text-sm text-ink-500">{{ t('comboGalleryEmpty') }}</p>
+        } @else {
+          <ul class="mt-3 flex flex-wrap gap-3">
+            @for (img of images(); track img.id) {
+              <li class="relative">
+                <img class="h-24 w-24 rounded-xl object-cover" [src]="catalogue.resolveImageUrl(img.imageUrl)" [alt]="img.imageInfo || name" />
+                <button
+                  type="button"
+                  class="ui-btn-danger ui-btn-sm absolute end-1 top-1 !min-h-0 !px-1.5 !py-0.5"
+                  [attr.aria-label]="t('remove')"
+                  (click)="deleteGalleryImage(img)"
+                >
+                  <span class="material-icons !text-[16px]" aria-hidden="true">close</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ui-form-field [label]="t('comboGalleryCaption')">
+            <input class="ui-input" [(ngModel)]="galleryCaption" name="galleryCaption" />
+          </ui-form-field>
+          <label class="ui-label block self-end">
+            {{ t('comboGalleryAdd') }}
+            <input type="file" accept="image/*" (change)="onGallerySelected($event)" [disabled]="uploadingGallery()" class="mt-1 block text-sm" />
+          </label>
+        </div>
       }
     </ui-card>
 
@@ -67,6 +104,25 @@
           <input class="ui-input" type="number" min="0" [(ngModel)]="displayOrder" name="displayOrder" />
         </ui-form-field>
       </div>
+    </ui-card>
+
+    <ui-card [heading]="t('sectionDelivery')">
+      <label class="flex cursor-pointer items-center justify-between gap-4">
+        <span class="text-sm font-medium text-ink-800">{{ t('allowFreeDelivery') }}</span>
+        <input type="checkbox" class="h-5 w-5 accent-brand-600" [(ngModel)]="allowFreeDelivery" name="allowFreeDelivery" />
+      </label>
+      @if (allowFreeDelivery) {
+        <ui-form-field
+          [label]="t('freeDeliveryMinimum')"
+          for="co-free-min"
+          [required]="true"
+          [hint]="t('freeDeliveryMinimumHint')"
+          [error]="freeDeliveryError"
+          class="mt-3 block max-w-xs"
+        >
+          <input id="co-free-min" class="ui-input" type="number" min="0" step="0.01" [(ngModel)]="freeDeliveryMinimumAmount" name="freeDeliveryMinimumAmount" required />
+        </ui-form-field>
+      }
     </ui-card>
 
     <ui-card [heading]="t('sectionSchedule')">
@@ -88,16 +144,8 @@
       </label>
     </ui-card>
 
-    @if (saveError()) {
-      <div class="admin-form-span rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{{ saveError() }}</div>
-    }
 
-    <div class="admin-form-bar">
-      <a routerLink="/admin/combo-offers" class="ui-btn-secondary">{{ t('cancel') }}</a>
-      <button type="submit" class="ui-btn-primary" [disabled]="submitting()">
-        {{ submitting() ? t('saving') : t('save') }}
-      </button>
-    </div>
+    <ui-form-bar [dirty]="hasUnsavedChanges()" [saving]="submitting()" (cancel)="cancel()" />
   </form>
 
   @if (isEdit()) {
@@ -134,9 +182,7 @@
         }
 
         @if (itemMessage()) {
-          <p class="mt-3 text-sm" [class.text-danger]="itemError()" [class.text-success-fg]="!itemError()">
-            {{ itemMessage() }}
-          </p>
+          <ui-alert class="mb-3 block" [variant]="itemError() ? 'danger' : 'success'" [message]="itemMessage()" [dismissible]="true" (dismiss)="itemMessage.set(null)" />
         }
 
         @if (items().length === 0) {
@@ -146,11 +192,24 @@
             @for (item of items(); track item.id) {
               <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-3 text-sm">
                 <div class="min-w-0 flex-1">
-                  <p class="font-medium text-ink-900">{{ item.title }}</p>
-                  <p class="mt-0.5 text-xs text-ink-500">
-                    {{ t('flashSaleQty') }}: {{ item.quantity }} ·
-                    {{ item.isRequired ? t('active') : t('inactive') }}
-                  </p>
+                  <p class="font-medium text-ink-900">{{ item.productTitle }}</p>
+                  <div class="mt-2 flex flex-wrap items-end gap-3">
+                    <label class="flex flex-col gap-1 text-xs text-ink-500">
+                      {{ t('flashSaleQty') }}
+                      <input class="ui-input !w-24" type="number" min="1" [(ngModel)]="item.quantity" [name]="'iq-' + item.id" />
+                    </label>
+                    <label class="flex flex-col gap-1 text-xs text-ink-500">
+                      {{ t('comboItemOrder') }}
+                      <input class="ui-input !w-24" type="number" min="0" [(ngModel)]="item.displayOrder" [name]="'io-' + item.id" />
+                    </label>
+                    <label class="flex items-center gap-2 pb-2 text-sm text-ink-700">
+                      <input type="checkbox" [(ngModel)]="item.isRequired" [name]="'ir-' + item.id" />
+                      {{ t('comboRequiredProduct') }}
+                    </label>
+                    <button type="button" class="ui-btn-secondary ui-btn-sm" (click)="saveItem(item)" [disabled]="busyItemId() === item.id">
+                      {{ t('comboItemSave') }}
+                    </button>
+                  </div>
                 </div>
                 <button
                   type="button"

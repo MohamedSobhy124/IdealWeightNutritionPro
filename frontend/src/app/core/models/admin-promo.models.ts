@@ -73,3 +73,13 @@ export interface UpsertAdminPromoCodeRequest {
   excludeDiscountedItems: boolean;
   excludeAllServices: boolean;
 }
+
+export interface AdminPromoCodeUsage {
+  id: number;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  orderId: number;
+  usedDate: string;
+  discountAmount?: number;
+}

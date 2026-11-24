@@ -27,13 +27,24 @@ import {
 import {
   UiBadgeComponent,
   UiEmptyStateComponent,
-  UiPageHeaderComponent,
   UiProductCardComponent,
   UiSkeletonComponent,
-  UiTabsComponent,
 } from '../../shared/ui';
 
 type OffersTab = 'discounted' | 'flash' | 'combo';
+
+/** Page-local copy (not shared, so kept out of ui-text.ts). */
+const COPY = {
+  lead: {
+    en: 'Hand-picked discounts, flash sales and bundles on original supplements.',
+    ar: 'خصومات مختارة وعروض خاطفة وباقات على مكملات أصلية.',
+  },
+  statOffers: { en: 'Live offers', ar: 'عروض حالية' },
+  statOnSale: { en: 'On sale', ar: 'منتج مخفض' },
+  statMaxOff: { en: 'Max discount', ar: 'أعلى خصم' },
+} as const;
+
+type CopyKey = keyof typeof COPY;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,8 +54,6 @@ type OffersTab = 'discounted' | 'flash' | 'combo';
     DecimalPipe,
     FlashSaleCountdownComponent,
     IwnCurrencyPipe,
-    UiPageHeaderComponent,
-    UiTabsComponent,
     UiProductCardComponent,
     UiSkeletonComponent,
     UiEmptyStateComponent,
@@ -86,8 +95,60 @@ export class OffersPageComponent implements OnInit {
     return items;
   });
 
+  /** View-only banner stats derived from loaded data. */
+  readonly totalOffers = computed(
+    () => this.discounted().length + this.flashSales().length + this.combos().length,
+  );
+  readonly maxDiscount = computed(() => {
+    let max = 0;
+    for (const p of this.discounted()) {
+      const { price, listPrice } = this.cardPricing(p);
+      if (listPrice > 0 && price < listPrice) {
+        max = Math.max(max, Math.round((1 - price / listPrice) * 100));
+      }
+    }
+    for (const combo of this.combos()) {
+      max = Math.max(max, Math.round(combo.savingsPercent ?? 0));
+    }
+    return max;
+  });
+
   t(key: UiKey): string {
     return this.locale.pick(UI[key].en, UI[key].ar);
+  }
+
+  c(key: CopyKey): string {
+    return this.locale.pick(COPY[key].en, COPY[key].ar);
+  }
+
+  /** Roving-tabindex keyboard support for the pill tablist (same as ui-tabs). */
+  onTabsKeydown(event: KeyboardEvent): void {
+    const tabs = this.tabs();
+    const current = tabs.findIndex((tab) => tab.id === this.activeTab());
+    if (current < 0) return;
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        next = (current + 1) % tabs.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        next = (current - 1 + tabs.length) % tabs.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const id = tabs[next].id;
+    this.setTab(id);
+    queueMicrotask(() => document.getElementById(`offers-tab-${id}`)?.focus());
   }
 
   productTitle(p: ProductListItem): string {

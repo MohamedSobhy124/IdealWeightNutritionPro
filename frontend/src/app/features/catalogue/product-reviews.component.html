@@ -1,38 +1,64 @@
+<!-- Review list + write-review form (shown inline on desktop, in a sheet on mobile). -->
 <ng-template #reviewBody>
   @if (loading()) {
-    <div class="space-y-4">
-      @for (i of [1, 2]; track i) {
-        <ui-skeleton height="5rem" class="rounded-xl" />
+    <div class="rv-list" aria-hidden="true">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="rv-item">
+          <ui-skeleton height="2.75rem" class="block w-2/5" />
+          <ui-skeleton height="3.5rem" class="mt-3 block" />
+        </div>
       }
     </div>
   } @else if (reviews().length === 0) {
     <ui-empty-state icon="rate_review" [title]="t('noReviewsYet')" />
   } @else {
-    <div class="space-y-4">
-      @for (review of reviews(); track review.id) {
-        <div>
-          <ui-review-card
-            [quote]="review.comment"
-            [author]="review.userName"
-            [rating]="review.rating"
-          />
-          @if (review.isVerifiedPurchase) {
-            <p class="-mt-2 flex items-center gap-1 text-xs text-brand-600">
-              <span class="material-icons text-[14px]" aria-hidden="true">verified</span>
-              {{ t('verifiedPurchase') }}
-            </p>
-          }
-        </div>
+    <ul class="rv-list">
+      @for (review of visibleReviews(); track review.id) {
+        <li class="rv-item">
+          <div class="rv-item__head">
+            <span class="rv-avatar" [attr.data-tone]="tone(review.userName)" aria-hidden="true">{{ initial(review.userName) }}</span>
+            <div class="min-w-0 flex-1">
+              <p class="rv-item__name">
+                <span class="truncate">{{ displayName(review.userName) }}</span>
+                @if (review.isVerifiedPurchase) {
+                  <span class="rv-verified">
+                    <span class="material-icons" aria-hidden="true">verified</span>{{ t('verifiedPurchase') }}
+                  </span>
+                }
+              </p>
+              <div class="rv-item__meta">
+                <span class="rv-stars" role="img" [attr.aria-label]="c('starsOf', review.rating)">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <span class="material-icons" [class.is-off]="star > review.rating" aria-hidden="true">star</span>
+                  }
+                </span>
+                @if (reviewDate(review.createdAt); as date) {
+                  <time class="rv-item__date" [attr.datetime]="review.createdAt">{{ date }}</time>
+                }
+              </div>
+            </div>
+          </div>
+          <p class="rv-item__text">{{ review.comment }}</p>
+        </li>
       }
-    </div>
+    </ul>
+
+    @if (hiddenCount() > 0) {
+      <button type="button" class="rv-more" (click)="showAll.set(!showAll())" [attr.aria-expanded]="showAll()">
+        {{ showAll() ? c('showLess') : c('showAll', reviews().length) }}
+        <span class="material-icons" aria-hidden="true">{{ showAll() ? 'expand_less' : 'expand_more' }}</span>
+      </button>
+    }
   }
 
-  <div class="mt-6 border-t border-ink-200 pt-6">
-    <h3 class="mb-4 text-base font-semibold text-ink-900">{{ t('writeReview') }}</h3>
+  <div class="rv-write" id="write-review">
+    <h3 class="rv-write__title">
+      <span class="material-icons" aria-hidden="true">edit_note</span>{{ t('writeReview') }}
+    </h3>
     @if (!auth.isAuthenticated()) {
-      <p class="text-sm text-ink-600">
+      <p class="rv-write__login">
         {{ t('loginToReview') }}
-        <a routerLink="/auth/login" class="font-medium text-brand-600 hover:underline">{{ t('login') }}</a>
+        <a routerLink="/auth/login" class="font-semibold text-brand-700 hover:underline">{{ t('login') }}</a>
       </p>
     } @else {
       <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
@@ -72,39 +98,67 @@
   </div>
 </ng-template>
 
-<ui-card [heading]="t('reviewsTitle')" class="block">
-  @if (summary(); as s) {
-    <div class="flex flex-wrap items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
-      @if (s.reviewCount > 0) {
-        <span class="text-2xl font-bold text-ink-900">{{ s.averageRating | number: '1.1-1' }}</span>
-        <div class="flex items-center gap-0.5 text-brand-700" aria-hidden="true">
-          @for (star of [1, 2, 3, 4, 5]; track star) {
-            <span class="material-icons text-[20px]" [class.text-ink-300]="star > s.averageRating">star</span>
-          }
+<ui-section-header [title]="t('reviewsTitle')" />
+
+<div class="rv">
+  <!-- Summary: score, breakdown, call to action -->
+  <aside class="rv-summary">
+    @if (stats().count > 0) {
+      <div class="rv-summary__score">
+        <span class="rv-summary__value tabular-nums">{{ stats().average | number: '1.1-1' }}</span>
+        <div class="min-w-0">
+          <span class="rv-stars rv-stars--lg" role="img" [attr.aria-label]="c('starsOf', (stats().average | number: '1.1-1') ?? '')">
+            @for (star of [1, 2, 3, 4, 5]; track star) {
+              <span class="material-icons" [class.is-half]="star > stats().average && star - 0.5 <= stats().average" [class.is-off]="star - 0.5 > stats().average" aria-hidden="true">
+                {{ star > stats().average && star - 0.5 <= stats().average ? 'star_half' : 'star' }}
+              </span>
+            }
+          </span>
+          <p class="rv-summary__count">{{ c('basedOn', stats().count) }}</p>
         </div>
-        <span class="text-sm text-ink-600">{{ s.reviewCount }} {{ t('reviewsCountLabel') }}</span>
-      } @else {
-        <span class="text-sm text-ink-600">{{ t('noReviewsYet') }}</span>
+      </div>
+
+      @if (reviews().length > 0) {
+        <ul class="rv-bars">
+          @for (row of distribution(); track row.stars) {
+            <li class="rv-bar">
+              <span class="rv-bar__label tabular-nums">{{ row.stars }}<span class="material-icons" aria-hidden="true">star</span></span>
+              <span class="rv-bar__track" role="progressbar" [attr.aria-label]="c('starsOf', row.stars)" [attr.aria-valuenow]="row.percent" aria-valuemin="0" aria-valuemax="100">
+                <span class="rv-bar__fill" [style.width.%]="row.percent"></span>
+              </span>
+              <span class="rv-bar__count tabular-nums">{{ row.count }}</span>
+            </li>
+          }
+        </ul>
       }
-    </div>
-  }
+    } @else {
+      <div class="rv-summary__empty">
+        <span class="material-icons" aria-hidden="true">star_outline</span>
+        <p>{{ t('noReviewsYet') }}</p>
+      </div>
+    }
 
-  <button
-    type="button"
-    class="ui-btn-secondary mt-4 w-full lg:hidden"
-    (click)="sheetOpen.set(true)"
-    [attr.aria-expanded]="sheetOpen()"
-  >
-    <span class="material-icons !text-[18px]" aria-hidden="true">rate_review</span>
-    {{ t('viewReviews') }}
-  </button>
+    <p class="rv-summary__cta-text">{{ c('shareThoughts') }}</p>
+    <button type="button" class="ui-btn-primary rv-summary__cta" (click)="goToWriteReview()">
+      <span class="material-icons !text-[18px]" aria-hidden="true">rate_review</span>{{ t('writeReview') }}
+    </button>
+    <button
+      type="button"
+      class="ui-btn-secondary rv-summary__cta lg:hidden"
+      (click)="sheetOpen.set(true)"
+      [attr.aria-expanded]="sheetOpen()"
+    >
+      <span class="material-icons !text-[18px]" aria-hidden="true">forum</span>{{ t('viewReviews') }}
+    </button>
+  </aside>
 
+  <!-- Desktop: list + form inline -->
   @if (!sheetOpen()) {
-    <div class="mt-5 hidden lg:block">
+    <div class="rv-body hidden lg:block">
       <ng-container [ngTemplateOutlet]="reviewBody" />
     </div>
   }
-</ui-card>
+</div>
 
 <ui-modal
   [open]="sheetOpen()"

@@ -69,6 +69,7 @@ internal sealed class AdminProductService : IAdminProductService
                 p.StockQuantity,
                 p.ProductType,
                 p.IsDeleted,
+                p.ExpiryDate,
                 p.IsNew,
                 p.IsTrending,
                 CategoryName = p.Category != null ? p.Category.Name : null,
@@ -95,6 +96,7 @@ internal sealed class AdminProductService : IAdminProductService
                 CategoryName = p.CategoryName,
                 BrandName = p.BrandName,
                 IsDeleted = p.IsDeleted,
+                ExpiryDate = p.ExpiryDate,
                 InStock = p.ProductType == ProductType.Variable ? p.VariantStock > 0 : p.StockQuantity > 0,
                 IsNew = p.IsNew,
                 IsTrending = p.IsTrending
@@ -156,6 +158,7 @@ internal sealed class AdminProductService : IAdminProductService
         product.ListPrice = request.ListPrice;
         product.StoreCost = request.StoreCost;
         product.IsDeleted = request.IsDeleted;
+        product.ExpiryDate = request.ExpiryDate;
         product.IsNew = request.IsNew;
         product.IsTrending = request.IsTrending;
         product.AllowFreeDelivery = request.AllowFreeDelivery;
@@ -271,7 +274,8 @@ internal sealed class AdminProductService : IAdminProductService
             IsNew = request.IsNew,
             IsTrending = request.IsTrending,
             AllowFreeDelivery = request.AllowFreeDelivery,
-            FreeDeliveryMinimumAmount = request.FreeDeliveryMinimumAmount
+            FreeDeliveryMinimumAmount = request.FreeDeliveryMinimumAmount,
+            ExpiryDate = request.ExpiryDate
         };
 
         _db.Products.Add(product);
@@ -470,6 +474,7 @@ internal sealed class AdminProductService : IAdminProductService
             CategoryName = product.Category?.Name,
             BrandName = product.Brand?.Name,
             IsDeleted = product.IsDeleted,
+            ExpiryDate = product.ExpiryDate,
             Options = options,
             Variants = product.Variants
                 .Where(v => !v.IsDeleted)
@@ -512,6 +517,40 @@ internal sealed class AdminProductService : IAdminProductService
                     ImageInfo = i.ImageInfo
                 })
                 .ToList()
+        };
+    }
+
+    public async Task SetProductDeletedAsync(
+        int productId,
+        bool isDeleted,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken)
+            ?? throw new InvalidOperationException("Product not found.");
+        if (product.IsDeleted == isDeleted)
+            return;
+        product.IsDeleted = isDeleted;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AdminProductStatisticsDto> GetStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        var all = _db.Products.AsNoTracking();
+        var total = await all.CountAsync(cancellationToken);
+        var active = await ApplyProductFilter(all, "active").CountAsync(cancellationToken);
+        var deleted = await ApplyProductFilter(all, "deleted").CountAsync(cancellationToken);
+        var low = await ApplyProductFilter(all, "lowstock").CountAsync(cancellationToken);
+        var outOfStock = await ApplyProductFilter(all, "outofstock").CountAsync(cancellationToken);
+        var expiring = await ApplyProductFilter(all, "expiring").CountAsync(cancellationToken);
+
+        return new AdminProductStatisticsDto
+        {
+            Total = total,
+            Active = active,
+            LowStock = low,
+            OutOfStock = outOfStock,
+            Deleted = deleted,
+            Expiring = expiring
         };
     }
 
@@ -625,9 +664,22 @@ internal sealed class AdminProductService : IAdminProductService
                     : p.Variants.Any(v => !v.IsDeleted && v.StockQuantity > 0))),
             "new" => query.Where(p => !p.IsDeleted && p.IsNew),
             "trending" => query.Where(p => !p.IsDeleted && p.IsTrending),
+            "expiring" => ApplyExpiringFilter(query),
             _ => query
         };
     }
+
+    private static IQueryable<Product> ApplyExpiringFilter(IQueryable<Product> query)
+    {
+        var today = DateTime.UtcNow.Date;
+        var threshold = today.AddDays(ExpiringWindowDays);
+        return query.Where(p => !p.IsDeleted && (
+            p.ProductType == ProductType.Simple
+                ? p.ExpiryDate != null && p.ExpiryDate >= today && p.ExpiryDate <= threshold
+                : p.Variants.Any(v => !v.IsDeleted && v.ExpiryDate != null && v.ExpiryDate >= today && v.ExpiryDate <= threshold)));
+    }
+
+    private const int ExpiringWindowDays = 30;
 
     private static IQueryable<Product> ApplyProductSearch(IQueryable<Product> query, string? search)
     {

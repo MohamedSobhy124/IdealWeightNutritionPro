@@ -5,7 +5,9 @@ public enum LegacyMediaFolder
     FlashSales,
     ComboOffers,
     Blogs,
-    Services
+    Services,
+    Categories,
+    Brands
 }
 
 internal sealed class LegacyImageStorage
@@ -23,6 +25,8 @@ internal sealed class LegacyImageStorage
         [LegacyMediaFolder.ComboOffers] = ("images\\combooffers", @"\images\combooffers\"),
         [LegacyMediaFolder.Blogs] = ("images\\blogs", "/images/blogs/"),
         [LegacyMediaFolder.Services] = ("images\\services", @"\images\services\"),
+        [LegacyMediaFolder.Categories] = ("images\\categories", @"\images\categories\"),
+        [LegacyMediaFolder.Brands] = ("images\\brands", @"\images\brands\"),
     };
 
     private readonly LegacyWwwRootPathResolver _wwwRoot;

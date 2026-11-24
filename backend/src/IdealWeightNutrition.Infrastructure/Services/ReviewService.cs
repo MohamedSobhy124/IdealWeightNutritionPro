@@ -188,17 +188,35 @@ internal sealed class ReviewService : IReviewService
         CancellationToken cancellationToken = default)
     {
         var take = Math.Clamp(count, 1, 12);
-        var reviews = await _db.Reviews
+
+        // Pull a wider pool, then pick round-robin by customer so the showcase
+        // shows as many different reviewers as possible (one review per person
+        // first, repeats only when there aren't enough distinct reviewers).
+        var pool = await _db.Reviews
             .AsNoTracking()
             .Where(r => r.IsApproved && r.Comment.Length >= 10)
             .OrderByDescending(r => r.IsVerifiedPurchase)
             .ThenByDescending(r => r.Rating)
             .ThenByDescending(r => r.CreatedAt)
-            .Take(take)
+            .Take(take * 10)
             .ToListAsync(cancellationToken);
 
-        if (reviews.Count == 0)
+        if (pool.Count == 0)
             return [];
+
+        var byUser = pool
+            .GroupBy(r => r.UserId)
+            .Select(g => new Queue<Review>(g))
+            .ToList();
+        var reviews = new List<Review>(take);
+        while (reviews.Count < take && byUser.Any(q => q.Count > 0))
+        {
+            foreach (var queue in byUser)
+            {
+                if (reviews.Count >= take) break;
+                if (queue.Count > 0) reviews.Add(queue.Dequeue());
+            }
+        }
 
         var userIds = reviews.Select(r => r.UserId).Distinct().ToList();
         var users = await _db.Users.AsNoTracking()

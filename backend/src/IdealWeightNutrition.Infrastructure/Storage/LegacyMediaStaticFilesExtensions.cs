@@ -30,7 +30,9 @@ public static class LegacyMediaStaticFilesExtensions
         app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = new PhysicalFileProvider(physicalPath),
-            RequestPath = requestPath
+            RequestPath = requestPath,
+            OnPrepareResponse = ctx =>
+                ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable"
         });
     }
 }

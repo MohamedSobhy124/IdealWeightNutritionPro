@@ -411,6 +411,65 @@ public sealed class ForceCancelAdminOrderEndpoint : Endpoint<ForceOrderActionReq
     }
 }
 
+public sealed class UpdateAdminOrderDetailsEndpoint : Endpoint<UpdateOrderDetailsRequest, AdminOrderActionResponse>
+{
+    private readonly IAdminOrderService _orders;
+
+    public UpdateAdminOrderDetailsEndpoint(IAdminOrderService orders) => _orders = orders;
+
+    public override void Configure()
+    {
+        Put("admin/orders/{orderId}/details");
+        Policies(AuthPolicies.Employee);
+    }
+
+    public override async Task HandleAsync(UpdateOrderDetailsRequest req, CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("orderId"), out var orderId) || orderId <= 0)
+        {
+            ThrowError("Invalid order id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        try
+        {
+            await Send.OkAsync(await _orders.UpdateOrderDetailsAsync(orderId, req, ct), ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, StatusCodes.Status400BadRequest);
+        }
+    }
+}
+
+public sealed class GetAdminOrderInvoiceEndpoint : EndpointWithoutRequest
+{
+    private readonly IOrderNotificationService _notifications;
+
+    public GetAdminOrderInvoiceEndpoint(IOrderNotificationService notifications) => _notifications = notifications;
+
+    public override void Configure()
+    {
+        Get("admin/orders/{orderId}/invoice");
+        Policies(AuthPolicies.Employee);
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (!int.TryParse(Route<string>("orderId"), out var orderId) || orderId <= 0)
+        {
+            ThrowError("Invalid order id.", StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        var pdf = await _notifications.GenerateInvoicePdfForAdminAsync(orderId, ct);
+        if (pdf is null or { Length: 0 })
+            ThrowError("Invoice not found.", StatusCodes.Status404NotFound);
+        else
+            await Send.BytesAsync(pdf, $"Invoice-{orderId}.pdf", "application/pdf", cancellation: ct);
+    }
+}
+
 public sealed class UpdateAdminOrderLineEndpoint : Endpoint<UpdateOrderLineRequest, AdminOrderActionResponse>
 {
     private readonly IAdminOrderService _orders;

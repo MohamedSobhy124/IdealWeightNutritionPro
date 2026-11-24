@@ -28,6 +28,8 @@ internal sealed class AdminOrderService : IAdminOrderService
     private readonly TappySettings _tabby;
     private readonly IPaymentService _payments;
     private readonly IOrderNotificationService _orderNotifications;
+    private readonly IInventoryService _inventory;
+    private readonly IPromoCodeService _promoCodes;
     private readonly ILogger<AdminOrderService> _logger;
 
     public AdminOrderService(
@@ -39,6 +41,8 @@ internal sealed class AdminOrderService : IAdminOrderService
         IOptions<TappySettings> tabby,
         IPaymentService payments,
         IOrderNotificationService orderNotifications,
+        IInventoryService inventory,
+        IPromoCodeService promoCodes,
         ILogger<AdminOrderService> logger)
     {
         _db = db;
@@ -49,6 +53,8 @@ internal sealed class AdminOrderService : IAdminOrderService
         _tabby = tabby.Value;
         _payments = payments;
         _orderNotifications = orderNotifications;
+        _inventory = inventory;
+        _promoCodes = promoCodes;
         _logger = logger;
     }
 
@@ -373,6 +379,18 @@ internal sealed class AdminOrderService : IAdminOrderService
 
         var now = _clock.Now;
         var oldStatus = order.OrderStatus;
+
+        // Tamara only releases the money once the shipment is captured. Do it before
+        // changing anything so a failed capture leaves the order unshipped.
+        string? captureNote = null;
+        if (order.PaymentMethod == PaymentMethods.Tamara
+            && !string.IsNullOrEmpty(order.PaymentIntentId)
+            && _tamara.Enabled
+            && IsPaymentSettled(order.PaymentStatus))
+        {
+            captureNote = await CaptureTamaraAsync(order, request.Carrier.Trim(), now, cancellationToken);
+        }
+
         order.Carrier = request.Carrier.Trim();
         order.TrackingNumber = request.TrackingNumber.Trim();
         order.OrderStatus = OrderStatuses.Shipped;
@@ -385,7 +403,7 @@ internal sealed class AdminOrderService : IAdminOrderService
         await LogAuditAsync(
             order.Id,
             "Ship Order",
-            actionDetails: $"Carrier: {order.Carrier}, Tracking: {order.TrackingNumber}",
+            actionDetails: $"Carrier: {order.Carrier}, Tracking: {order.TrackingNumber}" + (captureNote is null ? "" : $". {captureNote}"),
             oldOrderStatus: oldStatus,
             newOrderStatus: order.OrderStatus,
             cancellationToken: cancellationToken);
@@ -399,7 +417,7 @@ internal sealed class AdminOrderService : IAdminOrderService
     {
         var order = await RequireOrderAsync(orderId, cancellationToken);
 
-        if (order.OrderStatus != OrderStatuses.Shipped)
+        if (order.OrderStatus is not (OrderStatuses.Shipped or OrderStatuses.OutForDelivery))
             throw new InvalidOperationException("Only shipped orders can be marked as delivered.");
 
         var oldStatus = order.OrderStatus;
@@ -428,23 +446,48 @@ internal sealed class AdminOrderService : IAdminOrderService
         if (order.OrderStatus == OrderStatuses.Cancelled)
             throw new InvalidOperationException("Order is already cancelled.");
 
-        if (order.OrderStatus is OrderStatuses.Shipped or OrderStatuses.Delivered)
-            throw new InvalidOperationException("Shipped or delivered orders cannot be cancelled.");
-
-        if (order.PaymentMethod is PaymentMethods.Geidea or PaymentMethods.Tamara or PaymentMethods.Tabby)
-        {
-            throw new InvalidOperationException(
-                "Online payment orders must be cancelled through the payment gateway integration (not yet available in the modern API).");
-        }
+        if (order.OrderStatus is OrderStatuses.Shipped or OrderStatuses.OutForDelivery or OrderStatuses.Delivered)
+            throw new InvalidOperationException("Shipped or delivered orders cannot be cancelled. Use a refund instead.");
 
         var oldOrderStatus = order.OrderStatus;
         var oldPaymentStatus = order.PaymentStatus;
+
+        // Online orders: cancel/void at the gateway first. If the customer's money is
+        // held (authorised/paid) a gateway failure blocks the cancel so it can never
+        // be left authorised on the customer's card; unpaid sessions are best-effort.
+        string? gatewayNote = null;
+        if (IsOnlineMethod(order.PaymentMethod))
+        {
+            var gateway = await TryCancelAtGatewayAsync(order, cancellationToken);
+            if (!gateway.Ok)
+            {
+                if (gateway.Blocking || IsPaymentSettled(oldPaymentStatus))
+                    throw new InvalidOperationException(gateway.Message);
+
+                _logger.LogWarning(
+                    "Gateway cancel skipped for unpaid order #{OrderId} ({Method}): {Message}",
+                    order.Id, order.PaymentMethod, gateway.Message);
+            }
+
+            gatewayNote = gateway.Message;
+        }
+
+        var restoreStock = StockWasDeducted(order.PaymentMethod, oldPaymentStatus);
+
         order.OrderStatus = OrderStatuses.Cancelled;
         order.PaymentStatus = PaymentStatuses.Cancelled;
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (restoreStock)
+            await RestoreStockSafeAsync(order, cancellationToken);
+
+        // The order was never fulfilled, so its promo use no longer counts.
+        await ReleasePromoUsageSafeAsync(order, cancellationToken);
+
         await LogAuditAsync(
             order.Id,
             "Cancel Order",
+            actionDetails: gatewayNote,
             oldOrderStatus: oldOrderStatus,
             newOrderStatus: order.OrderStatus,
             oldPaymentStatus: oldPaymentStatus,
@@ -516,9 +559,26 @@ internal sealed class AdminOrderService : IAdminOrderService
         var oldOrderStatus = order.OrderStatus;
         var oldPaymentStatus = order.PaymentStatus;
 
+        // Give stock back only when this call actually cancels the order, the goods
+        // never left the building, and stock had been taken in the first place.
+        var restoreStock = oldOrderStatus != OrderStatuses.Cancelled
+            && oldOrderStatus is not (OrderStatuses.Shipped or OrderStatuses.OutForDelivery or OrderStatuses.Delivered
+                or OrderStatuses.Returned or OrderStatuses.Refunded)
+            && StockWasDeducted(order.PaymentMethod, oldPaymentStatus);
+
+        var releasePromo = oldOrderStatus is not (OrderStatuses.Shipped or OrderStatuses.OutForDelivery
+            or OrderStatuses.Delivered or OrderStatuses.Returned or OrderStatuses.Refunded);
+
         order.OrderStatus = OrderStatuses.Cancelled;
         order.PaymentStatus = PaymentStatuses.Cancelled;
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (restoreStock)
+            await RestoreStockSafeAsync(order, cancellationToken);
+
+        if (releasePromo)
+            await ReleasePromoUsageSafeAsync(order, cancellationToken);
+
         await LogAuditAsync(
             order.Id,
             "Force Cancel Order",
@@ -530,6 +590,64 @@ internal sealed class AdminOrderService : IAdminOrderService
             cancellationToken: cancellationToken);
 
         return ActionResponse(order, "Order force-cancelled.");
+    }
+
+    public async Task<AdminOrderActionResponse> UpdateOrderDetailsAsync(
+        int orderId,
+        UpdateOrderDetailsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var name = request.Name?.Trim();
+        var phone = request.PhoneNumber?.Trim();
+        var street = request.StreetAddress?.Trim();
+        var city = request.City?.Trim();
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(phone)
+            || string.IsNullOrEmpty(street) || string.IsNullOrEmpty(city))
+            throw new InvalidOperationException("Name, phone, street address and city are required.");
+
+        var order = await RequireOrderAsync(orderId, cancellationToken);
+
+        if (order.OrderStatus == OrderStatuses.Cancelled)
+            throw new InvalidOperationException("Cancelled orders cannot be edited.");
+
+        // Only record which fields changed, not their (personal) values.
+        var changed = new List<string>();
+        void Apply(string label, string? current, string? next, Action<string?> set)
+        {
+            if (string.Equals(current ?? string.Empty, next ?? string.Empty, StringComparison.Ordinal))
+                return;
+            set(next);
+            changed.Add(label);
+        }
+
+        var area = string.IsNullOrWhiteSpace(request.Area) ? null : request.Area.Trim();
+        var carrier = string.IsNullOrWhiteSpace(request.Carrier) ? order.Carrier : request.Carrier.Trim();
+        var tracking = string.IsNullOrWhiteSpace(request.TrackingNumber) ? order.TrackingNumber : request.TrackingNumber.Trim();
+
+        Apply("name", order.Name, name, v => order.Name = v!);
+        Apply("phone", order.PhoneNumber, phone, v => order.PhoneNumber = v!);
+        Apply("street address", order.StreetAddress, street, v => order.StreetAddress = v!);
+        Apply("city", order.City, city, v => order.City = v!);
+        Apply("area", order.Area, area, v => order.Area = v);
+        Apply("carrier", order.Carrier, carrier, v => order.Carrier = v);
+        Apply("tracking number", order.TrackingNumber, tracking, v => order.TrackingNumber = v);
+
+        if (changed.Count == 0)
+            return ActionResponse(order, "No changes to save.");
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await LogAuditAsync(
+            order.Id,
+            "Update Order Details",
+            actionDetails: "Changed: " + string.Join(", ", changed),
+            oldOrderStatus: order.OrderStatus,
+            newOrderStatus: order.OrderStatus,
+            oldPaymentStatus: order.PaymentStatus,
+            newPaymentStatus: order.PaymentStatus,
+            cancellationToken: cancellationToken);
+
+        return ActionResponse(order, "Order details updated.");
     }
 
     public async Task<AdminOrderActionResponse> UpdateOrderLineAsync(
@@ -608,6 +726,23 @@ internal sealed class AdminOrderService : IAdminOrderService
             case PaymentMethods.Tamara when !string.IsNullOrEmpty(order.PaymentIntentId) && _tamara.Enabled:
             {
                 var helper = new TamaraHelper(_tamara);
+
+                // Tamara can only refund a captured payment. If the order never shipped the
+                // money is merely authorised: a full "refund" becomes a cancel, a partial
+                // one is impossible until the order is captured.
+                var tamaraState = await helper.GetOrderDetailsAsync(order.PaymentIntentId);
+                if (tamaraState.Success && !TamaraIsCaptured(tamaraState.Status))
+                {
+                    if (!isFullRefund)
+                        throw new InvalidOperationException(
+                            "Tamara has not captured this payment yet (the order has not shipped). Partial refunds are only possible after shipping; cancel the order instead.");
+
+                    var cancel = await TryCancelAtGatewayAsync(order, cancellationToken);
+                    if (!cancel.Ok)
+                        throw new InvalidOperationException(cancel.Message);
+                    break;
+                }
+
                 var refund = await helper.RefundOrderAsync(order.PaymentIntentId, new TamaraRefundRequest
                 {
                     TotalAmount = new TamaraAmount
@@ -679,6 +814,222 @@ internal sealed class AdminOrderService : IAdminOrderService
             GatewayRefundId = gatewayRefundId,
             Message = "Refund processed successfully."
         };
+    }
+
+    private static bool IsOnlineMethod(string? method) =>
+        method is PaymentMethods.Geidea or PaymentMethods.Tamara or PaymentMethods.Tabby;
+
+    /// <summary>True when the customer's money is held or taken (paid, delayed, authorised).</summary>
+    private static bool IsPaymentSettled(string? paymentStatus) =>
+        paymentStatus is PaymentStatuses.Paid or PaymentStatuses.DelayedPayment
+            or PaymentStatuses.Authorized or PaymentStatuses.PartiallyRefunded;
+
+    /// <summary>Stock is taken at checkout for COD and once payment is confirmed for online orders.</summary>
+    private static bool StockWasDeducted(string? paymentMethod, string? paymentStatus) =>
+        paymentMethod == PaymentMethods.Cod || IsPaymentSettled(paymentStatus);
+
+    private static bool TamaraIsCaptured(string? status) =>
+        !string.IsNullOrEmpty(status)
+        && (status.Contains("captur", StringComparison.OrdinalIgnoreCase)
+            || status.Contains("refund", StringComparison.OrdinalIgnoreCase));
+
+    private async Task ReleasePromoUsageSafeAsync(Domain.Checkout.OrderHeader order, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var released = await _promoCodes.ReleaseUsageForOrderAsync(order.Id, cancellationToken);
+            if (released > 0)
+            {
+                await LogAuditAsync(
+                    order.Id,
+                    "Promo Usage Released",
+                    actionDetails: "The promo code use was given back because the order was cancelled.",
+                    cancellationToken: cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to release promo usage for cancelled order #{OrderId}", order.Id);
+        }
+    }
+
+    private async Task RestoreStockSafeAsync(Domain.Checkout.OrderHeader order, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _inventory.RestoreStockForOrderAsync(order.Id, cancellationToken);
+            await LogAuditAsync(
+                order.Id,
+                "Restore Stock",
+                "Stock returned to inventory after cancellation.",
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // The cancel itself already succeeded; surface the problem in the logs.
+            _logger.LogError(ex, "Failed to restore stock for cancelled order #{OrderId}", order.Id);
+        }
+    }
+
+    private async Task<List<TamaraItem>> BuildTamaraItemsAsync(
+        Domain.Checkout.OrderHeader order,
+        CancellationToken cancellationToken)
+    {
+        var currency = _tamara.Currency ?? "AED";
+        var details = await _db.OrderDetails
+            .AsNoTracking()
+            .Where(d => d.OrderHeaderId == order.Id)
+            .ToListAsync(cancellationToken);
+        var productIds = details.Select(d => d.ProductId).Distinct().ToList();
+        var titles = await _db.Products
+            .AsNoTracking()
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Title, cancellationToken);
+
+        TamaraAmount Money(double value) => new() { Amount = (decimal)value, Currency = currency };
+
+        return details.Select(d =>
+        {
+            var title = titles.GetValueOrDefault(d.ProductId) ?? $"Product {d.ProductId}";
+            return new TamaraItem
+            {
+                ReferenceId = d.ProductId.ToString(),
+                Type = "Physical",
+                Name = title.Length > 200 ? title[..200] : title,
+                Sku = d.ProductId.ToString(),
+                Quantity = d.Count,
+                UnitPrice = Money(d.Price),
+                TotalAmount = Money(d.Price * d.Count),
+                DiscountAmount = Money(0),
+                TaxAmount = Money(0)
+            };
+        }).ToList();
+    }
+
+    /// <summary>Captures the authorised Tamara payment when an order ships. Throws on failure.</summary>
+    private async Task<string> CaptureTamaraAsync(
+        Domain.Checkout.OrderHeader order,
+        string carrier,
+        DateTime shippedAt,
+        CancellationToken cancellationToken)
+    {
+        var helper = new TamaraHelper(_tamara);
+        var currency = _tamara.Currency ?? "AED";
+
+        var state = await helper.GetOrderDetailsAsync(order.PaymentIntentId!);
+        var status = state.Success ? state.Status ?? string.Empty : string.Empty;
+
+        if (TamaraIsCaptured(status))
+            return "Tamara payment was already captured.";
+
+        if (status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+            || status.Contains("declin", StringComparison.OrdinalIgnoreCase)
+            || status.Contains("expire", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Tamara reports this order as \"{status}\", so it cannot be shipped. Check the order in the Tamara dashboard.");
+        }
+
+        var request = new TamaraCaptureRequest
+        {
+            TotalAmount = new TamaraAmount { Amount = (decimal)order.OrderTotal, Currency = currency },
+            ShippingInfo = new TamaraShippingInfo
+            {
+                ShippedAt = shippedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ShippingCompany = carrier
+            },
+            TaxAmount = new TamaraAmount { Amount = 0, Currency = currency },
+            ShippingAmount = new TamaraAmount { Amount = 0, Currency = currency },
+            Items = await BuildTamaraItemsAsync(order, cancellationToken)
+        };
+
+        if (order.DiscountAmount is > 0)
+        {
+            request.Discount = new TamaraDiscount
+            {
+                Name = "Promo discount",
+                Amount = new TamaraAmount { Amount = (decimal)order.DiscountAmount.Value, Currency = currency }
+            };
+        }
+
+        var response = await helper.CaptureOrderAsync(order.PaymentIntentId!, request);
+        if (!response.Success)
+        {
+            _logger.LogWarning("Tamara capture failed for order #{OrderId}: {Message}", order.Id, response.Message);
+            throw new InvalidOperationException(
+                $"Tamara payment capture failed, so the order was not shipped: {response.Message}");
+        }
+
+        return string.IsNullOrEmpty(response.CaptureId)
+            ? "Tamara payment captured."
+            : $"Tamara payment captured ({response.CaptureId}).";
+    }
+
+    /// <summary>
+    /// Cancels/voids the payment at the gateway. Ok=false with Blocking=true means the
+    /// payment is already captured and must be refunded instead.
+    /// </summary>
+    private async Task<(bool Ok, bool Blocking, string Message)> TryCancelAtGatewayAsync(
+        Domain.Checkout.OrderHeader order,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            switch (order.PaymentMethod)
+            {
+                case PaymentMethods.Tamara:
+                {
+                    if (string.IsNullOrEmpty(order.PaymentIntentId) || !_tamara.Enabled)
+                        return (false, false, "Tamara is not configured or the order has no Tamara reference.");
+
+                    var helper = new TamaraHelper(_tamara);
+                    var state = await helper.GetOrderDetailsAsync(order.PaymentIntentId);
+                    if (state.Success && TamaraIsCaptured(state.Status))
+                    {
+                        return (false, true,
+                            "Tamara has already captured this payment (the order shipped). Use a refund instead of cancelling.");
+                    }
+
+                    var currency = _tamara.Currency ?? "AED";
+                    var response = await helper.CancelOrderAsync(order.PaymentIntentId, new TamaraCancelRequest
+                    {
+                        TotalAmount = new TamaraAmount { Amount = (decimal)order.OrderTotal, Currency = currency },
+                        Items = await BuildTamaraItemsAsync(order, cancellationToken)
+                    });
+
+                    return response.Success
+                        ? (true, false, "Cancelled with Tamara.")
+                        : (false, false, $"Tamara cancellation failed: {response.Message}");
+                }
+                case PaymentMethods.Geidea:
+                {
+                    var helper = new GeideaHelper(_geidea);
+                    var response = await helper.CancelPaymentAsync(order.Id.ToString(), order.SessionId);
+                    return response.Success
+                        ? (true, false, "Cancelled with Geidea.")
+                        : (false, false, $"Geidea cancellation failed: {response.Message}");
+                }
+                case PaymentMethods.Tabby:
+                {
+                    var reference = order.PaymentIntentId ?? order.SessionId;
+                    if (string.IsNullOrEmpty(reference) || !_tabby.Enabled)
+                        return (false, false, "Tabby is not configured or the order has no Tabby reference.");
+
+                    var helper = new TappyHelper(_tabby);
+                    var response = await helper.CancelPaymentAsync(reference);
+                    return response.Success
+                        ? (true, false, "Cancelled with Tabby.")
+                        : (false, false, $"Tabby cancellation failed: {response.Message}");
+                }
+                default:
+                    return (true, false, string.Empty);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Gateway cancel threw for order #{OrderId} ({Method})", order.Id, order.PaymentMethod);
+            return (false, false, $"{order.PaymentMethod} cancellation error: {ex.Message}");
+        }
     }
 
     private async Task<Domain.Checkout.OrderHeader> RequireOrderAsync(

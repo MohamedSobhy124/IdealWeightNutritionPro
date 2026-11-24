@@ -54,6 +54,7 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
         var combo = await _db.ComboOffers
             .AsNoTracking()
             .Include(c => c.Items)
+            .Include(c => c.Images)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
         return combo is null ? null : await MapDetailAsync(combo, cancellationToken);
@@ -79,7 +80,9 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
             IsDeleted = false,
             MinimumQuantity = request.MinimumQuantity,
             MaximumQuantity = request.MaximumQuantity,
-            DisplayOrder = request.DisplayOrder
+            DisplayOrder = request.DisplayOrder,
+            AllowFreeDelivery = request.AllowFreeDelivery,
+            FreeDeliveryMinimumAmount = request.AllowFreeDelivery ? request.FreeDeliveryMinimumAmount : 0
         };
 
         _db.ComboOffers.Add(combo);
@@ -98,6 +101,7 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
 
         var combo = await _db.ComboOffers
             .Include(c => c.Items)
+            .Include(c => c.Images)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken)
             ?? throw new InvalidOperationException("Combo offer not found.");
 
@@ -113,6 +117,8 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
         combo.MinimumQuantity = request.MinimumQuantity;
         combo.MaximumQuantity = request.MaximumQuantity;
         combo.DisplayOrder = request.DisplayOrder;
+        combo.AllowFreeDelivery = request.AllowFreeDelivery;
+        combo.FreeDeliveryMinimumAmount = request.AllowFreeDelivery ? request.FreeDeliveryMinimumAmount : 0;
 
         await _db.SaveChangesAsync(cancellationToken);
         return await MapDetailAsync(combo, cancellationToken);
@@ -206,6 +212,91 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<AdminComboOfferItemDto> UpdateItemAsync(
+        int comboOfferId,
+        int itemId,
+        UpdateAdminComboOfferItemRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.Quantity <= 0)
+            throw new InvalidOperationException("Quantity must be at least 1.");
+        if (request.DisplayOrder < 0)
+            throw new InvalidOperationException("Display order cannot be negative.");
+
+        var item = await _db.ComboOfferItems.FirstOrDefaultAsync(
+                i => i.Id == itemId && i.ComboOfferId == comboOfferId && !i.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Combo offer item not found.");
+
+        item.Quantity = request.Quantity;
+        item.DisplayOrder = request.DisplayOrder;
+        item.IsRequired = request.IsRequired;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var title = await _db.Products.AsNoTracking()
+            .Where(p => p.Id == item.ProductId)
+            .Select(p => p.Title)
+            .FirstOrDefaultAsync(cancellationToken) ?? $"Product #{item.ProductId}";
+        return MapItem(item, title);
+    }
+
+    public async Task<AdminComboOfferImageDto> AddImageAsync(
+        int comboOfferId,
+        Stream fileStream,
+        string fileName,
+        string? imageInfo,
+        CancellationToken cancellationToken = default)
+    {
+        var combo = await _db.ComboOffers.Include(c => c.Images)
+            .FirstOrDefaultAsync(c => c.Id == comboOfferId && !c.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Combo offer not found.");
+
+        var imageUrl = await _images.SaveAsync(LegacyMediaFolder.ComboOffers, fileStream, fileName, cancellationToken);
+        var image = new ComboOfferImage
+        {
+            ComboOfferId = combo.Id,
+            ImageUrl = imageUrl,
+            DisplayOrder = combo.Images.Count == 0 ? 0 : combo.Images.Max(i => i.DisplayOrder) + 1,
+            ImageInfo = string.IsNullOrWhiteSpace(imageInfo) ? null : imageInfo.Trim()
+        };
+        _db.ComboOfferImages.Add(image);
+
+        if (string.IsNullOrEmpty(combo.ImageUrl))
+            combo.ImageUrl = imageUrl;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return MapImage(image);
+    }
+
+    public async Task DeleteImageAsync(int comboOfferId, int imageId, CancellationToken cancellationToken = default)
+    {
+        var combo = await _db.ComboOffers.Include(c => c.Images)
+            .FirstOrDefaultAsync(c => c.Id == comboOfferId, cancellationToken)
+            ?? throw new InvalidOperationException("Combo offer not found.");
+        var image = combo.Images.FirstOrDefault(i => i.Id == imageId)
+            ?? throw new InvalidOperationException("Image not found.");
+
+        _db.ComboOfferImages.Remove(image);
+        if (string.Equals(combo.ImageUrl, image.ImageUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            combo.ImageUrl = combo.Images
+                .Where(i => i.Id != imageId)
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => i.ImageUrl)
+                .FirstOrDefault() ?? string.Empty;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        try { _images.DeleteIfExists(image.ImageUrl); } catch { /* best effort */ }
+    }
+
+    private static AdminComboOfferImageDto MapImage(ComboOfferImage i) => new()
+    {
+        Id = i.Id,
+        ImageUrl = i.ImageUrl,
+        DisplayOrder = i.DisplayOrder,
+        ImageInfo = i.ImageInfo
+    };
+
     public async Task<AdminImageUploadResultDto> UploadImageAsync(
         int id,
         Stream fileStream,
@@ -240,6 +331,8 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
             throw new InvalidOperationException("Minimum quantity must be at least 1.");
         if (request.MaximumQuantity is <= 0)
             throw new InvalidOperationException("Maximum quantity must be greater than 0 when set.");
+        if (request.FreeDeliveryMinimumAmount < 0 || double.IsNaN(request.FreeDeliveryMinimumAmount))
+            throw new InvalidOperationException("Free delivery minimum amount must be 0 or greater.");
     }
 
     private async Task<AdminComboOfferDetailDto> MapDetailAsync(ComboOffer combo, CancellationToken cancellationToken)
@@ -267,9 +360,16 @@ internal sealed class AdminComboOfferService : IAdminComboOfferService
             MinimumQuantity = combo.MinimumQuantity,
             MaximumQuantity = combo.MaximumQuantity,
             DisplayOrder = combo.DisplayOrder,
+            AllowFreeDelivery = combo.AllowFreeDelivery,
+            FreeDeliveryMinimumAmount = combo.FreeDeliveryMinimumAmount,
             Items = combo.Items
                 .OrderBy(i => i.DisplayOrder)
                 .Select(i => MapItem(i, products.GetValueOrDefault(i.ProductId, $"Product #{i.ProductId}")))
+                .ToList(),
+            Images = combo.Images
+                .OrderBy(i => i.DisplayOrder)
+                .ThenBy(i => i.Id)
+                .Select(MapImage)
                 .ToList()
         };
     }

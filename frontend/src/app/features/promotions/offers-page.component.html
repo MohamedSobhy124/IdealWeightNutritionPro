@@ -1,19 +1,89 @@
-<section class="ui-fade-in space-y-6">
-  <ui-page-header [title]="t('offersTitle')" [subtitle]="t('offersLead')" />
+<section class="off-page ui-fade-in">
+  <!-- Banner -->
+  <header class="off-hero">
+    <div class="off-hero__copy">
+      <span class="off-eyebrow">
+        <span class="material-icons" aria-hidden="true">local_offer</span>{{ t('homeDealsEyebrow') }}
+      </span>
+      <h1 class="off-hero__title display-title">{{ t('offersTitle') }}</h1>
+      <p class="off-hero__lead">{{ c('lead') }}</p>
 
+      <dl class="off-stats">
+        <div class="off-stat">
+          <dt>{{ c('statOffers') }}</dt>
+          <dd>
+            @if (loading()) {
+              <ui-skeleton width="2.5rem" height="1.8rem" class="off-skel" />
+            } @else {
+              {{ totalOffers() }}
+            }
+          </dd>
+        </div>
+        @if (!loading() && discounted().length > 0) {
+          <div class="off-stat">
+            <dt>{{ c('statOnSale') }}</dt>
+            <dd>{{ discounted().length }}</dd>
+          </div>
+        }
+        @if (!loading() && maxDiscount() > 0) {
+          <div class="off-stat off-stat--accent">
+            <dt>{{ c('statMaxOff') }}</dt>
+            <dd>{{ t('upToAvailable') }} {{ maxDiscount() }}%</dd>
+          </div>
+        }
+      </dl>
+    </div>
+
+    <nav class="off-links" [attr.aria-label]="t('offersTitle')">
+      <a class="off-link" routerLink="/flash-sales">
+        <span class="off-link__icon" aria-hidden="true"><span class="material-icons">bolt</span></span>
+        <span class="off-link__text">
+          <strong>{{ t('flashSales') }}</strong>
+          <span>{{ t('offersFlashDesc') }}</span>
+        </span>
+        <span class="material-icons off-link__go rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+      </a>
+      <a class="off-link" routerLink="/combos">
+        <span class="off-link__icon" aria-hidden="true"><span class="material-icons">inventory_2</span></span>
+        <span class="off-link__text">
+          <strong>{{ t('comboOffers') }}</strong>
+          <span>{{ t('offersComboDesc') }}</span>
+        </span>
+        <span class="material-icons off-link__go rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+      </a>
+    </nav>
+  </header>
+
+  <!-- Tabs -->
   @if (!loading() && tabs().length > 0) {
-    <ui-tabs
-      [tabs]="tabs()"
-      [activeId]="activeTab()"
-      [ariaLabel]="t('offersTitle')"
-      tabIdPrefix="offers-tab"
-      panelIdPrefix="offers-panel"
-      (tabChange)="setTab($any($event))"
-    />
+    <div class="ui-pill-tabs" role="tablist" [attr.aria-label]="t('offersTitle')" (keydown)="onTabsKeydown($event)">
+      @for (tab of tabs(); track tab.id) {
+        <button
+          type="button"
+          role="tab"
+          class="ui-pill-tab min-h-11"
+          [id]="'offers-tab-' + tab.id"
+          [attr.aria-selected]="activeTab() === tab.id"
+          [attr.aria-controls]="'offers-panel-' + tab.id"
+          [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+          (click)="setTab(tab.id)"
+        >
+          <span class="material-icons !text-[18px]" aria-hidden="true">{{
+            tab.id === 'flash' ? 'bolt' : tab.id === 'combo' ? 'inventory_2' : 'sell'
+          }}</span>
+          {{ tab.label }}
+        </button>
+      }
+    </div>
   }
 
   @if (loading()) {
-    <div class="product-grid">
+    <div class="flex gap-2" aria-hidden="true">
+      @for (i of [1, 2, 3]; track i) {
+        <ui-skeleton width="7rem" height="2.75rem" class="block overflow-hidden rounded-full" />
+      }
+    </div>
+    <div class="product-grid" aria-hidden="true">
       @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
         <div class="ui-card overflow-hidden">
           <ui-skeleton height="0" class="block aspect-square bg-stage" />
@@ -25,9 +95,13 @@
       }
     </div>
   } @else if (activeTab() === 'discounted') {
-    <div role="tabpanel" id="offers-panel-discounted" aria-labelledby="offers-tab-discounted" tabindex="0">
+    <div role="tabpanel" id="offers-panel-discounted" aria-labelledby="offers-tab-discounted" tabindex="0" class="off-panel">
     @if (discounted().length === 0) {
-      <ui-empty-state icon="local_offer" [title]="t('noDiscountedProducts')" />
+      <div class="off-empty">
+        <ui-empty-state icon="local_offer" [title]="t('noDiscountedProducts')">
+          <a class="ui-btn-primary" routerLink="/shop">{{ t('browseShop') }}</a>
+        </ui-empty-state>
+      </div>
     } @else {
       <div class="product-grid ui-stagger-children">
         @for (p of discounted(); track p.id) {
@@ -56,30 +130,40 @@
     }
     </div>
   } @else if (activeTab() === 'flash') {
-    <div role="tabpanel" id="offers-panel-flash" aria-labelledby="offers-tab-flash" tabindex="0">
+    <div role="tabpanel" id="offers-panel-flash" aria-labelledby="offers-tab-flash" tabindex="0" class="off-panel">
     @if (flashSales().length === 0) {
-      <ui-empty-state icon="bolt" [title]="t('noFlashSales')" />
+      <div class="off-empty">
+        <ui-empty-state icon="bolt" [title]="t('noFlashSales')" />
+      </div>
     } @else {
-      <div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
+      <div class="off-grid ui-stagger-children">
         @for (sale of flashSales(); track sale.id) {
-          <article class="ui-card ui-hover-lift overflow-hidden">
-            @if (sale.imageUrl) {
-              <div class="relative aspect-[16/9] bg-stage">
-                <span class="absolute start-3 top-3 z-10"><ui-badge variant="citrus">{{ t('flashSaleBadge') }}</ui-badge></span>
-                <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" [alt]="flashName(sale)" loading="lazy" class="h-full w-full object-cover" />
-              </div>
-            }
-            <div class="p-4">
-              <h3 class="text-base font-semibold text-ink-900">
-                <a [routerLink]="['/flash-sales', sale.id]" class="hover:text-brand-700">{{ flashName(sale) }}</a>
+          <article class="off-card">
+            <a class="off-card__media" [routerLink]="['/flash-sales', sale.id]" tabindex="-1" aria-hidden="true">
+              @if (sale.imageUrl) {
+                <img [src]="catalogue.resolveImageUrl(sale.imageUrl)" alt="" loading="lazy" />
+              } @else {
+                <span class="material-icons off-card__placeholder">bolt</span>
+              }
+              <span class="off-card__badge"><ui-badge variant="citrus">{{ t('flashSaleBadge') }}</ui-badge></span>
+            </a>
+            <div class="off-card__body">
+              <h3 class="off-card__title">
+                <a [routerLink]="['/flash-sales', sale.id]">{{ flashName(sale) }}</a>
               </h3>
-              <p class="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-600">
+              <p class="off-card__meta">
+                <span class="material-icons" aria-hidden="true">schedule</span>
                 {{ t('saleEndsIn') }}
                 <app-flash-sale-countdown [endDate]="sale.endDate" />
-                <span class="text-ink-300">·</span>
+              </p>
+              <p class="off-card__meta">
+                <span class="material-icons" aria-hidden="true">inventory_2</span>
                 {{ sale.productCount }} {{ t('productsLabel') }}
               </p>
-              <a class="ui-btn-primary mt-3" [routerLink]="['/flash-sales', sale.id]">{{ t('shopSale') }}</a>
+              <a class="ui-btn-primary off-card__cta" [routerLink]="['/flash-sales', sale.id]">
+                {{ t('shopSale') }}
+                <span class="material-icons !text-[18px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+              </a>
             </div>
           </article>
         }
@@ -87,32 +171,40 @@
     }
     </div>
   } @else {
-    <div role="tabpanel" id="offers-panel-combo" aria-labelledby="offers-tab-combo" tabindex="0">
+    <div role="tabpanel" id="offers-panel-combo" aria-labelledby="offers-tab-combo" tabindex="0" class="off-panel">
     @if (combos().length === 0) {
-      <ui-empty-state icon="inventory_2" [title]="t('noComboOffers')" />
+      <div class="off-empty">
+        <ui-empty-state icon="inventory_2" [title]="t('noComboOffers')" />
+      </div>
     } @else {
-      <div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
+      <div class="off-grid ui-stagger-children">
         @for (combo of combos(); track combo.id) {
-          <article class="ui-card ui-hover-lift overflow-hidden">
-            @if (combo.imageUrl) {
-              <div class="aspect-[16/9] bg-stage">
-                <img [src]="catalogue.resolveImageUrl(combo.imageUrl)" [alt]="comboName(combo)" loading="lazy" class="h-full w-full object-cover" />
-              </div>
-            }
-            <div class="p-4">
-              <h3 class="text-base font-semibold text-ink-900">
-                <a [routerLink]="['/combos', combo.id]" class="hover:text-brand-700">{{ comboName(combo) }}</a>
+          <article class="off-card">
+            <a class="off-card__media" [routerLink]="['/combos', combo.id]" tabindex="-1" aria-hidden="true">
+              @if (combo.imageUrl) {
+                <img [src]="catalogue.resolveImageUrl(combo.imageUrl)" alt="" loading="lazy" />
+              } @else {
+                <span class="material-icons off-card__placeholder">inventory_2</span>
+              }
+              <span class="off-card__badge"><ui-badge variant="citrus">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge></span>
+            </a>
+            <div class="off-card__body">
+              <h3 class="off-card__title">
+                <a [routerLink]="['/combos', combo.id]">{{ comboName(combo) }}</a>
               </h3>
-              <p class="mt-2 flex flex-wrap items-baseline gap-2">
-                <span class="font-bold text-citrus">{{ combo.comboPrice | iwnCurrency }}</span>
-                <span class="text-sm text-ink-600 line-through">{{ combo.originalPrice | iwnCurrency }}</span>
-                <ui-badge variant="citrus">−{{ combo.savingsPercent | number: '1.0-0' }}%</ui-badge>
+              <p class="off-card__price">
+                <span class="off-card__now">{{ combo.comboPrice | iwnCurrency }}</span>
+                <span class="off-card__was">{{ combo.originalPrice | iwnCurrency }}</span>
               </p>
-              <p class="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-600">
+              <p class="off-card__meta">
+                <span class="material-icons" aria-hidden="true">schedule</span>
                 {{ t('saleEndsIn') }}
                 <app-flash-sale-countdown [endDate]="combo.endDate" />
               </p>
-              <a class="ui-btn-primary mt-3" [routerLink]="['/combos', combo.id]">{{ t('viewCombo') }}</a>
+              <a class="ui-btn-primary off-card__cta" [routerLink]="['/combos', combo.id]">
+                {{ t('viewCombo') }}
+                <span class="material-icons !text-[18px] rtl:rotate-180" aria-hidden="true">arrow_forward</span>
+              </a>
             </div>
           </article>
         }

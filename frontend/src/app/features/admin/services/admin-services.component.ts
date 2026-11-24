@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IwnCurrencyPipe } from '../../../core/pipes/iwn-currency.pipe';
 import { ADMIN_UI, AdminUiKey } from '../../../core/i18n/admin-ui-text';
 import { AdminServiceListItem } from '../../../core/models/admin-service.models';
@@ -15,12 +15,16 @@ import {
   UiFilterBarComponent,
   UiPageHeaderComponent,
   type UiTableColumn,
+  UiAlertComponent,
+  UiActionMenuComponent,
 } from '../../../shared/ui';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    UiActionMenuComponent,
+    UiAlertComponent,
     RouterLink,
     IwnCurrencyPipe,
     UiPageHeaderComponent,
@@ -36,6 +40,7 @@ export class AdminServicesComponent implements OnInit {
   private readonly servicesApi = inject(AdminServiceService);
   readonly catalogue = inject(CatalogueService);
   readonly locale = inject(LocaleService);
+  readonly router = inject(Router);
   private readonly confirmDialog = inject(UiConfirmService);
   private readonly toast = inject(UiToastService);
 
@@ -55,7 +60,7 @@ export class AdminServicesComponent implements OnInit {
       { key: 'price', header: this.t('price'), align: 'end' },
       { key: 'serviceType', header: this.t('serviceType'), hideOnMobile: true },
       { key: 'status', header: this.t('productStatus') },
-      { key: 'actions', header: this.t('actions'), noExport: true, hideOnMobile: true },
+      { key: 'actions', header: '', noExport: true, hideable: false, width: '3.5rem', align: 'end', mobile: 'actions' },
     ];
   }
 

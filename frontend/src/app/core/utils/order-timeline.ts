@@ -7,7 +7,10 @@ const STATUS_RANK: Record<string, number> = {
   Paid: 1,
   Approved: 1,
   Processing: 2,
+  'Preparing Shiping': 2,
+  PreparingShipping: 2,
   Shipped: 3,
+  OutForDelivery: 3,
   Delivered: 4,
 };
 
